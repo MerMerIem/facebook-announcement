@@ -19,6 +19,7 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     email: "",
@@ -61,7 +62,39 @@ const ProductDetails = () => {
 
     setIsSubmitting(true);
 
+    // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Generate order number
+    const generatedOrderNumber = Math.random().toString(36).substr(2, 9).toUpperCase();
+    setOrderNumber(generatedOrderNumber);
+
+    // Create order object
+    const order = {
+      id: Date.now().toString(),
+      orderNumber: generatedOrderNumber,
+      productId: product.id,
+      productName: product.name,
+      productPrice: product.price,
+      quantity,
+      total: parseFloat(calculateTotal()),
+      customerName: customerInfo.name,
+      email: customerInfo.email,
+      phone: customerInfo.phone,
+      address: customerInfo.address,
+      notes: customerInfo.notes,
+      timestamp: new Date().toISOString(),
+      status: "pending"
+    };
+
+    // Save order to localStorage
+    try {
+      const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      const updatedOrders = [...existingOrders, order];
+      localStorage.setItem('orders', JSON.stringify(updatedOrders));
+    } catch (error) {
+      console.log('localStorage not available, order saved in memory only');
+    }
 
     setIsSubmitting(false);
     setIsConfirmed(true);
@@ -75,6 +108,7 @@ const ProductDetails = () => {
   const handleReset = () => {
     setIsConfirmed(false);
     setQuantity(1);
+    setOrderNumber("");
     setCustomerInfo({
       name: "",
       email: "",
@@ -182,7 +216,7 @@ const ProductDetails = () => {
                     <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
                     <h3 className="text-xl font-semibold mb-2">تم إرسال الطلب بنجاح!</h3>
                     <p className="text-muted-foreground mb-4">
-                      طلب رقم: #{Math.random().toString(36).substr(2, 9).toUpperCase()}
+                      طلب رقم: #{orderNumber}
                     </p>
                     <div className="bg-accent/50 rounded-lg p-4 mb-6">
                       <p className="font-medium">{product.name}</p>
