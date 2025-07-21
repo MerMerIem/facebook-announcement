@@ -7,9 +7,66 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, ShoppingCart, Minus, Plus, CheckCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowRight, ShoppingCart, Minus, Plus, CheckCircle, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { products } from "./Index";
+
+// Wilaya delivery prices (in DA)
+const wilayaDeliveryPrices = {
+  "الجزائر": 500,
+  "وهران": 1000,
+  "قسنطينة": 1000,
+  "عنابة": 1200,
+  "سطيف": 800,
+  "سيدي بلعباس": 1000,
+  "بسكرة": 1200,
+  "تلمسان": 1200,
+  "بجاية": 800,
+  "تيزي وزو": 700,
+  "ورقلة": 1500,
+  "باتنة": 1000,
+  "جيجل": 1000,
+  "تبسة": 1300,
+  "بشار": 1800,
+  "تيارت": 1000,
+  "البليدة": 500,
+  "بومرداس": 600,
+  "الطارف": 1200,
+  "تندوف": 2000,
+  "الجلفة": 1200,
+  "مستغانم": 1000,
+  "المعسكر": 1000,
+  "المسيلة": 1000,
+  "المدية": 700,
+  "غرداية": 1300,
+  "قالمة": 1100,
+  "الخنشلة": 1200,
+  "سوق أهراس": 1200,
+  "الأغواط": 1200,
+  "أم البواقي": 900,
+  "منتوب": 1500,
+  "الوادي": 1400,
+  "الدراع": 2000,
+  "تيميمون": 1800,
+  "برج بو عريريج": 900,
+  "برج باجي مختار": 2000,
+  "عين تيموشنت": 1000,
+  "غليزان": 1000,
+  "تيسمسيلت": 1100,
+  "الشلف": 800,
+  "سعيدة": 1200,
+  "النعامة": 1600,
+  "عين الدفلى": 800,
+  "تيبازة": 600,
+  "ميلة": 1000,
+  "عين البيضاء": 1300,
+  "توقرت": 1400,
+  "بني عباس": 1800,
+  "إن صالح": 1800,
+  "إن قزام": 1900,
+  "دجانت": 1900
+};
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -20,10 +77,12 @@ const ProductDetails = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
+  const [selectedWilaya, setSelectedWilaya] = useState("");
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     email: "",
     phone: "",
+    wilaya: "",
     address: "",
     notes: "",
   });
@@ -36,10 +95,23 @@ const ProductDetails = () => {
 
   const updateCustomerInfo = (field, value) => {
     setCustomerInfo((prev) => ({ ...prev, [field]: value }));
+    if (field === "wilaya") {
+      setSelectedWilaya(value);
+    }
+  };
+
+  const getDeliveryPrice = () => {
+    return selectedWilaya ? wilayaDeliveryPrices[selectedWilaya] || 1000 : 0;
+  };
+
+  const calculateSubtotal = () => {
+    return product ? (product.price * quantity) : 0;
   };
 
   const calculateTotal = () => {
-    return product ? (product.price * quantity).toFixed(2) : "0.00";
+    const subtotal = calculateSubtotal();
+    const delivery = getDeliveryPrice();
+    return (subtotal + delivery).toFixed(2);
   };
 
   const handleSubmit = async (e) => {
@@ -50,11 +122,12 @@ const ProductDetails = () => {
       !customerInfo.name ||
       !customerInfo.email ||
       !customerInfo.phone ||
+      !customerInfo.wilaya ||
       !customerInfo.address
     ) {
       toast({
         title: "معلومات مفقودة",
-        description: "يرجى ملء جميع الحقول المطلوبة.",
+        description: "يرجى ملء جميع الحقول المطلوبة بما في ذلك الولاية.",
         variant: "destructive",
       });
       return;
@@ -77,6 +150,9 @@ const ProductDetails = () => {
       productName: product.name,
       productPrice: product.price,
       quantity,
+      subtotal: calculateSubtotal(),
+      wilaya: customerInfo.wilaya,
+      deliveryPrice: getDeliveryPrice(),
       total: parseFloat(calculateTotal()),
       customerName: customerInfo.name,
       email: customerInfo.email,
@@ -109,10 +185,12 @@ const ProductDetails = () => {
     setIsConfirmed(false);
     setQuantity(1);
     setOrderNumber("");
+    setSelectedWilaya("");
     setCustomerInfo({
       name: "",
       email: "",
       phone: "",
+      wilaya: "",
       address: "",
       notes: "",
     });
@@ -221,7 +299,22 @@ const ProductDetails = () => {
                     <div className="bg-accent/50 rounded-lg p-4 mb-6">
                       <p className="font-medium">{product.name}</p>
                       <p className="text-sm text-muted-foreground">الكمية: {quantity}</p>
-                      <p className="text-lg font-bold text-primary">الإجمالي: {calculateTotal()} د.ج</p>
+                      <p className="text-sm text-muted-foreground">الولاية: {customerInfo.wilaya}</p>
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>{(calculateSubtotal()).toFixed(2)} د.ج</span>
+                          <span>المجموع الفرعي:</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>{getDeliveryPrice()} د.ج</span>
+                          <span>رسوم التوصيل:</span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between font-bold text-primary">
+                          <span>{calculateTotal()} د.ج</span>
+                          <span>الإجمالي:</span>
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Button onClick={handleReset} className="w-full" size="lg" variant="outline">
@@ -253,7 +346,7 @@ const ProductDetails = () => {
                       <Separator className="my-4" />
 
                       {/* Quantity Selector */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <Button
                             type="button"
@@ -277,11 +370,56 @@ const ProductDetails = () => {
                         <Label className="text-sm font-medium">الكمية:</Label>
                       </div>
 
+                      {/* Wilaya Selector */}
+                      <div className="mb-4">
+                        <Label className="text-sm font-medium mb-2 block text-right">اختر الولاية لحساب رسوم التوصيل:</Label>
+                        <Select value={selectedWilaya} onValueChange={setSelectedWilaya} dir="rtl">
+                          <SelectTrigger className="w-full text-right">
+                            <SelectValue placeholder="اختر الولاية" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(wilayaDeliveryPrices).map(([wilaya, price]) => (
+                              <SelectItem key={wilaya} value={wilaya} className="text-right">
+                                <div className="flex justify-between items-center w-full">
+                                  <span className="text-sm text-muted-foreground">{price} د.ج</span>
+                                  <span>{wilaya}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Delivery Info */}
+                      {selectedWilaya && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                          <div className="flex items-center gap-2 text-blue-700 mb-1">
+                            <Truck className="w-4 h-4" />
+                            <span className="text-sm font-medium">معلومات التوصيل</span>
+                          </div>
+                          <p className="text-sm text-blue-600">
+                            رسوم التوصيل إلى {selectedWilaya}: {getDeliveryPrice()} د.ج
+                          </p>
+                        </div>
+                      )}
+
                       <Separator className="my-4" />
 
-                      <div className="flex justify-between items-center">
-                        <span className="text-xl font-bold text-primary">{calculateTotal()} د.ج</span>
-                        <span className="font-medium">الإجمالي:</span>
+                      {/* Price Breakdown */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span>{(calculateSubtotal()).toFixed(2)} د.ج</span>
+                          <span>المجموع الفرعي ({quantity} قطعة):</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span>{getDeliveryPrice()} د.ج</span>
+                          <span>رسوم التوصيل:</span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between items-center">
+                          <span className="text-xl font-bold text-primary">{calculateTotal()} د.ج</span>
+                          <span className="font-medium">الإجمالي:</span>
+                        </div>
                       </div>
                     </div>
 
@@ -328,13 +466,37 @@ const ProductDetails = () => {
                           />
                         </div>
 
+                        <div className="space-y-2">
+                          <Label htmlFor="wilaya" className="text-right block">الولاية *</Label>
+                          <Select 
+                            value={customerInfo.wilaya} 
+                            onValueChange={(value) => updateCustomerInfo("wilaya", value)}
+                            dir="rtl"
+                            required
+                          >
+                            <SelectTrigger className="w-full text-right">
+                              <SelectValue placeholder="اختر الولاية" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(wilayaDeliveryPrices).map(([wilaya, price]) => (
+                                <SelectItem key={wilaya} value={wilaya} className="text-right">
+                                  <div className="flex justify-between items-center w-full">
+                                    <span className="text-sm text-muted-foreground">{price} د.ج</span>
+                                    <span>{wilaya}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
                         <div className="space-y-2 md:col-span-2">
-                          <Label htmlFor="address" className="text-right block">عنوان الشحن *</Label>
+                          <Label htmlFor="address" className="text-right block">عنوان الشحن التفصيلي *</Label>
                           <Textarea
                             id="address"
                             value={customerInfo.address}
                             onChange={(e) => updateCustomerInfo("address", e.target.value)}
-                            placeholder="أدخل عنوان الشحن الكامل الخاص بك"
+                            placeholder="أدخل عنوان الشحن الكامل الخاص بك (البلدية، الحي، رقم المنزل...)"
                             className="text-right"
                             dir="rtl"
                             required
@@ -360,13 +522,19 @@ const ProductDetails = () => {
                         variant="default"
                         size="lg"
                         className="w-full"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !selectedWilaya}
                       >
                         <ShoppingCart className="w-5 h-5 mr-2" />
                         {isSubmitting
                           ? "جاري معالجة الطلب..."
                           : `تأكيد الطلب - ${calculateTotal()} د.ج`}
                       </Button>
+
+                      {!selectedWilaya && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          يرجى اختيار الولاية لحساب رسوم التوصيل
+                        </p>
+                      )}
                     </form>
                   </div>
                 )}

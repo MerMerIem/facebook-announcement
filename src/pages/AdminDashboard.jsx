@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { LogOut, Package, User, MapPin, Phone, Calendar, Trash2 } from 'lucide-react';
+import { LogOut, Package, User, MapPin, Phone, Calendar, Trash2, Mail, Truck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -95,6 +95,7 @@ const AdminDashboard = () => {
   const indexOfLastOrder = currentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
   const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+  console.log("current orders",currentOrders)
   const totalPages = Math.ceil(orders.length / ordersPerPage);
 
   const handlePageChange = (page) => {
@@ -177,7 +178,8 @@ const AdminDashboard = () => {
                       <TableHead>Produit</TableHead>
                       <TableHead>Client</TableHead>
                       <TableHead>Contact</TableHead>
-                      <TableHead>Adresse</TableHead>
+                      <TableHead>Wilaya</TableHead>
+                      <TableHead>Livraison</TableHead>
                       <TableHead>Quantité</TableHead>
                       <TableHead>Totale</TableHead>
                       <TableHead>Statut</TableHead>
@@ -189,7 +191,14 @@ const AdminDashboard = () => {
                     {currentOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
-                          <Badge variant="outline">#{order.id.slice(-6)}</Badge>
+                          <div>
+                            <Badge variant="outline">#{order.orderNumber || order.id.slice(-6)}</Badge>
+                            {order.orderNumber && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                ID: {order.id.slice(-6)}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div>
@@ -200,7 +209,15 @@ const AdminDashboard = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
-                            {order.customerName}
+                            <div>
+                              <div className="font-medium">{order.customerName}</div>
+                              {order.email && (
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {order.email}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -212,17 +229,27 @@ const AdminDashboard = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <div className="text-sm">
-                              <div>{order.address}</div>
-                              <div className="text-muted-foreground">{order.city}, {order.state}</div>
-                            </div>
+                            {order.wilaya}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Truck className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{order.deliveryPrice} DA</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">{order.quantity}</Badge>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {order.total.toFixed(2)} DA
+                          <div>
+                            <div>{order.total.toFixed(2)} DA</div>
+                            {order.subtotal && (
+                              <div className="text-xs text-muted-foreground">
+                                Sous-total: {order.subtotal.toFixed(2)} DA
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value)}>
@@ -311,30 +338,65 @@ const AdminDashboard = () => {
               {currentOrders.map((order) => (
                 <Card key={order.id} className="bg-gradient-card shadow-card border-0">
                   <CardContent className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       <div>
-                        <h3 className="font-semibold text-primary mb-2">Commande #{order.id.slice(-6)}</h3>
-                        <p><strong>Produit:</strong> {order.productName}</p>
-                        <p><strong>Prix:</strong> {order.productPrice} DA</p>
-                        <p><strong>Quantité:</strong> {order.quantity}</p>
-                        <p><strong>Totale:</strong> {order.total.toFixed(2)} DA</p>
+                        <h3 className="font-semibold text-primary mb-3">
+                          Commande #{order.orderNumber || order.id.slice(-6)}
+                        </h3>
+                        <div className="space-y-2">
+                          <p><strong>Produit:</strong> {order.productName}</p>
+                          <p><strong>Prix unitaire:</strong> {order.productPrice} DA</p>
+                          <p><strong>Quantité:</strong> {order.quantity}</p>
+                          {order.subtotal && (
+                            <p><strong>Sous-total:</strong> {order.subtotal.toFixed(2)} DA</p>
+                          )}
+                          {order.deliveryPrice && (
+                            <p><strong>Frais de livraison:</strong> {order.deliveryPrice} DA</p>
+                          )}
+                          <p className="text-lg"><strong>Total:</strong> {order.total.toFixed(2)} DA</p>
+                        </div>
                       </div>
                       <div>
-                        <h4 className="font-semibold text-primary mb-2">Informations Client</h4>
-                        <p><strong>Nom:</strong> {order.customerName}</p>
-                        <p><strong>Téléphone:</strong> {order.phone}</p>
-                        <p><strong>Adresse:</strong> {order.address}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-primary mb-2">Informations Supplémentaires</h4>
-                        <p><strong>Statut:</strong> <Badge variant={getStatusBadgeVariant(order.status)}>{getStatusLabel(order.status)}</Badge></p>
-                        <p><strong>Date:</strong> {formatDate(order.timestamp)}</p>
-                        {order.notes && (
+                        <h4 className="font-semibold text-primary mb-3">Informations Client</h4>
+                        <div className="space-y-2">
+                          <p><strong>Nom complet:</strong> {order.customerName}</p>
+                          {order.email && (
+                            <p><strong>Email:</strong> {order.email}</p>
+                          )}
+                          <p><strong>Téléphone:</strong> {order.phone}</p>
+                          {order.wilaya && (
+                            <p><strong>Wilaya:</strong> {order.wilaya}</p>
+                          )}
                           <div>
-                            <strong>Notes:</strong>
-                            <p className="text-sm text-muted-foreground mt-1">{order.notes}</p>
+                            <strong>Adresse de livraison:</strong>
+                            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                              {order.address}
+                            </p>
                           </div>
-                        )}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-primary mb-3">Informations Supplémentaires</h4>
+                        <div className="space-y-2">
+                          <p>
+                            <strong>Statut:</strong> 
+                            <Badge variant={getStatusBadgeVariant(order.status)} className="ml-2">
+                              {getStatusLabel(order.status)}
+                            </Badge>
+                          </p>
+                          <p><strong>Date de commande:</strong> {formatDate(order.timestamp)}</p>
+                          {order.notes && (
+                            <div>
+                              <strong>Notes du client:</strong>
+                              <p className="text-sm text-muted-foreground mt-1 p-3 bg-accent/20 rounded-lg leading-relaxed">
+                                {order.notes}
+                              </p>
+                            </div>
+                          )}
+                          {!order.notes && (
+                            <p className="text-sm text-muted-foreground italic">Aucune note spéciale</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
