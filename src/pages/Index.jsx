@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { ProductCard } from "../components/ProductCard";
-import { OrderForm } from "@/components/OrderForm";
+import { ProductCard } from "@/components/ProductCard";
 import item1 from "@/assets/item1.jpg";
 import item2 from "@/assets/item2.jpg";
 import item3 from "@/assets/item3.jpg";
@@ -12,8 +10,7 @@ import item10 from "@/assets/item10.jpg";
 import item11 from "@/assets/item11.jpg";
 import item12 from "@/assets/item12.jpg";
 
-// --- Data -------------------------------------------------------------
-const products = [
+export const products = [
   {
     id: 1,
     name: "جهاز إنذار دخان لاسلكي بشاشة رقمية",
@@ -95,32 +92,21 @@ const products = [
   },
 ];
 
-// --- Component --------------------------------------------------------
-function Index() {
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [isOrderFormOpen, setIsOrderFormOpen] = useState(false);
 
-  const handleBuyNow = (product) => {
-    setSelectedProduct(product);
-    setIsOrderFormOpen(true);
-  };
-
-  const handleCloseOrderForm = () => {
-    setIsOrderFormOpen(false);
-    setSelectedProduct(null);
-  };
-
+const Index = () => {
   return (
-    <div dir="rtl" className="min-h-screen bg-background">
+    <div dir="rtl" className="min-h-screen bg-gradient-subtle">
       {/* Header */}
-      <header className="bg-white shadow-md border-b border-border/50">
-        <div className="container mx-auto px-4 py-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold bg-primary bg-clip-text text-transparent mb-4">
-            Sekkar quincaillerie
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          اكتشف مجموعتنا المختارة بعناية من المنتجات التقنية. كل منتج تم اختياره بعناية من حيث الجودة، والأداء، والأسلوب.
-          </p>
+      <header className="bg-gradient-card shadow-card border-b border-border/50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-5xl font-bold bg-primary bg-clip-text text-transparent mb-4">
+              Sekkar quincaillerie
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              اكتشف مجموعتنا المختارة بعناية من المنتجات التقنية. كل منتج تم اختياره بعناية من حيث الجودة، والأداء، والأسلوب.
+            </p>
+          </div>
         </div>
       </header>
 
@@ -128,28 +114,23 @@ function Index() {
       <main className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} onBuyNow={handleBuyNow} />
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </main>
 
-      {/* Order Form Modal */}
-      <OrderForm
-        product={selectedProduct}
-        isOpen={isOrderFormOpen}
-        onClose={handleCloseOrderForm}
-      />
-
       {/* Footer */}
       <footer className="bg-card border-t border-border/50 mt-16">
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-muted-foreground">
-            ©2025 Sekkar Quincaillerie. جميع الحقوق محفوظة.
-          </p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-muted-foreground">
+              ©2025 Sekkar Quincaillerie. جميع الحقوق محفوظة.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
   );
-}
+};
 
 export default Index;
