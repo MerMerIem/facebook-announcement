@@ -99,13 +99,21 @@ const Index = () => {
       {/* Header */}
       <header className="bg-gradient-card shadow-card border-b border-border/50">
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold bg-primary bg-clip-text text-transparent mb-4">
-              Sekkar quincaillerie
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              اكتشف مجموعتنا المختارة بعناية من المنتجات التقنية. كل منتج تم اختياره بعناية من حيث الجودة، والأداء، والأسلوب.
-            </p>
+          <div className="flex justify-between items-start">
+            <div className="text-center flex-1">
+              <h1 className="text-4xl md:text-5xl font-bold bg-primary bg-clip-text text-transparent mb-4">
+                Sekkar quincaillerie
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                اكتشف مجموعتنا المختارة بعناية من المنتجات التقنية. كل منتج تم اختياره بعناية من حيث الجودة، والأداء، والأسلوب.
+              </p>
+            </div>
+            <a 
+              href="/admin/login" 
+              className="text-sm text-muted-foreground hover:text-primary transition-colors mt-4"
+            >
+              Admin
+            </a>
           </div>
         </div>
       </header>
