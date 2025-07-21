@@ -3,16 +3,86 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, ShoppingCart } from "lucide-react";
-import { OrderForm } from "@/components/OrderForm";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { ArrowRight, ShoppingCart, Minus, Plus, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { products } from "./Index";
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [isOrderFormOpen, setIsOrderFormOpen] = useState(false);
+  const { toast } = useToast();
+
+  const [quantity, setQuantity] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    notes: "",
+  });
 
   const product = products.find((p) => p.id === parseInt(id || ""));
+
+  const updateQuantity = (delta) => {
+    setQuantity(Math.max(1, quantity + delta));
+  };
+
+  const updateCustomerInfo = (field, value) => {
+    setCustomerInfo((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const calculateTotal = () => {
+    return product ? (product.price * quantity).toFixed(2) : "0.00";
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!product) return;
+
+    if (
+      !customerInfo.name ||
+      !customerInfo.email ||
+      !customerInfo.phone ||
+      !customerInfo.address
+    ) {
+      toast({
+        title: "معلومات مفقودة",
+        description: "يرجى ملء جميع الحقول المطلوبة.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    setIsSubmitting(false);
+    setIsConfirmed(true);
+
+    toast({
+      title: "تم تأكيد الطلب!",
+      description: `تم تأكيد طلبك لـ ${quantity} ${product.name}.`,
+    });
+  };
+
+  const handleReset = () => {
+    setIsConfirmed(false);
+    setQuantity(1);
+    setCustomerInfo({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      notes: "",
+    });
+  };
 
   if (!product) {
     return (
@@ -41,7 +111,7 @@ const ProductDetails = () => {
             العودة إلى المنتجات
           </Button>
           <h1 className="text-2xl md:text-3xl font-bold bg-primary bg-clip-text text-transparent">
-          تفاصيل المنتج
+            تفاصيل المنتج
           </h1>
         </div>
       </header>
@@ -69,7 +139,7 @@ const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Product Info */}
+          {/* Product Info & Order Form */}
           <div className="space-y-6">
             <div>
               <h2 className="text-3xl font-bold text-foreground mb-4">{product.name}</h2>
@@ -104,36 +174,173 @@ const ProductDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Order Button */}
+            {/* Order Form */}
             <Card className="bg-gradient-card shadow-card border-0">
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold text-foreground mb-4">
-                هل أنت مستعد للطلب؟ 
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                انقر على الزر أدناه لإتمام طلبك من خلال عملية الدفع السهلة الخاصة بنا.
-                </p>
-                <Button 
-                  onClick={() => setIsOrderFormOpen(true)}
-                  className="w-full" 
-                  variant="default" 
-                  size="lg"
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  اطلب الآن
-                </Button>
+                {isConfirmed ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">تم إرسال الطلب بنجاح!</h3>
+                    <p className="text-muted-foreground mb-4">
+                      طلب رقم: #{Math.random().toString(36).substr(2, 9).toUpperCase()}
+                    </p>
+                    <div className="bg-accent/50 rounded-lg p-4 mb-6">
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-sm text-muted-foreground">الكمية: {quantity}</p>
+                      <p className="text-lg font-bold text-primary">الإجمالي: {calculateTotal()} د.ج</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Button onClick={handleReset} className="w-full" size="lg" variant="outline">
+                        طلب جديد
+                      </Button>
+                      <Button onClick={() => navigate("/")} className="w-full" size="lg">
+                        مواصلة التسوق  
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-semibold text-foreground mb-4">أكمِل طلبك</h3>
+                    
+                    {/* Product Summary */}
+                    <div className="bg-accent/10 rounded-lg p-4">
+                      <div className="flex items-center gap-4 flex-row-reverse">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                        <div className="flex-1 text-right">
+                          <h4 className="font-semibold">{product.name}</h4>
+                          <p className="text-sm text-muted-foreground">{product.price} د.ج لكل قطعة</p>
+                        </div>
+                      </div>
+
+                      <Separator className="my-4" />
+
+                      {/* Quantity Selector */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => updateQuantity(1)}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                          <span className="w-12 text-center font-medium">{quantity}</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => updateQuantity(-1)}
+                            disabled={quantity <= 1}
+                          >
+                            <Minus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Label className="text-sm font-medium">الكمية:</Label>
+                      </div>
+
+                      <Separator className="my-4" />
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-xl font-bold text-primary">{calculateTotal()} د.ج</span>
+                        <span className="font-medium">الإجمالي:</span>
+                      </div>
+                    </div>
+
+                    {/* Customer Info Form */}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name" className="text-right block">الاسم الكامل *</Label>
+                          <Input
+                            id="name"
+                            value={customerInfo.name}
+                            onChange={(e) => updateCustomerInfo("name", e.target.value)}
+                            placeholder="أدخل اسمك الكامل"
+                            className="text-right"
+                            dir="rtl"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="email" className="text-right block">عنوان البريد الإلكتروني *</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={customerInfo.email}
+                            onChange={(e) => updateCustomerInfo("email", e.target.value)}
+                            placeholder="أدخل بريدك الإلكتروني"
+                            className="text-right"
+                            dir="rtl"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="phone" className="text-right block">رقم الهاتف *</Label>
+                          <Input
+                            id="phone"
+                            value={customerInfo.phone}
+                            onChange={(e) => updateCustomerInfo("phone", e.target.value)}
+                            placeholder="أدخل رقم هاتفك"
+                            className="text-right"
+                            dir="rtl"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="address" className="text-right block">عنوان الشحن *</Label>
+                          <Textarea
+                            id="address"
+                            value={customerInfo.address}
+                            onChange={(e) => updateCustomerInfo("address", e.target.value)}
+                            placeholder="أدخل عنوان الشحن الكامل الخاص بك"
+                            className="text-right"
+                            dir="rtl"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="notes" className="text-right block">ملاحظات إضافية (اختياري)</Label>
+                          <Textarea
+                            id="notes"
+                            value={customerInfo.notes}
+                            onChange={(e) => updateCustomerInfo("notes", e.target.value)}
+                            placeholder="أي تعليمات أو ملاحظات خاصة"
+                            className="text-right"
+                            dir="rtl"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Submit Button */}
+                      <Button
+                        type="submit"
+                        variant="default"
+                        size="lg"
+                        className="w-full"
+                        disabled={isSubmitting}
+                      >
+                        <ShoppingCart className="w-5 h-5 mr-2" />
+                        {isSubmitting
+                          ? "جاري معالجة الطلب..."
+                          : `تأكيد الطلب - ${calculateTotal()} د.ج`}
+                      </Button>
+                    </form>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
-
-      {/* Order Form Dialog */}
-      <OrderForm 
-        product={product}
-        isOpen={isOrderFormOpen}
-        onClose={() => setIsOrderFormOpen(false)}
-      />
     </div>
   );
 };
