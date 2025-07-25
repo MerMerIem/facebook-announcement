@@ -5,8 +5,24 @@
   channel = "stable-24.05"; # or "unstable"
   # Use https://search.nixos.org/packages to find packages
   packages = [
-    pkgs.nodejs_20
+    pkgs.mysql80
+    pkgs.redis
+    # pkgs.go
+    # pkgs.python311
+    # pkgs.python311Packages.pip
+    # pkgs.nodejs_20
+    # pkgs.nodePackages.nodemon
   ];
+  services = {
+    mysql = {
+    enable = true;
+    package = pkgs.mysql80;
+    };
+    redis = {
+    enable = true;
+    port = 6379;
+    };
+  };
   # Sets environment variables in the workspace
   env = {};
   idx = {
