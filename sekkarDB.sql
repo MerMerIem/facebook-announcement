@@ -38,7 +38,6 @@ CREATE TABLE subcategories (
 CREATE TABLE products (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  reference VARCHAR(100),
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
   discount_price DECIMAL(10,2),
