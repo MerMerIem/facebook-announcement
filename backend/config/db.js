@@ -8,7 +8,9 @@ const db = mysql2.createPool({
     user: process.env.DB_USER || 'root',
     port: process.env.DB_PORT || '3306',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'quincaillerie_sekkar'
+    database: process.env.DB_NAME || 'quincaillerie_sekkar',
+    charset: 'utf8mb4', // THIS IS CRUCIAL
+    connectionLimit: 10
 });
 
 db.getConnection((err, connection) => {

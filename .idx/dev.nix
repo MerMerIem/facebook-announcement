@@ -41,12 +41,12 @@
     };
     # Enable previews and customize configuration
     previews = {
-      enable = true;
+      enable = false ;
       previews = {
-        web = {
-          command = ["npm" "run" "dev" "--" "--port" "$PORT" "--host" "0.0.0.0"];
-          manager = "web";
-        };
+          web = {
+            command = ["npm" "run" "dev" "--" "--port" "$PORT" "--host" "0.0.0.0"];
+            manager = "web";
+          };
       };
     };
   };
