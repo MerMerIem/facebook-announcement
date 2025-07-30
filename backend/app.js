@@ -17,12 +17,14 @@ import productRoute from "./routes/productsRoute.routes.js";
 import subCategoryRoute from "./routes/subcategoriesRoute.routes.js";
 import tagRoute from "./routes/tagsRoute.routes.js";
 import wilayaRoute from "./routes/wilayasRoute.routes.js";
+import orderRoute from "./routes/ordersRoute.routes.js";
 
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
 const app = express();
+app.use(cookieParser());
 
 // Morgan with explicit console logging
 const logger = pinoHttp({
@@ -44,7 +46,6 @@ const logger = pinoHttp({
 });
 
 app.use(logger);
-app.use(cookieParser());
 app.use(json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
@@ -86,6 +87,7 @@ app.use("/subcategory", subCategoryRoute);
 app.use("/wilaya", wilayaRoute);
 app.use("/tag", tagRoute);
 app.use("/product", productRoute);
+app.use("/order", orderRoute);
 
 app.use((err, req, res, next) => {
   console.error(`❌ Error:`, err.stack);

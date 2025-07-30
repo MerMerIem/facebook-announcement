@@ -209,3 +209,33 @@ export const validateDiscountDates = [
     next();
   },
 ];
+
+export function validateOrderFields(req, res, next) {
+  const { email, phone, delivery_location } = req.body;
+  
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+  }
+  
+  // Phone validation
+  // Starts with 0, followed by 5/6/7, then 4-9, then 7 digits 0-9
+  const phoneRegex = /^0[567][4-9]\d{7}$/;
+  if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ 
+          error: 'Invalid phone number format. Must start with 05, 06, or 07, followed by a digit between 4-9, then 7 more digits.' 
+      });
+  }
+  
+  // Delivery location validation
+  const validLocations = ['home', 'office'];
+  if (!validLocations.includes(delivery_location.toLowerCase())) {
+      return res.status(400).json({ 
+          error: 'Invalid delivery location. Must be either "home" or "office".' 
+      });
+  }
+  
+  // If all validations pass, proceed to the next middleware/route handler
+  next();
+}

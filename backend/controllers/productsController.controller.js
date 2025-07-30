@@ -94,13 +94,15 @@ export async function getAllProducts(req, res) {
   }
 }
 
-// only for the client
 export async function getProductById(req, res) {
   const { id } = req.params;
 
+  // Check if user is admin (assuming user info is available in req.user)
+  const isAdmin = req.user && req.user.role === "admin";
+
   try {
-    const [rows] = await db.execute(
-      `
+    // Build query based on user role
+    let query = `
       SELECT 
         p.id,
         p.name,
@@ -124,6 +126,18 @@ export async function getProductById(req, res) {
           END
         ) AS images,
         (SELECT pi2.url FROM product_images pi2 WHERE pi2.product_id = p.id AND pi2.is_main = 1 LIMIT 1) AS main_image_url
+    `;
+
+    // Add admin-only fields
+    if (isAdmin) {
+      query += `,
+        p.initial_price,
+        p.profit,
+        p.discount_percentage
+      `;
+    }
+
+    query += `
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN subcategories s ON p.subcategory_id = s.id
@@ -132,18 +146,19 @@ export async function getProductById(req, res) {
       GROUP BY p.id, p.name, p.description, p.price, p.discount_price, 
                p.discount_start, p.discount_end, p.category_id, p.subcategory_id,
                c.name, s.name
-      `,
-      [id]
-    );
+    `;
+
+    if (isAdmin) {
+      query += `, p.initial_price, p.profit, p.discount_percentage`;
+    }
+
+    const [rows] = await db.execute(query, [id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "Product not found" });
     }
 
     const product = rows[0];
-
-    // Parse images JSON and filter out null values
-    let images = [];
 
     // Structure the response with nested objects for better organization
     const response = {
@@ -169,8 +184,20 @@ export async function getProductById(req, res) {
         product.discount_price &&
         product.discount_start &&
         product.discount_end,
-      total_images: images.length,
+      total_images: Array.isArray(product.images)
+        ? product.images.filter((img) => img !== null).length
+        : 0,
     };
+
+    // Add admin-only pricing information
+    if (isAdmin) {
+      response.admin_pricing = {
+        initial_price: product.initial_price,
+        profit: product.profit,
+        discount_percentage: product.discount_percentage,
+        calculated_price: product.price, // Show the calculated price for reference
+      };
+    }
 
     return res.status(200).json(response);
   } catch (err) {
@@ -188,6 +215,9 @@ export async function searchProduct(req, res) {
     limit = 20,
     page = 1,
   } = req.query;
+
+  // Check if user is admin
+  const isAdmin = req.user && req.user.role === "admin";
 
   const numericLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
   const numericPage = Math.max(1, parseInt(page, 10) || 1);
@@ -259,7 +289,7 @@ export async function searchProduct(req, res) {
       }
     }
 
-    // Build main product query
+    // Build main product query with conditional admin fields
     let query = `
       SELECT 
         p.id, p.name, p.description, p.price,
@@ -267,6 +297,18 @@ export async function searchProduct(req, res) {
         c.name AS category_name,
         sc.name AS subcategory_name,
         GROUP_CONCAT(DISTINCT t.name) AS tags
+    `;
+
+    // Add admin-only fields
+    if (isAdmin) {
+      query += `,
+        p.initial_price,
+        p.profit,
+        p.discount_percentage
+      `;
+    }
+
+    query += `
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN subcategories sc ON p.subcategory_id = sc.id
@@ -281,8 +323,13 @@ export async function searchProduct(req, res) {
     query += `
       GROUP BY p.id, p.name, p.description, p.price, p.discount_price, 
                p.discount_start, p.discount_end, c.name, sc.name
-      LIMIT ${numericLimit} OFFSET ${offset}
     `;
+
+    if (isAdmin) {
+      query += `, p.initial_price, p.profit, p.discount_percentage`;
+    }
+
+    query += ` LIMIT ${numericLimit} OFFSET ${offset}`;
 
     const [products] = await db.execute(query, queryParams);
 
@@ -338,7 +385,7 @@ export async function searchProduct(req, res) {
       const images = imagesByProduct[product.id] || [];
       const mainImage = images.find((img) => img.is_main) || null;
 
-      return {
+      const productData = {
         id: product.id,
         name: product.name,
         description: product.description,
@@ -361,6 +408,18 @@ export async function searchProduct(req, res) {
           product.discount_end,
         total_images: images.length,
       };
+
+      // Add admin-only pricing information
+      if (isAdmin) {
+        productData.admin_pricing = {
+          initial_price: product.initial_price,
+          profit: product.profit,
+          discount_percentage: product.discount_percentage,
+          calculated_price: product.price, // Show the calculated price for reference
+        };
+      }
+
+      return productData;
     });
 
     res.status(200).json({
@@ -381,7 +440,6 @@ export async function searchProduct(req, res) {
     });
   }
 }
-
 export async function modifyProduct(req, res) {
   let connection;
   try {
@@ -391,16 +449,36 @@ export async function modifyProduct(req, res) {
     const {
       name,
       description,
-      price,
+      initial_price,
+      profit,
+      discount_percentage,
       category,
       subcategory,
-      discount_price,
       discount_start,
       discount_end,
       tags = [],
       images = [],
       deletedImages = [],
     } = req.body || {};
+
+    // Calculate the actual price and discount_price if values are provided
+    let price = null;
+    let discount_price = null;
+
+    if (parsedDiscount <= 0 || isNaN(parsedDiscount)) {
+      discount_price = 0;
+      discount_start = null;
+      discount_end = null;
+    }
+
+    if (initial_price !== undefined && profit !== undefined) {
+      price = parseFloat(initial_price) + parseFloat(profit);
+    }
+
+    const parsedDiscount = parseFloat(discount_percentage);
+    if (price !== null && parsedDiscount > 0) {
+      discount_price = price - price * (parsedDiscount / 100);
+    }
 
     // 2. Initialize database connection
     connection = await db.getConnection();
@@ -476,12 +554,15 @@ export async function modifyProduct(req, res) {
 
     addFieldUpdate("name", name?.trim());
     addFieldUpdate("description", description);
-    addFieldUpdate("price", price);
+    addFieldUpdate("price", price); // Use calculated price
+    addFieldUpdate("initial_price", initial_price); // Add initial_price field
+    addFieldUpdate("profit", profit); // Add profit field
     addFieldUpdate("category_id", category_id);
     addFieldUpdate("subcategory_id", subcategory_id);
-    addFieldUpdate("discount_price", discount_price);
+    addFieldUpdate("discount_price", discount_price); // Use calculated discount_price
     addFieldUpdate("discount_start", discount_start);
     addFieldUpdate("discount_end", discount_end);
+    addFieldUpdate("discount_percentage", discount_percentage);
 
     if (updateFields.length > 0) {
       const updateQuery = `UPDATE products SET ${updateFields.join(
@@ -660,129 +741,126 @@ export async function modifyProduct(req, res) {
 }
 
 export async function addProduct(req, res) {
+  console.log("called add product");
   const {
     name,
     description,
-    price,
+    initial_price,
+    profit,
     category,
     subcategory,
+    discount_percentage = 0,
     discount_price,
     discount_start,
     discount_end,
-    main_image_index,
-    tags, // This should be an array of tag names from the frontend
+    main_image_index = 0,
+    tags = [],
   } = req.body;
 
-  // Get Cloudinary URLs from middleware (instead of req.files)
-  const imageUrls = req.uploadedImages
-    ? req.uploadedImages.map((img) => img.url)
-    : [];
+  console.log("request body", req.body);
 
-  if (!imageUrls.length || imageUrls.length === 0) {
+  // Calculate base price
+  const price = parseFloat(initial_price) + parseFloat(profit);
+
+  // Check if ALL discount fields are provided and valid (not undefined, null, or empty)
+  const hasAllDiscountFields = [discount_price, discount_start, discount_end]
+    .every(field => field !== undefined && field !== null && field !== '');
+    console.log("hasAllDiscountFields",hasAllDiscountFields)
+
+  // Get Cloudinary URLs
+  const imageUrls = req.uploadedImages?.map(img => img.url) || [];
+  if (!imageUrls.length) {
     return res.status(400).json({ message: "No images provided" });
   }
 
-  let connection; // Declare connection outside the try block for scope
-
+  let connection;
   try {
-    connection = await db.getConnection(); // Get a connection from the pool
-    await connection.beginTransaction(); // Start the transaction
+    connection = await db.getConnection();
+    await connection.beginTransaction();
 
     // 1. Verify category
-    const [rows] = await connection.execute(
+    const [categoryRows] = await connection.execute(
       "SELECT id FROM categories WHERE name = ?",
       [category]
     );
-    if (rows.length === 0) {
-      await connection.rollback(); // Rollback if category doesn't exist
+    if (!categoryRows.length) {
+      await connection.rollback();
       return res.status(400).json({ message: "Category doesn't exist" });
     }
-    const category_id = rows[0].id;
+    const category_id = categoryRows[0].id;
 
     // 2. Verify subcategory
-    const [rows2] = await connection.execute(
+    const [subcategoryRows] = await connection.execute(
       "SELECT id FROM subcategories WHERE name = ? AND category_id = ?",
       [subcategory, category_id]
     );
-    if (rows2.length === 0) {
-      await connection.rollback(); // Rollback if subcategory doesn't exist
+    if (!subcategoryRows.length) {
+      await connection.rollback();
       return res.status(400).json({ message: "SubCategory doesn't exist" });
     }
-    const subcategory_id = rows2[0].id;
+    const subcategory_id = subcategoryRows[0].id;
 
-    // 3. Check if product with same title already exists
-    const [rows3] = await connection.execute(
+    // 3. Check for duplicate product name
+    const [existingProduct] = await connection.execute(
       "SELECT id FROM products WHERE name = ?",
       [name]
     );
-    if (rows3.length > 0) {
-      await connection.rollback(); // Rollback if product already exists
-      return res.status(400).json({
-        message: "A product with the same title already exists",
-      });
+    if (existingProduct.length) {
+      await connection.rollback();
+      return res.status(400).json({ message: "Product with this name already exists" });
     }
 
-    // 4. Insert product
-    let result;
-    if (discount_price && discount_start && discount_end) {
-      // Fixed: was discount_price twice
-      [result] = await connection.execute(
-        "INSERT INTO products (name, description, price, category_id, subcategory_id, discount_price, discount_start, discount_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          name,
-          description,
-          price,
-          category_id,
-          subcategory_id,
-          discount_price,
-          discount_start,
-          discount_end,
-        ]
-      );
-    } else {
-      [result] = await connection.execute(
-        "INSERT INTO products (name, description, price, category_id, subcategory_id) VALUES (?, ?, ?, ?, ?)",
-        [name, description, price, category_id, subcategory_id]
-      );
-    }
+    // 4. Build SQL query dynamically based on provided fields
+    const baseColumns = [
+      'name', 'description', 'price', 'category_id', 'subcategory_id',
+      'initial_price', 'profit', 'discount_percentage'
+    ];
+    const baseValues = [
+      name, description, price, category_id, subcategory_id,
+      initial_price, profit, discount_percentage
+    ];
 
-    const productId = result.insertId;
-
-    // 5. Insert images with Cloudinary URLs
-    const mainIndex = parseInt(main_image_index) || 0;
-    if (imageUrls.length > 0) {
-      for (let i = 0; i < imageUrls.length; i++) {
-        const isMain = i === mainIndex;
-        await connection.execute(
-          "INSERT INTO product_images (url, product_id, is_main) VALUES (?, ?, ?)",
-          [imageUrls[i], productId, isMain]
-        );
+    // Add discount fields only if all are provided
+    if (hasAllDiscountFields) {
+      if(price > discount_price){
+        baseColumns.push('discount_price', 'discount_start', 'discount_end');
+        baseValues.push(discount_price, discount_start, discount_end);
+      }else{
+        return res.status(400).json({message:"Discount price should be less than the price"});
       }
     }
 
-    // 6. Handle tags (Modified: Create tag if it doesn't exist)
-    if (tags && Array.isArray(tags) && tags.length > 0) {
-      console.log("called");
+    const sql = `INSERT INTO products (${baseColumns.join(', ')}) VALUES (${baseColumns.map(() => '?').join(', ')})`;
+    const [result] = await connection.execute(sql, baseValues);
+    const productId = result.insertId;
+
+    // 5. Insert images
+    for (let i = 0; i < imageUrls.length; i++) {
+      await connection.execute(
+        "INSERT INTO product_images (url, product_id, is_main) VALUES (?, ?, ?)",
+        [imageUrls[i], productId, i === parseInt(main_image_index)]
+      );
+    }
+
+    // 6. Handle tags
+    if (tags.length > 0) {
       for (const tagName of tags) {
-        let tagId;
-        const [tagRows] = await connection.execute(
+        let [tagRows] = await connection.execute(
           "SELECT id FROM tags WHERE name = ?",
           [tagName]
         );
 
-        if (tagRows.length > 0) {
-          tagId = tagRows[0].id; // Tag already exists, get its ID
+        let tagId;
+        if (tagRows.length) {
+          tagId = tagRows[0].id;
         } else {
-          // Tag does NOT exist, so create it in the 'tags' lookup table
-          const [newTagResult] = await connection.execute(
+          const [newTag] = await connection.execute(
             "INSERT INTO tags (name) VALUES (?)",
             [tagName]
           );
-          tagId = newTagResult.insertId;
-          console.log(`New tag "${tagName}" created with ID: ${tagId}`);
+          tagId = newTag.insertId;
         }
 
-        // Link the product to the tag in product_tags
         await connection.execute(
           "INSERT INTO product_tags (product_id, tag_id) VALUES (?, ?)",
           [productId, tagId]
@@ -790,20 +868,20 @@ export async function addProduct(req, res) {
       }
     }
 
-    await connection.commit(); // Commit the transaction if all operations are successful
-    res.status(201).json({
+    await connection.commit();
+    res.status(201).json({ 
       message: "Product added successfully",
+      productId: productId
     });
   } catch (err) {
-    if (connection) {
-      await connection.rollback(); // Rollback the transaction in case of an error
-    }
-    console.error("Error adding product:", err); // Changed error message for clarity
-    res.status(500).json({ message: "Internal server error" });
+    if (connection) await connection.rollback();
+    console.error("Error adding product:", err);
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: err.message 
+    });
   } finally {
-    if (connection) {
-      connection.release(); // Release the connection back to the pool
-    }
+    if (connection) connection.release();
   }
 }
 
@@ -909,6 +987,39 @@ export async function removeProductDiscount(req, res) {
     res.status(200).json({ message: "Product discount removed successfully" });
   } catch (err) {
     console.error("Delete product discount error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  }
+}
+
+export async function removeProductDiscountPercentage(req, res) {
+  const { id } = req.params;
+  try {
+    const [rows] = await db.execute("SELECT * FROM products WHERE id = ?", [
+      id,
+    ]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    await db.execute(
+      `UPDATE products 
+       SET discount_price = ?, 
+           discount_start = NULL, 
+           discount_end = NULL 
+       WHERE id = ?`,
+      [0, id]
+    );
+
+    return res.status(200).json({
+      message: "Discount removed successfully",
+    });
+  } catch (err) {
+    console.error("Remove product discount error:", err);
     res.status(500).json({
       success: false,
       message: "Internal server error",

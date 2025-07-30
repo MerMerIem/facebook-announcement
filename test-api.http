@@ -1,0 +1,7 @@
+POST https://5000-firebase-e-commerce-1752167509315.cluster-l6vkdperq5ebaqo3qy4ksvoqom.cloudworkstations.dev/auth/login
+Content-Type: application/json
+
+{
+  "email": "kadriyacine93@gmail.com",
+  "password": "sekkarquinCalllerie12345"
+}

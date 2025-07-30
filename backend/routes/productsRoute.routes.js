@@ -15,7 +15,8 @@ import {
   removeProductDiscount,
   searchProduct,
   getAllProducts,
-  getProductById
+  getProductById,
+  removeProductDiscountPercentage,
 } from "../controllers/productsController.controller.js";
 import { uploadImages } from "../middlewares/uploadImages.middleware.js";
 
@@ -27,7 +28,7 @@ const upload = multer({ storage });
 // Add `upload.single('image')` before the other middlewares
 router.post(
   "/add",
-  verfyToken,
+  verfyToken(),
   isAuthorized,
   uploadImages,
   verifyName,
@@ -38,7 +39,7 @@ router.post(
 
 router.post(
   "/modify/:id",
-  verfyToken,
+  verfyToken(),
   isAuthorized,
   verifyId,
   uploadImages,
@@ -47,10 +48,23 @@ router.post(
   modifyProduct
 );
 
-router.delete("/delete/:id", verfyToken, isAuthorized, verifyId, deleteProduct);
-router.post("/remove/:id", verfyToken, isAuthorized, removeProductDiscount);
-router.get("/search",searchProduct);
-router.get("/getAll",getAllProducts);
-router.get("/get/:id",verifyId, getProductById);
+router.delete(
+  "/delete/:id",
+  verfyToken(),
+  isAuthorized,
+  verifyId,
+  deleteProduct
+);
+router.post("/remove/:id", verfyToken(), isAuthorized, removeProductDiscount);
+router.get("/search", verfyToken(true), searchProduct);
+router.get("/getAll", verfyToken(true), getAllProducts);
+router.get("/get/:id", verfyToken(true), verifyId, getProductById);
+router.delete(
+  "/removeDiscount/:id",
+  verfyToken(),
+  isAuthorized,
+  verifyId,
+  removeProductDiscountPercentage
+);
 
 export default router;
