@@ -20,8 +20,8 @@ const router = Router();
 router.post("/add", verifyWilaya, addOrder); // Create new order
 
 // Admin routes (authentication required)
-router.get("/", verfyToken(), isAuthorized, getAllOrders); // Get all orders with pagination
-router.get("/:id", verfyToken(), isAuthorized, verifyId, getOrderById); // Get order by ID
+router.get("/getAll", verfyToken(), isAuthorized, getAllOrders); // Get all orders with pagination
+router.get("/get/:id", verfyToken(), isAuthorized, verifyId, getOrderById); // Get order by ID
 router.post(
   "/:id",
   verfyToken(),

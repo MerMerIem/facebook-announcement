@@ -12,6 +12,7 @@ import {
 import { ArrowLeft, LogIn } from "lucide-react";
 import { useAuth } from "frontend/src/contexts/AuthContext";
 import { useToast } from "frontend/src/hooks/use-toast";
+import { useApi } from "../contexts/RestContext";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -21,26 +22,36 @@ const AdminLogin = () => {
   const { login } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = (e) => {
+  const { api } = useApi();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      if (login(email, password)) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome to the admin panel",
-        });
-        navigate("/admin/dashboard");
-      } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid email or password",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 1000);
+    const body = { email, password };
+
+    const [userData, response, responseCode, error] = await api.post(
+      "/auth/login",
+      body
+    );
+
+    if (responseCode === 200 && userData) {
+      toast({
+        title: "Login Successful",
+        description: "Welcome to the admin panel",
+      });
+      console.log("it is called")
+      navigate("/admin/dashboard");
+    } else {
+      console.error("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: error || "Invalid email or password",
+        variant: "destructive",
+      });
+    }
+
+    setIsLoading(false);
   };
 
   return (

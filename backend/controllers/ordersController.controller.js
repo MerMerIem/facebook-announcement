@@ -12,7 +12,7 @@ export async function addOrder(req, res) {
     items, // array of {product_id, quantity}
   } = req.body;
 
-  // Input validation
+  // Input validation (unchanged)
   if (
     !full_name ||
     !email ||
@@ -29,7 +29,7 @@ export async function addOrder(req, res) {
     });
   }
 
-  // Validate email format
+  // Validate email format (unchanged)
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({
@@ -38,7 +38,7 @@ export async function addOrder(req, res) {
     });
   }
 
-  // Validate items structure
+  // Validate items structure (unchanged)
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     if (!item.product_id || !item.quantity || item.quantity <= 0) {
@@ -54,19 +54,20 @@ export async function addOrder(req, res) {
   try {
     // Start transaction
     await db.query("START TRANSACTION");
+
+    // Get delivery fee (unchanged)
     const [wilayaFound] = await db.execute(
       "SELECT delivery_fee FROM wilayas WHERE name = ?",
       [wilaya]
     );
-
-    // Since wilaya validation is handled by middleware, we'll assume deliveryFee is available
     const deliveryFee = Number(wilayaFound[0].delivery_fee) || 0;
 
-    // Calculate total price and validate all products
-    let totalPrice = deliveryFee;
+    // Initialize total price (without delivery fee)
+    let subtotal = 0; // Changed from totalPrice to subtotal for clarity
     const orderItemsData = [];
     const notFoundProducts = [];
 
+    // Calculate product prices (without delivery fee)
     for (const item of items) {
       const [productResult] = await db.execute(
         "SELECT id, name, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit FROM products WHERE id = ?",
@@ -79,30 +80,30 @@ export async function addOrder(req, res) {
       }
 
       const product = productResult[0];
-      console.log("product", product);
-      
+
       // Check if discount is active
       let unitPrice = Number(product.price);
       if (product.discount_price) {
-        // Convert database date strings to Date objects
         const discountStart = new Date(product.discount_start);
         const discountEnd = new Date(product.discount_end);
         const now = new Date();
-        
+
         if (now >= discountStart && now <= discountEnd) {
-          console.log("Discount is active - using discounted price");
           unitPrice = Number(product.discount_price);
-        } else {
-          console.log("Discount is not active - outside date range");
         }
       }
 
-      if(item.quantity === 1){
-        totalPrice = Number(totalPrice) + (Number(unitPrice) * Number(item.quantity));
-      }else{
-        unitPrice = Number(product.initial_price) + Number(product.profit) - Number(product.profit * (product.discount_percentage / 100));
-        totalPrice = Number(totalPrice) + (Number(unitPrice) * Number(item.quantity));
+      // Calculate item price based on quantity and discounts
+      if (item.quantity === 1 || product.discount_price) {
+        subtotal += Number(unitPrice) * Number(item.quantity);
+      } else {
+        unitPrice =
+          Number(product.initial_price) +
+          Number(product.profit) -
+          Number(product.profit * (product.discount_percentage / 100));
+        subtotal += Number(unitPrice) * Number(item.quantity);
       }
+
       orderItemsData.push({
         product_id: item.product_id,
         product_name: product.name,
@@ -111,7 +112,7 @@ export async function addOrder(req, res) {
       });
     }
 
-    // If any products were not found, return error with details
+    // If any products were not found (unchanged)
     if (notFoundProducts.length > 0) {
       await db.query("ROLLBACK");
       return res.status(400).json({
@@ -126,7 +127,10 @@ export async function addOrder(req, res) {
       });
     }
 
-    // Insert order
+    // Add delivery fee ONCE at the end
+    const totalPrice = subtotal + deliveryFee;
+
+    // Insert order (unchanged)
     const [orderResult] = await db.execute(
       `INSERT INTO orders (total_price, status, full_name, email, phone, wilaya, address, notes) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -144,7 +148,7 @@ export async function addOrder(req, res) {
 
     const orderId = orderResult.insertId;
 
-    // Insert order items
+    // Insert order items (unchanged)
     for (const item of orderItemsData) {
       await db.execute(
         "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
@@ -152,19 +156,20 @@ export async function addOrder(req, res) {
       );
     }
 
-    // Commit transaction
+    // Commit transaction (unchanged)
     await db.query("COMMIT");
 
     res.status(201).json({
       success: true,
       orderId: orderId,
-      totalPrice: totalPrice,
+      subtotal: subtotal, // Added subtotal to response
       deliveryFee: deliveryFee,
+      totalPrice: totalPrice,
       itemsCount: orderItemsData.length,
       message: "Commande créée avec succès",
     });
   } catch (err) {
-    // Rollback transaction
+    // Rollback transaction (unchanged)
     try {
       await db.query("ROLLBACK");
     } catch (rollbackErr) {
@@ -173,7 +178,7 @@ export async function addOrder(req, res) {
 
     console.error("Erreur lors de l'ajout de la commande :", err);
 
-    // Handle specific database errors
+    // Handle specific database errors (unchanged)
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
         success: false,
@@ -251,6 +256,7 @@ export async function getAllOrders(req, res) {
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
   const status = req.query.status;
+  console.log("status",status)
 
   try {
     let query = `
@@ -271,6 +277,7 @@ export async function getAllOrders(req, res) {
 
     query += ` GROUP BY o.id ORDER BY o.created_at DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
+    console.log("query",query)
 
     const [orders] = await db.query(query, params);
     const [totalResult] = await db.query(countQuery, status ? [status] : []);

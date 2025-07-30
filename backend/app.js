@@ -88,6 +88,28 @@ app.use("/wilaya", wilayaRoute);
 app.use("/tag", tagRoute);
 app.use("/product", productRoute);
 app.use("/order", orderRoute);
+// API endpoint to verify token
+app.get('/verify-token', (req, res) => {
+  // Get token from Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+  
+  const token = authHeader.split(' ')[1];
+  
+  try {
+    // console.log("token key",process.env.TOKEN_KEY)
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.TOKEN_KEY);
+    
+    // Token is valid
+    return res.status(200).json({ valid: true });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+});
 
 app.use((err, req, res, next) => {
   console.error(`❌ Error:`, err.stack);

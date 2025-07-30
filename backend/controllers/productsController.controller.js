@@ -763,12 +763,15 @@ export async function addProduct(req, res) {
   const price = parseFloat(initial_price) + parseFloat(profit);
 
   // Check if ALL discount fields are provided and valid (not undefined, null, or empty)
-  const hasAllDiscountFields = [discount_price, discount_start, discount_end]
-    .every(field => field !== undefined && field !== null && field !== '');
-    console.log("hasAllDiscountFields",hasAllDiscountFields)
+  const hasAllDiscountFields = [
+    discount_price,
+    discount_start,
+    discount_end,
+  ].every((field) => field !== undefined && field !== null && field !== "");
+  console.log("hasAllDiscountFields", hasAllDiscountFields);
 
   // Get Cloudinary URLs
-  const imageUrls = req.uploadedImages?.map(img => img.url) || [];
+  const imageUrls = req.uploadedImages?.map((img) => img.url) || [];
   if (!imageUrls.length) {
     return res.status(400).json({ message: "No images provided" });
   }
@@ -807,30 +810,48 @@ export async function addProduct(req, res) {
     );
     if (existingProduct.length) {
       await connection.rollback();
-      return res.status(400).json({ message: "Product with this name already exists" });
+      return res
+        .status(400)
+        .json({ message: "Product with this name already exists" });
     }
 
     // 4. Build SQL query dynamically based on provided fields
     const baseColumns = [
-      'name', 'description', 'price', 'category_id', 'subcategory_id',
-      'initial_price', 'profit', 'discount_percentage'
+      "name",
+      "description",
+      "price",
+      "category_id",
+      "subcategory_id",
+      "initial_price",
+      "profit",
+      "discount_percentage",
     ];
     const baseValues = [
-      name, description, price, category_id, subcategory_id,
-      initial_price, profit, discount_percentage
+      name,
+      description,
+      price,
+      category_id,
+      subcategory_id,
+      initial_price,
+      profit,
+      discount_percentage,
     ];
 
     // Add discount fields only if all are provided
     if (hasAllDiscountFields) {
-      if(price > discount_price){
-        baseColumns.push('discount_price', 'discount_start', 'discount_end');
+      if (price > discount_price) {
+        baseColumns.push("discount_price", "discount_start", "discount_end");
         baseValues.push(discount_price, discount_start, discount_end);
-      }else{
-        return res.status(400).json({message:"Discount price should be less than the price"});
+      } else {
+        return res
+          .status(400)
+          .json({ message: "Discount price should be less than the price" });
       }
     }
 
-    const sql = `INSERT INTO products (${baseColumns.join(', ')}) VALUES (${baseColumns.map(() => '?').join(', ')})`;
+    const sql = `INSERT INTO products (${baseColumns.join(
+      ", "
+    )}) VALUES (${baseColumns.map(() => "?").join(", ")})`;
     const [result] = await connection.execute(sql, baseValues);
     const productId = result.insertId;
 
@@ -869,16 +890,16 @@ export async function addProduct(req, res) {
     }
 
     await connection.commit();
-    res.status(201).json({ 
+    res.status(201).json({
       message: "Product added successfully",
-      productId: productId
+      productId: productId,
     });
   } catch (err) {
     if (connection) await connection.rollback();
     console.error("Error adding product:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Internal server error",
-      error: err.message 
+      error: err.message,
     });
   } finally {
     if (connection) connection.release();
@@ -910,7 +931,38 @@ export async function deleteProduct(req, res) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // 3. Delete related records first (to maintain referential integrity)
+    // 3. Check for orders containing this product
+    const [ordersWithProduct] = await connection.execute(
+      `SELECT o.id, o.status, o.created_at, o.total_price, 
+       oi.quantity, oi.unit_price 
+       FROM orders o
+       JOIN order_items oi ON o.id = oi.order_id
+       WHERE oi.product_id = ?`,
+      [id]
+    );
+
+    // If there are orders with this product, we'll need to delete them first
+    if (ordersWithProduct.length > 0) {
+      // Get all order IDs that contain this product
+      const orderIds = ordersWithProduct.map(order => order.id);
+
+      // Create placeholders for the IN clause
+      const placeholders = orderIds.map(() => '?').join(',');
+      
+      // Delete order items first (to maintain referential integrity)
+      await connection.execute(
+        `DELETE FROM order_items WHERE order_id IN (${placeholders})`,
+        orderIds
+      );
+
+      // Then delete the orders
+      await connection.execute(
+        `DELETE FROM orders WHERE id IN (${placeholders})`,
+        orderIds
+      );
+    }
+
+    // 4. Delete related records (to maintain referential integrity)
     await connection.execute("DELETE FROM product_tags WHERE product_id = ?", [
       id,
     ]);
@@ -920,12 +972,12 @@ export async function deleteProduct(req, res) {
       [id]
     );
 
-    // 4. Delete the product
+    // 5. Delete the product
     await connection.execute("DELETE FROM products WHERE id = ?", [id]);
 
     await connection.commit();
 
-    // 5. Delete from Cloudinary (after successful DB deletion)
+    // 6. Delete from Cloudinary (after successful DB deletion)
     if (images.length > 0) {
       await deleteCloudinaryImages(images.map((img) => img.url));
     }
@@ -933,6 +985,8 @@ export async function deleteProduct(req, res) {
     res.status(200).json({
       success: true,
       message: "Product and all related data deleted successfully",
+      deletedOrders: ordersWithProduct.length > 0 ? ordersWithProduct : undefined,
+      ordersCount: ordersWithProduct.length
     });
   } catch (err) {
     if (connection) await connection.rollback();
@@ -946,7 +1000,6 @@ export async function deleteProduct(req, res) {
     if (connection) connection.release();
   }
 }
-
 // Helper function for Cloudinary deletion
 async function deleteCloudinaryImages(imageUrls) {
   return Promise.all(

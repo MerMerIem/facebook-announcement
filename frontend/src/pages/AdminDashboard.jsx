@@ -50,15 +50,10 @@ const AdminDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(5);
   const navigate = useNavigate();
-  const { isAdminAuthenticated, logout } = useAuth();
   const { toast } = useToast();
+  const { logout } = useAuth(); // Import logout from useAuth
 
   useEffect(() => {
-    if (!isAdminAuthenticated) {
-      navigate("/admin/login");
-      return;
-    }
-
     // Load orders from localStorage
     const savedOrders = localStorage.getItem("orders");
     if (savedOrders) {
@@ -70,7 +65,7 @@ const AdminDashboard = () => {
       }));
       setOrders(ordersWithStatus);
     }
-  }, [isAdminAuthenticated, navigate]);
+  }, []); // Removed isAdminAuthenticated and navigate from dependencies
 
   const handleLogout = () => {
     logout();
@@ -145,9 +140,10 @@ const AdminDashboard = () => {
     setCurrentPage(page);
   };
 
-  if (!isAdminAuthenticated) {
-    return null;
-  }
+  // Removed the authentication check - ProtectedRoute handles this
+  // if (!isAdminAuthenticated) {
+  //   return null;
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-subtle">

@@ -1,3 +1,4 @@
+// import {useEffect} from "";
 import { ProductCard } from "frontend/src/components/ProductCard";
 import item1 from "@/assets/item1.jpg";
 import item2 from "@/assets/item2.jpg";
