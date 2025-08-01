@@ -35,12 +35,25 @@ export async function getAllProducts(req, res) {
       return res.status(404).json({ message: "No products found" });
     }
 
-    // Fetch images for all products in one batch
     const productIds = rows.map((p) => p.id);
+
+    // Fetch images for all products in one batch
     const [imagesRows] = await db.execute(
       `SELECT id, url, is_main, product_id FROM product_images WHERE product_id IN (${productIds
         .map(() => "?")
         .join(",")})`,
+      productIds
+    );
+
+    // Fetch tags for all products in one batch
+    const [tagsRows] = await db.execute(
+      `SELECT 
+        pt.product_id,
+        t.id as tag_id,
+        t.name as tag_name
+      FROM product_tags pt
+      INNER JOIN tags t ON pt.tag_id = t.id
+      WHERE pt.product_id IN (${productIds.map(() => "?").join(",")})`,
       productIds
     );
 
@@ -57,8 +70,21 @@ export async function getAllProducts(req, res) {
       });
     }
 
+    // Group tags by product ID
+    const tagsByProduct = {};
+    for (const tag of tagsRows) {
+      if (!tagsByProduct[tag.product_id]) {
+        tagsByProduct[tag.product_id] = [];
+      }
+      tagsByProduct[tag.product_id].push({
+        id: tag.tag_id,
+        name: tag.tag_name,
+      });
+    }
+
     const products = rows.map((product) => {
       const images = imagesByProduct[product.id] || [];
+      const tags = tagsByProduct[product.id] || [];
       const mainImage = images.find((img) => img.is_main) || null;
 
       return {
@@ -78,12 +104,14 @@ export async function getAllProducts(req, res) {
           name: product.subcategory_name,
         },
         images,
+        tags, // Added tags array
         main_image_url: mainImage?.url || null,
         has_discount:
           product.discount_price &&
           product.discount_start &&
           product.discount_end,
         total_images: images.length,
+        total_tags: tags.length, // Added total tags count
       };
     });
 

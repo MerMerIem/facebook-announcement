@@ -12,7 +12,11 @@ const ProtectedRoute = () => {
     return <Navigate to="/admin/login" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <div dir="rtl" className="font-admin">
+      <Outlet />
+    </div>
+  );
 };
 
 export default ProtectedRoute;

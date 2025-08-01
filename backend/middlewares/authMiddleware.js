@@ -15,7 +15,9 @@ dotenv.config();
  */
 
 export function verfyToken(allow_client = false) {
+  // console.log("called verifyToken")
   return async function (req, res, next) {
+  // console.log("called verfyToken")
     try {
       const accessToken = req.cookies.accessToken;
 
@@ -42,6 +44,7 @@ export function verfyToken(allow_client = false) {
         role: decoded.role === "admin" ? "admin" : "client",
       };
 
+      // console.log("req user",req.user)
       next();
     } catch (error) {
       if (allow_client) {

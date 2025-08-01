@@ -1,18 +1,14 @@
 import db from "../config/db.js";
+import Cookies from "js-cookie";
+import dotenv from "dotenv";
+dotenv.config();
+
+const link = process.env.BACKEND_URL;
 
 // only for a client
 export async function addOrder(req, res) {
-  const {
-    full_name,
-    email,
-    phone,
-    wilaya,
-    address,
-    notes,
-    items, // array of {product_id, quantity}
-  } = req.body;
+  const { full_name, email, phone, wilaya, address, notes, items } = req.body;
 
-  // Input validation (unchanged)
   if (
     !full_name ||
     !email ||
@@ -29,7 +25,6 @@ export async function addOrder(req, res) {
     });
   }
 
-  // Validate email format (unchanged)
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({
@@ -38,7 +33,6 @@ export async function addOrder(req, res) {
     });
   }
 
-  // Validate items structure (unchanged)
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     if (!item.product_id || !item.quantity || item.quantity <= 0) {
@@ -52,37 +46,38 @@ export async function addOrder(req, res) {
   }
 
   try {
-    // Start transaction
     await db.query("START TRANSACTION");
 
-    // Get delivery fee (unchanged)
     const [wilayaFound] = await db.execute(
       "SELECT delivery_fee FROM wilayas WHERE name = ?",
       [wilaya]
     );
     const deliveryFee = Number(wilayaFound[0].delivery_fee) || 0;
+    console.log("Delivery fee for wilaya", wilaya, ":", deliveryFee);
 
-    // Initialize total price (without delivery fee)
-    let subtotal = 0; // Changed from totalPrice to subtotal for clarity
+    let subtotal = 0;
     const orderItemsData = [];
     const notFoundProducts = [];
 
-    // Calculate product prices (without delivery fee)
     for (const item of items) {
+      console.log(`Fetching product with ID ${item.product_id}`);
       const [productResult] = await db.execute(
         "SELECT id, name, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit FROM products WHERE id = ?",
         [item.product_id]
       );
 
       if (productResult.length === 0) {
+        console.warn(`Product with ID ${item.product_id} not found`);
         notFoundProducts.push(item.product_id);
         continue;
       }
 
       const product = productResult[0];
+      console.log("Fetched product:", product.name);
 
-      // Check if discount is active
       let unitPrice = Number(product.price);
+      let usedDiscount = false;
+
       if (product.discount_price) {
         const discountStart = new Date(product.discount_start);
         const discountEnd = new Date(product.discount_end);
@@ -90,29 +85,47 @@ export async function addOrder(req, res) {
 
         if (now >= discountStart && now <= discountEnd) {
           unitPrice = Number(product.discount_price);
+          usedDiscount = true;
+          console.log(
+            `Discount applied on ${product.name}: using discount price ${unitPrice}`
+          );
         }
       }
 
-      // Calculate item price based on quantity and discounts
-      if (item.quantity === 1 || product.discount_price) {
-        subtotal += Number(unitPrice) * Number(item.quantity);
+      if (item.quantity === 1) {
+        subtotal += unitPrice * item.quantity;
+        console.log(
+          `Item: ${product.name}, Quantity: ${item.quantity}, Unit Price: ${unitPrice}, Subtotal now: ${subtotal}`
+        );
       } else {
-        unitPrice =
-          Number(product.initial_price) +
-          Number(product.profit) -
-          Number(product.profit * (product.discount_percentage / 100));
-        subtotal += Number(unitPrice) * Number(item.quantity);
+        const productOriginalPrice = product.discount_price
+          ? Number(product.discount_price)
+          : Number(product.price);
+
+        console.log(productOriginalPrice);
+
+        const remove = Number(
+          product.profit * (product.discount_percentage / 100)
+        );
+
+        unitPrice = productOriginalPrice - remove;
+
+        console.log(
+          `Custom calculated price for ${product.name} (Qty: ${item.quantity}): ${unitPrice}`
+        );
+
+        subtotal += unitPrice * item.quantity;
+        console.log(`Subtotal updated after ${product.name}: ${subtotal}`);
       }
 
       orderItemsData.push({
         product_id: item.product_id,
         product_name: product.name,
-        quantity: Number(item.quantity),
+        quantity: item.quantity,
         unit_price: unitPrice,
       });
     }
 
-    // If any products were not found (unchanged)
     if (notFoundProducts.length > 0) {
       await db.query("ROLLBACK");
       return res.status(400).json({
@@ -127,10 +140,11 @@ export async function addOrder(req, res) {
       });
     }
 
-    // Add delivery fee ONCE at the end
     const totalPrice = subtotal + deliveryFee;
+    console.log(
+      `Final subtotal: ${subtotal}, Delivery fee: ${deliveryFee}, Total price: ${totalPrice}`
+    );
 
-    // Insert order (unchanged)
     const [orderResult] = await db.execute(
       `INSERT INTO orders (total_price, status, full_name, email, phone, wilaya, address, notes) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -148,28 +162,68 @@ export async function addOrder(req, res) {
 
     const orderId = orderResult.insertId;
 
-    // Insert order items (unchanged)
     for (const item of orderItemsData) {
+      console.log(`Inserting item to DB:`, item);
       await db.execute(
         "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
         [orderId, item.product_id, item.quantity, item.unit_price]
       );
     }
 
-    // Commit transaction (unchanged)
+    const [userResult] = await db.execute(
+      "SELECT id FROM users WHERE email = ?",
+      ["kadriyacine93@gmail.com"]
+    );
+
+    const notificationContent = `Nouvelle commande #${orderId} arrive. Total: ${totalPrice} DA`;
+
+    if (userResult.length > 0) {
+      const userId = userResult[0].id;
+
+      await db.execute(
+        "INSERT INTO notification (content, notification_status, time, user_id) VALUES (?, ?, NOW(), ?)",
+        [notificationContent, "unread", userId]
+      );
+
+      const [subscriptions] = await db.query(
+        "SELECT endpoint, keys FROM push_subscriptions WHERE user_id = ?",
+        [userId]
+      );
+
+      if (subscriptions.length > 0) {
+        const subscription = {
+          endpoint: subscriptions[0].endpoint,
+          keys: JSON.parse(subscriptions[0].keys),
+        };
+
+        await fetch(`${link}/send-notification`, {
+          method: "POST",
+          body: JSON.stringify(subscription),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Cookies.get("accessToken")}`,
+          },
+        }).catch((err) => console.error("Push notification error:", err));
+      }
+    } else {
+      await db.execute(
+        "INSERT INTO notification (content, notification_status, time, user_id) VALUES (?, ?, NOW(), NULL)",
+        [notificationContent, "unread"]
+      );
+    }
+
     await db.query("COMMIT");
 
     res.status(201).json({
       success: true,
-      orderId: orderId,
-      subtotal: subtotal, // Added subtotal to response
-      deliveryFee: deliveryFee,
-      totalPrice: totalPrice,
+      orderId,
+      subtotal,
+      deliveryFee,
+      totalPrice,
       itemsCount: orderItemsData.length,
       message: "Commande créée avec succès",
     });
   } catch (err) {
-    // Rollback transaction (unchanged)
     try {
       await db.query("ROLLBACK");
     } catch (rollbackErr) {
@@ -178,7 +232,6 @@ export async function addOrder(req, res) {
 
     console.error("Erreur lors de l'ajout de la commande :", err);
 
-    // Handle specific database errors (unchanged)
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
         success: false,
@@ -200,6 +253,7 @@ export async function addOrder(req, res) {
     });
   }
 }
+
 // only for the admin
 
 export async function getOrderById(req, res) {
@@ -256,7 +310,7 @@ export async function getAllOrders(req, res) {
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
   const status = req.query.status;
-  console.log("status",status)
+  console.log("status", status);
 
   try {
     let query = `
@@ -277,7 +331,7 @@ export async function getAllOrders(req, res) {
 
     query += ` GROUP BY o.id ORDER BY o.created_at DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
-    console.log("query",query)
+    console.log("query", query);
 
     const [orders] = await db.query(query, params);
     const [totalResult] = await db.query(countQuery, status ? [status] : []);
