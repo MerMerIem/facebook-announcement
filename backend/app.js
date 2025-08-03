@@ -19,6 +19,7 @@ import tagRoute from "./routes/tagsRoute.routes.js";
 import wilayaRoute from "./routes/wilayasRoute.routes.js";
 import orderRoute from "./routes/ordersRoute.routes.js";
 import notificationRoute from "./routes/notificationsRoute.routes.js";
+import statsRoute from "./routes/statsRoute.routes.js";
 
 dotenv.config();
 
@@ -37,7 +38,7 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
-  exposedHeaders: ["Authorization"] // Add this line
+  exposedHeaders: ["Authorization"], // Add this line
 };
 
 app.use(cors(corsOptions));
@@ -51,10 +52,11 @@ function logger() {
         options: {
           colorize: true,
           ignore: "pid,hostname,req,res,responseTime",
-          messageFormat: "{req.method} {req.url} {res.statusCode} {responseTime}ms"
-        }
-      }
-    })
+          messageFormat:
+            "{req.method} {req.url} {res.statusCode} {responseTime}ms",
+        },
+      },
+    }),
   });
 }
 
@@ -62,11 +64,13 @@ function logger() {
 const vapidDetails = {
   subject: "mailto:projetfinetude25@gmail.com",
   publicKey: process.env.PUBLIC_VAPID_KEY,
-  privateKey: process.env.PRIVATE_VAPID_KEY
+  privateKey: process.env.PRIVATE_VAPID_KEY,
 };
 
 if (!vapidDetails.publicKey || !vapidDetails.privateKey) {
-  console.error("⚠️  Missing VAPID keys - set PUBLIC_VAPID_KEY and PRIVATE_VAPID_KEY in .env");
+  console.error(
+    "⚠️  Missing VAPID keys - set PUBLIC_VAPID_KEY and PRIVATE_VAPID_KEY in .env"
+  );
 } else {
   webpush.setVapidDetails(
     vapidDetails.subject,
@@ -79,35 +83,35 @@ if (!vapidDetails.publicKey || !vapidDetails.privateKey) {
 // ===== Push Notification Endpoints =====
 
 // Save subscription to database
-app.post('/save-subscription', verfyToken, async (req, res) => {
+app.post("/save-subscription", verfyToken, async (req, res) => {
   try {
     const { subscription } = req.body;
     const userId = req.user.id;
 
     await db.query(
-      'INSERT INTO push_subscriptions (user_id, endpoint, keys) VALUES (?, ?, ?) ' +
-      'ON DUPLICATE KEY UPDATE endpoint = VALUES(endpoint), keys = VALUES(keys)',
+      "INSERT INTO push_subscriptions (user_id, endpoint, keys) VALUES (?, ?, ?) " +
+        "ON DUPLICATE KEY UPDATE endpoint = VALUES(endpoint), keys = VALUES(keys)",
       [userId, subscription.endpoint, JSON.stringify(subscription.keys)]
     );
 
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Error saving subscription:', error);
-    res.status(500).json({ error: 'Failed to save subscription' });
+    console.error("Error saving subscription:", error);
+    res.status(500).json({ error: "Failed to save subscription" });
   }
 });
 
 // Get unread notifications count
-app.get('/notification/unread-count', verfyToken, async (req, res) => {
-  console.log("called")
+app.get("/notification/unread-count", verfyToken, async (req, res) => {
+  console.log("called");
   try {
     const userId = req.user.id;
-    
+
     const [result] = await db.query(
       "SELECT COUNT(*) as count FROM notification WHERE user_id = ? AND notification_status = 'unread'",
       [userId]
     );
-    
+
     res.status(200).json({ count: result[0].count });
   } catch (error) {
     console.error("Error getting unread count:", error);
@@ -146,8 +150,8 @@ app.post("/send-notification", verfyToken, async (req, res) => {
         icon: "/icon-192x192.png",
         data: {
           url: "/notifications",
-          notificationId: notifications[0].notification_id
-        }
+          notificationId: notifications[0].notification_id,
+        },
       });
     } else {
       payload = JSON.stringify({
@@ -156,8 +160,8 @@ app.post("/send-notification", verfyToken, async (req, res) => {
         icon: "/icon-192x192.png",
         data: {
           url: "/notifications",
-          count: notifications.length
-        }
+          count: notifications.length,
+        },
       });
     }
 
@@ -180,11 +184,11 @@ app.get("/push-health", verfyToken, async (req, res) => {
       "SELECT * FROM push_subscriptions WHERE user_id = ?",
       [req.user.id]
     );
-    
-    res.json({ 
+
+    res.json({
       status: "OK",
       hasSubscription: !!subscription,
-      vapidConfigured: !!(vapidDetails.publicKey && vapidDetails.privateKey)
+      vapidConfigured: !!(vapidDetails.publicKey && vapidDetails.privateKey),
     });
   } catch (error) {
     res.status(500).json({ error: "Health check failed" });
@@ -200,6 +204,7 @@ app.use("/tag", tagRoute);
 app.use("/product", productRoute);
 app.use("/order", orderRoute);
 app.use("/notification", notificationRoute);
+app.use("/stats", statsRoute);
 
 // ===== Error Handling =====
 app.use((err, req, res, next) => {
@@ -210,5 +215,7 @@ app.use((err, req, res, next) => {
 // ===== Start Server =====
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`🔔 Push notifications: ${vapidDetails.publicKey ? "ENABLED" : "DISABLED"}`);
+  console.log(
+    `🔔 Push notifications: ${vapidDetails.publicKey ? "ENABLED" : "DISABLED"}`
+  );
 });

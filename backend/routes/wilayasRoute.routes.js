@@ -12,8 +12,7 @@ const router = Router();
 
 router.post("/", verifyWilaya, addWilaya);
 router.post(
-  "/modify",
-  verifyWilaya,
+  "/modify/:id",
   verfyToken(),
   isAuthorized,
   modifyWilayaDeliveryPrice

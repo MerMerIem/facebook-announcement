@@ -17,7 +17,7 @@ const router = Router();
 router.post("/add", verfyToken(), isAuthorized, verifyName, addSubCategory);
 router.get("/getAll", getAllSubCategories);
 router.get("/get/:id", verifyId, getSubCategoryById);
-router.put(
+router.post(
   "/modify/:id",
   verfyToken(),
   isAuthorized,

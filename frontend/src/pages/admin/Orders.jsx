@@ -16,6 +16,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -24,10 +26,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import { Pagination } from "@/components/admin/Pagination"; // This component is not provided, so it is commented out.
-import { Search, Eye, Trash2, Package, Filter } from "lucide-react";
+import { Search, Eye, Trash2, Package, Filter, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useApi } from "@/contexts/RestContext";
+
+// Status constants to ensure consistency
+const ORDER_STATUS = {
+  PENDING: "في الانتظار",
+  CONFIRMED: "مؤكد",
+  DELIVERED: "تم التسليم",
+  CANCELLED: "ملغى"
+};
+
+const ConfirmationDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title = "تأكيد الحذف",
+  message = "هل أنت متأكد من أنك تريد حذف هذا العنصر؟",
+  confirmText = "حذف",
+  cancelText = "إلغاء",
+  variant = "destructive",
+  isLoading = false,
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-destructive" />
+            <DialogTitle>{title}</DialogTitle>
+          </div>
+        </DialogHeader>
+        
+        <div className="py-4">
+          <p className="text-muted-foreground">{message}</p>
+        </div>
+        
+        <DialogFooter className="flex gap-2 sm:gap-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            className="flex-1"
+          >
+            {cancelText}
+          </Button>
+          <Button
+            variant={variant}
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex-1"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                جاري الحذف...
+              </div>
+            ) : (
+              confirmText
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export default function Orders() {
   const { toast } = useToast();
@@ -39,6 +103,9 @@ export default function Orders() {
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
   const [itemsPerPage] = useState(10);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [ordersList, setOrdersList] = useState([]);
   const [pagination, setPagination] = useState({
@@ -46,11 +113,9 @@ export default function Orders() {
     totalItems: 0,
   });
 
-  // Debounced search term for server-side search
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [debouncedStatusFilter, setDebouncedStatusFilter] = useState("");
 
-  // Debounce the search term and status filter to avoid excessive API calls
   useEffect(() => {
     const searchTimeout = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -67,12 +132,10 @@ export default function Orders() {
     return () => clearTimeout(statusTimeout);
   }, [statusFilter]);
 
-  // Fetch data function with query parameters (page, limit, status, search)
   const fetchData = async (page = 1, status = "", search = "") => {
     setIsLoading(true);
 
     try {
-      // Build query parameters
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: itemsPerPage.toString(),
@@ -82,7 +145,6 @@ export default function Orders() {
         queryParams.append("status", status);
       }
 
-      // Use the debounced search term for server-side search
       if (search) {
         queryParams.append("search", search);
       }
@@ -118,26 +180,20 @@ export default function Orders() {
     }
   };
 
-  // Main useEffect hook to fetch data.
-  // It now depends on debounced values to avoid
-  // an API call on every keystroke.
   useEffect(() => {
     fetchData(currentPage, debouncedStatusFilter, debouncedSearchTerm);
   }, [currentPage, debouncedStatusFilter, debouncedSearchTerm]);
 
-  // Handle page change
   const handlePageChange = (page) => {
     if (page < 1 || page > (pagination?.totalPages || 1)) return;
     setCurrentPage(page);
   };
 
-  // Handle status filter change, resets page to 1
   const handleStatusFilterChange = (status) => {
     setStatusFilter(status === "all" ? "" : status);
     setCurrentPage(1);
   };
 
-  // Handle search, resets page to 1
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
@@ -145,24 +201,22 @@ export default function Orders() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "en attente":
-        return <Badge variant="secondary">في الانتظار</Badge>;
-      case "confirmé":
-        return (
-          <Badge className="bg-success text-success-foreground">مؤكد</Badge>
-        );
-      case "expédié":
-        return (
-          <Badge className="bg-primary text-primary-foreground">مُرسل</Badge>
-        );
-      case "livré":
+      case ORDER_STATUS.PENDING:
+        return <Badge variant="secondary">{ORDER_STATUS.PENDING}</Badge>;
+      case ORDER_STATUS.CONFIRMED:
         return (
           <Badge className="bg-success text-success-foreground">
-            تم التسليم
+            {ORDER_STATUS.CONFIRMED}
           </Badge>
         );
-      case "annulé":
-        return <Badge variant="destructive">ملغى</Badge>;
+      case ORDER_STATUS.DELIVERED:
+        return (
+          <Badge className="bg-success text-success-foreground">
+            {ORDER_STATUS.DELIVERED}
+          </Badge>
+        );
+      case ORDER_STATUS.CANCELLED:
+        return <Badge variant="destructive">{ORDER_STATUS.CANCELLED}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -170,7 +224,7 @@ export default function Orders() {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const [data, _, responseCode, error] = await api.put(
+      const [data, _, responseCode, error] = await api.patch(
         `/order/${orderId}/status`,
         { status: newStatus }
       );
@@ -198,10 +252,18 @@ export default function Orders() {
     }
   };
 
-  const deleteOrder = async (orderId) => {
+  const handleDeleteClick = (orderId) => {
+    setOrderToDelete(orderId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!orderToDelete) return;
+    
+    setIsDeleting(true);
     try {
       const [data, _, responseCode, error] = await api.delete(
-        `/order/${orderId}`
+        `/order/${orderToDelete}`
       );
 
       if (!error && responseCode === 200) {
@@ -221,13 +283,17 @@ export default function Orders() {
         description: "فشل في حذف الطلب",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setOrderToDelete(null);
     }
   };
 
   const showOrderDetails = async (order) => {
     try {
       const [data, _, responseCode, error] = await api.get(
-        `/order/${order.id}`
+        `/order/get/${order.id}`
       );
 
       if (!error && responseCode === 200 && data) {
@@ -279,18 +345,16 @@ export default function Orders() {
 
       {/* Search and Filter Bar */}
       <div className="flex flex-col md:flex-row gap-4 h-8">
-        {/* Search Input */}
         <div className="relative flex-1">
           <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="البحث بالاسم، البريد الإلكتروني، الهاتف، أو رقم الطلب..."
             value={searchTerm}
-            onChange={handleSearchChange} // Use new handler
+            onChange={handleSearchChange}
             className="pr-10 bg-white!"
           />
         </div>
 
-        {/* Status Filter */}
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select
@@ -304,34 +368,21 @@ export default function Orders() {
             </SelectTrigger>
             <SelectContent side="bottom" align="end">
               <SelectItem value="all">جميع الحالات</SelectItem>
-              <SelectItem value="en attente">في الانتظار</SelectItem>
-              <SelectItem value="confirmé">مؤكد</SelectItem>
-              <SelectItem value="expédié">مُرسل</SelectItem>
-              <SelectItem value="livré">تم التسليم</SelectItem>
-              <SelectItem value="annulé">ملغى</SelectItem>
+              <SelectItem value={ORDER_STATUS.PENDING}>{ORDER_STATUS.PENDING}</SelectItem>
+              <SelectItem value={ORDER_STATUS.CONFIRMED}>{ORDER_STATUS.CONFIRMED}</SelectItem>
+              <SelectItem value={ORDER_STATUS.DELIVERED}>{ORDER_STATUS.DELIVERED}</SelectItem>
+              <SelectItem value={ORDER_STATUS.CANCELLED}>{ORDER_STATUS.CANCELLED}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Active Filters Display */}
       {(statusFilter || searchTerm) && (
         <div className="flex items-center gap-2 mt-4 pt-4 border-t">
           <span className="text-sm text-muted-foreground">الفلاتر النشطة:</span>
           {statusFilter && (
             <Badge variant="secondary" className="gap-1">
-              حالة:{" "}
-              {statusFilter === "en attente"
-                ? "في الانتظار"
-                : statusFilter === "confirmé"
-                ? "مؤكد"
-                : statusFilter === "expédié"
-                ? "مُرسل"
-                : statusFilter === "livré"
-                ? "تم التسليم"
-                : statusFilter === "annulé"
-                ? "ملغى"
-                : statusFilter}
+              حالة: {statusFilter}
               <button
                 onClick={() => handleStatusFilterChange("")}
                 className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
@@ -354,7 +405,6 @@ export default function Orders() {
         </div>
       )}
 
-      {/* Orders Table */}
       <Card className={"p-0 border-0"}>
         <CardContent className="p-0 m-0">
           <div className="overflow-x-auto">
@@ -476,13 +526,18 @@ export default function Orders() {
                               <SelectValue placeholder="اختر الحالة" />
                             </SelectTrigger>
                             <SelectContent side="bottom" align="end">
-                              <SelectItem value="en attente">
-                                في الانتظار
+                              <SelectItem value={ORDER_STATUS.PENDING}>
+                                {ORDER_STATUS.PENDING}
                               </SelectItem>
-                              <SelectItem value="confirmé">مؤكد</SelectItem>
-                              <SelectItem value="expédié">مُرسل</SelectItem>
-                              <SelectItem value="livré">تم التسليم</SelectItem>
-                              <SelectItem value="annulé">ملغى</SelectItem>
+                              <SelectItem value={ORDER_STATUS.CONFIRMED}>
+                                {ORDER_STATUS.CONFIRMED}
+                              </SelectItem>
+                              <SelectItem value={ORDER_STATUS.DELIVERED}>
+                                {ORDER_STATUS.DELIVERED}
+                              </SelectItem>
+                              <SelectItem value={ORDER_STATUS.CANCELLED}>
+                                {ORDER_STATUS.CANCELLED}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                           <Button
@@ -497,7 +552,7 @@ export default function Orders() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 cursor-pointer p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => deleteOrder(order.id)}
+                            onClick={() => handleDeleteClick(order.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -512,7 +567,6 @@ export default function Orders() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="flex justify-between items-center mt-10">
           <div className="text-sm text-muted-foreground">
@@ -520,7 +574,7 @@ export default function Orders() {
             {pagination && (
               <span className="mr-2">
                 {" "}
-                • المجموع: {pagination.totalItems} طلب
+                • المجموع: {pagination.total} طلب
               </span>
             )}
           </div>
@@ -564,7 +618,6 @@ export default function Orders() {
         </div>
       )}
 
-      {/* Order Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto font-admin">
           {selectedOrder && (
@@ -575,7 +628,6 @@ export default function Orders() {
                 </DialogTitle>
               </DialogHeader>
 
-              {/* Customer & Order Info */}
               <div className="grid md:grid-cols-2 gap-8 mb-8 text-right">
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold text-gray-900 mb-3">
@@ -638,7 +690,6 @@ export default function Orders() {
                 </div>
               </div>
 
-              {/* Notes */}
               {selectedOrder.notes && (
                 <div className="mb-2 p-4 bg-gray-50 rounded-lg">
                   <h3 className="text-sm font-medium text-gray-900 mb-2 text-right">
@@ -648,7 +699,6 @@ export default function Orders() {
                 </div>
               )}
 
-              {/* Products */}
               {selectedOrder.items && selectedOrder.items.length > 0 && (
                 <div>
                   <h3 className="text-sm font-black text-gray-900 mb-4 pb-2 border-b text-right">
@@ -660,7 +710,6 @@ export default function Orders() {
                         key={item.id}
                         className="flex items-center gap-4 p-4 border-1 border-gray-500 rounded-lg bg-white transition-colors"
                       >
-                        {/* Product Image */}
                         {item.product_image ? (
                           <img
                             src={item.product_image}
@@ -673,7 +722,6 @@ export default function Orders() {
                           </div>
                         )}
 
-                        {/* Product Info */}
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-gray-900 truncate">
                             {item.product_name}
@@ -683,7 +731,6 @@ export default function Orders() {
                           </p>
                         </div>
 
-                        {/* Quantity & Price */}
                         <div className="text-right flex-shrink-0">
                           <div className="text-sm font-medium text-gray-900">
                             {item.quantity} × {item.unit_price} دج
@@ -704,6 +751,17 @@ export default function Orders() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        title="تأكيد حذف الطلب"
+        message="هل أنت متأكد أنك تريد حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="حذف الطلب"
+        cancelText="إلغاء"
+      />
     </div>
   );
 }

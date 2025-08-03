@@ -89,27 +89,36 @@ export async function verifyWilaya(req, res, next) {
 
 // Validate price and discount_price as numbers
 export const validateNumber = [
-  // Validation for 'price'
+  // Validate 'price'
   body("price")
     .optional()
+    .customSanitizer((value) => {
+      const number = parseFloat(value);
+      return isNaN(number) ? undefined : number;
+    })
     .isFloat({ gt: 0 })
     .withMessage("Price must be a number greater than 0")
     .custom((value, { req }) => {
       console.log(`[validateNumber] Checking 'price': ${value}`);
-      return true; // Return true to indicate success for this custom check
+      return true;
     }),
 
-  // Validation for 'discount_price'
+  // Validate 'discount_price'
   body("discount_price")
     .optional()
-    .isFloat({ gt: 0 })
-    .withMessage("Discount price must be a number greater than 0")
+    .customSanitizer((value) => {
+      const number = parseFloat(value);
+      // 👇 If NaN, convert to 0
+      return isNaN(number) ? 0 : number;
+    })
+    .isFloat({ min: 0 }) // allow 0 now
+    .withMessage("Discount price must be a number and not negative")
     .custom((value, { req }) => {
       console.log(`[validateNumber] Checking 'discount_price': ${value}`);
       return true;
     }),
 
-  // Handle validation result
+  // Final validator result handler
   (req, res, next) => {
     console.log("[validateNumber] Running validation result handler.");
     const errors = validationResult(req);
@@ -120,13 +129,10 @@ export const validateNumber = [
       );
       return res.status(400).json({ errors: errors.array() });
     }
-    console.log(
-      "[validateNumber] No validation errors for numbers. Proceeding."
-    );
+    console.log("[validateNumber] No validation errors. Proceeding.");
     next();
   },
 ];
-
 // Validate discount dates
 export const validateDiscountDates = [
   // Validation for 'discount_start'
@@ -153,59 +159,58 @@ export const validateDiscountDates = [
       return true;
     }),
 
-  // Custom validator to check order
+  // Custom validator to check order (only if discount_price > 0)
   (req, res, next) => {
     console.log("[validateDiscountDates] Running custom date order validator.");
-    const errors = validationResult(req); // Re-run validationResult here to capture errors from previous checks in this chain
 
-    if (req.body) {
-      const { sale_start_at, sale_end_at } = req.body; // Using sale_start_at/sale_end_at based on your previous JSDoc and `createProduct` logic.
-      // If your actual body fields are `discount_start`/`discount_end`, adjust this line.
+    const errors = validationResult(req);
+    const { discount_price, discount_start, discount_end } = req.body;
 
-      if (!errors.isEmpty()) {
+    const parsedDiscountPrice = parseFloat(discount_price);
+    const isPriceInvalid =
+      isNaN(parsedDiscountPrice) || parsedDiscountPrice === 0;
+
+    if (isPriceInvalid) {
+      console.log(
+        "[validateDiscountDates] Skipping date validation because discount_price is 0, null, or NaN."
+      );
+      return next();
+    }
+
+    // Return any format errors from previous validators
+    if (!errors.isEmpty()) {
+      console.log(
+        "[validateDiscountDates] Initial date format errors found:",
+        JSON.stringify(errors.array(), null, 2)
+      );
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (discount_start && discount_end) {
+      const start = new Date(discount_start);
+      const end = new Date(discount_end);
+
+      if (start > end) {
         console.log(
-          "[validateDiscountDates] Initial date format errors found:",
-          JSON.stringify(errors.array(), null, 2)
+          "[validateDiscountDates] Date order error: Start is after End."
         );
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          errors: [
+            {
+              msg: "Discount start must be before or equal to discount end",
+              param: "discount_start",
+              location: "body",
+            },
+          ],
+        });
       }
-
-      if (sale_start_at && sale_end_at) {
-        // Use the corrected names here
-        console.log(
-          `[validateDiscountDates] Comparing dates: Start=${sale_start_at}, End=${sale_end_at}`
-        );
-        const start = new Date(sale_start_at);
-        const end = new Date(sale_end_at);
-
-        if (start > end) {
-          console.log(
-            "[validateDiscountDates] Date order error: Start is after End."
-          );
-          return res.status(400).json({
-            errors: [
-              {
-                msg: "Discount start must be before or equal to discount end",
-                param: "sale_start_at", // Adjust param name if your fields are discount_start
-                location: "body",
-              },
-            ],
-          });
-        }
-        console.log("[validateDiscountDates] Date order is valid.");
-      } else {
-        console.log(
-          "[validateDiscountDates] One or both discount dates not provided for order check."
-        );
-      }
+      console.log("[validateDiscountDates] Date order is valid.");
     } else {
       console.log(
-        "[validateDiscountDates] Request body is empty for date validation."
+        "[validateDiscountDates] One or both dates not provided; skipping order check."
       );
     }
-    console.log(
-      "[validateDiscountDates] No date validation errors. Proceeding."
-    );
+
     next();
   },
 ];

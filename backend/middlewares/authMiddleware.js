@@ -17,7 +17,6 @@ dotenv.config();
 export function verfyToken(allow_client = false) {
   // console.log("called verifyToken")
   return async function (req, res, next) {
-  // console.log("called verfyToken")
     try {
       const accessToken = req.cookies.accessToken;
 

@@ -2,53 +2,103 @@ import db from "../config/db.js";
 
 // for both client and admin
 export async function getAllCategories(req, res) {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
     try {
-        // 1. Get categories with subcategory count
+        // 1. Get total number of categories first
+        const [totalRows] = await db.execute("SELECT COUNT(*) AS total FROM categories");
+        const total = totalRows[0].total;
+        const totalPages = Math.ceil(total / limit);
+
+        // 2. Get paginated categories with subcategory count
+        // Using template literals for LIMIT/OFFSET to avoid parameter binding issues
         const [categories] = await db.execute(`
             SELECT 
                 c.id,
                 c.name,
-                COUNT(sc.id) AS subcategory_count
+                (SELECT COUNT(*) FROM subcategories sc WHERE sc.category_id = c.id) AS subcategory_count
             FROM categories c
-            LEFT JOIN subcategories sc ON sc.category_id = c.id
-            GROUP BY c.id, c.name
+            ORDER BY c.id
+            LIMIT ${limit} OFFSET ${offset}
         `);
 
-        // 2. Get all subcategories
-        const [subcategories] = await db.execute(`
+        // 3. Get all subcategories for the fetched categories
+        const categoryIds = categories.map(c => c.id);
+        let subcategoriesQuery = `
             SELECT id, name, category_id FROM subcategories
-        `);
-
-        // 3. Group subcategories by category_id
-        const groupedSubcategories = {};
-        subcategories.forEach(sub => {
-            if (!groupedSubcategories[sub.category_id]) {
-                groupedSubcategories[sub.category_id] = [];
-            }
-            groupedSubcategories[sub.category_id].push({
-                id: sub.id,
-                name: sub.name
+        `;
+        
+        if (categoryIds.length > 0) {
+            // Create placeholders for the IN clause
+            const placeholders = categoryIds.map(() => '?').join(',');
+            subcategoriesQuery += ` WHERE category_id IN (${placeholders})`;
+            
+            const [subcategories] = await db.execute(subcategoriesQuery, categoryIds);
+            
+            // 4. Group subcategories by category_id
+            const groupedSubcategories = {};
+            subcategories.forEach(sub => {
+                if (!groupedSubcategories[sub.category_id]) {
+                    groupedSubcategories[sub.category_id] = [];
+                }
+                groupedSubcategories[sub.category_id].push({
+                    id: sub.id,
+                    name: sub.name
+                });
             });
-        });
 
-        // 4. Attach subcategories to corresponding category
-        const enrichedCategories = categories.map(category => ({
-            ...category,
-            subcategories: groupedSubcategories[category.id] || []
-        }));
+            // 5. Attach subcategories to corresponding category
+            const enrichedCategories = categories.map(category => ({
+                ...category,
+                subcategories: groupedSubcategories[category.id] || []
+            }));
 
-        // 5. Get total number of categories
-        const [totalRows] = await db.execute("SELECT COUNT(*) AS total FROM categories");
+            // 6. Return final JSON with pagination
+            return res.status(200).json({
+                success: true,
+                total_categories: total,
+                categories: enrichedCategories,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages,
+                    hasNextPage: page < totalPages,
+                    hasPrevPage: page > 1,
+                }
+            });
+        }
 
-        // 6. Return final JSON
-        res.status(200).json({
-            total_categories: totalRows[0].total,
-            categories: enrichedCategories
+        // If no categories were found
+        return res.status(200).json({
+            success: true,
+            total_categories: total,
+            categories: categories.map(category => ({
+                ...category,
+                subcategories: []
+            })),
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1,
+            }
         });
 
     } catch (err) {
         console.error("Erreur lors de la récupération des catégories :", err);
-        res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ 
+            success: false,
+            message: "Internal server error",
+            error: process.env.NODE_ENV === 'development' ? {
+                message: err.message,
+                stack: err.stack
+            } : undefined
+        });
     }
 }
 

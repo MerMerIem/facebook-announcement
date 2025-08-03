@@ -150,7 +150,7 @@ export async function addOrder(req, res) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         totalPrice,
-        "en attente",
+        "في الانتظار",
         full_name,
         email,
         phone,
@@ -170,6 +170,7 @@ export async function addOrder(req, res) {
       );
     }
 
+    /* Commented out notification related code
     const [userResult] = await db.execute(
       "SELECT id FROM users WHERE email = ?",
       ["kadriyacine93@gmail.com"]
@@ -211,6 +212,7 @@ export async function addOrder(req, res) {
         [notificationContent, "unread"]
       );
     }
+    */
 
     await db.query("COMMIT");
 
@@ -310,38 +312,68 @@ export async function getAllOrders(req, res) {
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
   const status = req.query.status;
+  const search = req.query.search;
   console.log("status", status);
+  console.log("search", search);
 
   try {
     let query = `
-        SELECT o.*, MAX(w.delivery_fee) as delivery_fee,
-               COUNT(oi.id) as item_count
-        FROM orders o
-        LEFT JOIN wilayas w ON o.wilaya = w.name
-        LEFT JOIN order_items oi ON o.id = oi.order_id
-      `;
-    let countQuery = "SELECT COUNT(*) as total FROM orders o";
+      SELECT o.*, MAX(w.delivery_fee) as delivery_fee,
+             COUNT(oi.id) as item_count
+      FROM orders o
+      LEFT JOIN wilayas w ON o.wilaya = w.name
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+    `;
+    
+    let countQuery = "SELECT COUNT(DISTINCT o.id) as total FROM orders o";
+    let whereClauses = [];
     let params = [];
+    let countParams = [];
 
+    // Add status filter if provided
     if (status) {
-      query += " WHERE o.status = ?";
-      countQuery += " WHERE status = ?";
+      whereClauses.push("o.status = ?");
       params.push(status);
+      countParams.push(status);
     }
 
+    // Add search filter if provided
+    if (search) {
+      const searchTerm = `%${search}%`;
+      whereClauses.push(`
+        (o.full_name LIKE ? OR 
+         o.email LIKE ? OR 
+         o.phone LIKE ? OR 
+         o.id LIKE ?)
+      `);
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      countParams.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+
+    // Combine WHERE clauses if any exist
+    if (whereClauses.length > 0) {
+      const whereClause = " WHERE " + whereClauses.join(" AND ");
+      query += whereClause;
+      countQuery += whereClause;
+    }
+
+    // Add grouping, ordering and pagination
     query += ` GROUP BY o.id ORDER BY o.created_at DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
     console.log("query", query);
 
-    const [orders] = await db.query(query, params);
-    const [totalResult] = await db.query(countQuery, status ? [status] : []);
+    // Execute both queries in parallel
+    const [orders, totalResult] = await Promise.all([
+      db.query(query, params),
+      db.query(countQuery, countParams)
+    ]);
 
-    const total = totalResult[0].total;
+    const total = totalResult[0][0].total;
     const totalPages = Math.ceil(total / limit);
 
     res.json({
       success: true,
-      orders,
+      orders: orders[0],
       pagination: {
         page,
         limit,
@@ -353,6 +385,73 @@ export async function getAllOrders(req, res) {
     });
   } catch (err) {
     console.error("Erreur lors de la récupération des commandes :", err);
+    res.status(500).json({
+      success: false,
+      message: "Erreur interne du serveur",
+    });
+  }
+}
+
+export async function getRecent(req, res) {
+  try {
+    const query = `
+      SELECT o.*, MAX(w.delivery_fee) as delivery_fee,
+             COUNT(oi.id) as item_count,
+             GROUP_CONCAT(DISTINCT p.name SEPARATOR ', ') as product_names
+      FROM orders o
+      LEFT JOIN wilayas w ON o.wilaya = w.name
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      GROUP BY o.id 
+      ORDER BY o.created_at DESC 
+      LIMIT 5
+    `;
+
+    const [orders] = await db.query(query);
+
+    res.json({
+      success: true,
+      orders,
+    });
+  } catch (err) {
+    console.error(
+      "Erreur lors de la récupération des commandes récentes :",
+      err
+    );
+    res.status(500).json({
+      success: false,
+      message: "Erreur interne du serveur",
+    });
+  }
+}
+
+export async function getTodaysOrders(req, res) {
+  try {
+    const query = `
+      SELECT o.*, MAX(w.delivery_fee) as delivery_fee,
+             COUNT(oi.id) as item_count,
+             GROUP_CONCAT(DISTINCT p.name SEPARATOR ', ') as product_names
+      FROM orders o
+      LEFT JOIN wilayas w ON o.wilaya = w.name
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      WHERE DATE(o.created_at) = CURDATE()
+      GROUP BY o.id 
+      ORDER BY o.created_at DESC
+    `;
+
+    const [orders] = await db.query(query);
+
+    res.json({
+      success: true,
+      orders,
+      count: orders.length,
+    });
+  } catch (err) {
+    console.error(
+      "Erreur lors de la récupération des commandes du jour :",
+      err
+    );
     res.status(500).json({
       success: false,
       message: "Erreur interne du serveur",
@@ -598,14 +697,7 @@ export async function updateOrderStatus(req, res) {
   const { id } = req.params;
   const { status } = req.body;
 
-  const validStatuses = [
-    "en attente",
-    "confirmée",
-    "en préparation",
-    "expédiée",
-    "livrée",
-    "annulée",
-  ];
+  const validStatuses = ["في الانتظار", "مؤكد", "تم التسليم", "ملغى"];
 
   if (!validStatuses.includes(status)) {
     return res.status(400).json({

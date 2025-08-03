@@ -22,10 +22,7 @@ const menuItems = [
   {
     title: "المنتجات",
     icon: Package,
-    children: [
-      { title: "جميع المنتجات", href: "/admin/products" },
-      { title: "إضافة منتج", href: "/admin/products/add" },
-    ],
+    href: "/admin/products"
   },
   {
     title: "التصنيفات",

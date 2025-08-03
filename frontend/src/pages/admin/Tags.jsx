@@ -18,16 +18,16 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useApi } from "@/contexts/RestContext";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function Tags() {
   const { toast } = useToast();
   const { api } = useApi();
   
   const [tags, setTags] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingTag, setEditingTag] = useState(null);
@@ -37,20 +37,13 @@ export default function Tags() {
     totalPages: 1,
     totalItems: 0,
   });
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    isOpen: false,
+    tag: null,
+    isLoading: false
+  });
 
   const itemsPerPage = 8;
-
-  // Debounced search term for server-side search
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-
-  // Debounce the search term to avoid excessive API calls
-  useEffect(() => {
-    const searchTimeout = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500);
-
-    return () => clearTimeout(searchTimeout);
-  }, [searchTerm]);
 
   // Fetch data function with query parameters (page, limit, search)
   const fetchData = async (page = 1, search = "") => {
@@ -71,7 +64,6 @@ export default function Tags() {
       const [data, _, responseCode, error] = await api.get(
         `/tag/getAll?${queryParams.toString()}`
       );
-      console.log("data",data)
 
       if (!error && responseCode === 200 && data) {
         setTags(data.tags || []);
@@ -102,8 +94,8 @@ export default function Tags() {
 
   // Main useEffect hook to fetch data
   useEffect(() => {
-    fetchData(currentPage, debouncedSearchTerm);
-  }, [currentPage, debouncedSearchTerm]);
+    fetchData(currentPage);
+  }, [currentPage]);
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -111,28 +103,17 @@ export default function Tags() {
     setCurrentPage(page);
   };
 
-  // Handle search, resets page to 1
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-
-  // Filter tags locally based on search term (for client-side filtering)
-  const filteredTags = tags.filter(tag =>
-    tag.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const handleAdd = async () => {
     if (!tagName.trim()) return;
     
     try {
-      const [data, _, responseCode, error] = await api.post('/tag/create', {
+      const [data, _, responseCode, error] = await api.post('/tag/add', {
         name: tagName
       });
 
       if (!error && responseCode === 201) {
         // Refresh data after successful creation
-        await fetchData(currentPage, debouncedSearchTerm);
+        await fetchData(currentPage);
         setTagName("");
         setIsAddOpen(false);
         toast({ title: "تم إضافة العلامة بنجاح" });
@@ -150,10 +131,11 @@ export default function Tags() {
   };
 
   const handleEdit = async (tag) => {
+    console.log("tag",tag)
     if (!tagName.trim()) return;
     
     try {
-      const [data, _, responseCode, error] = await api.put(`/tag/${tag.id}`, {
+      const [data, _, responseCode, error] = await api.post(`/tag/modify/${tag.id}`, {
         name: tagName
       });
 
@@ -180,14 +162,18 @@ export default function Tags() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async () => {
+    if (!deleteConfirmation.tag) return;
+    
+    setDeleteConfirmation(prev => ({ ...prev, isLoading: true }));
+    
     try {
-      const [data, _, responseCode, error] = await api.delete(`/tag/${id}`);
+      const [data, _, responseCode, error] = await api.delete(`/tag/delete/${deleteConfirmation.tag.id}`);
 
       if (!error && responseCode === 200) {
-        // Refresh data after successful deletion
-        await fetchData(currentPage, debouncedSearchTerm);
+        await fetchData(currentPage);
         toast({ title: "تم حذف العلامة بنجاح" });
+        setDeleteConfirmation({ isOpen: false, tag: null, isLoading: false });
       } else {
         throw new Error(error || "Failed to delete tag");
       }
@@ -198,6 +184,7 @@ export default function Tags() {
         description: "فشل في حذف العلامة",
         variant: "destructive",
       });
+      setDeleteConfirmation(prev => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -267,15 +254,6 @@ export default function Tags() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>قائمة العلامات ({pagination.total || 0})</CardTitle>
-            <div className="flex items-center gap-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="البحث في العلامات..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className="w-64"
-              />
-            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -292,9 +270,7 @@ export default function Tags() {
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-8">
                     <div className="text-muted-foreground">
-                      {searchTerm
-                        ? "لا توجد علامات تطابق البحث"
-                        : "لا توجد علامات"}
+                      لا توجد علامات
                     </div>
                   </TableCell>
                 </TableRow>
@@ -351,7 +327,7 @@ export default function Tags() {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDelete(tag.id)}
+                          onClick={() => setDeleteConfirmation({ isOpen: true, tag, isLoading: false })}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -415,6 +391,15 @@ export default function Tags() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmationDialog
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, tag: null, isLoading: false })}
+        onConfirm={handleDelete}
+        title="تأكيد حذف العلامة"
+        message={`هل أنت متأكد من أنك تريد حذف العلامة "${deleteConfirmation.tag?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        isLoading={deleteConfirmation.isLoading}
+      />
     </div>
   );
 }

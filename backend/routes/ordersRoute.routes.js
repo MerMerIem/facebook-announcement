@@ -11,6 +11,8 @@ import {
   getOrderById,
   modifyOrder,
   deleteOrder,
+  getRecent,
+  getTodaysOrders,
   updateOrderStatus,
 } from "../controllers/ordersController.controller.js";
 
@@ -39,4 +41,6 @@ router.patch(
   updateOrderStatus
 ); // Update order status
 
+router.get("/getRecent", verfyToken(), isAuthorized, getRecent);
+router.get("/getTodays", verfyToken(), isAuthorized, getTodaysOrders);
 export default router;
