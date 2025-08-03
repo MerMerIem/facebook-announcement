@@ -1,10 +1,19 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Truck, Shield, Headphones, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/customer/layout/Header';
+import { useApi } from '@/contexts/RestContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { api } = useApi();
+  const { toast } = useToast();
+
+  // Static features data
   const features = [
     {
       icon: ShoppingBag,
@@ -28,6 +37,53 @@ const Index = () => {
     }
   ];
 
+  // Generate description based on subcategories or general fallback
+  const getCategoryDescription = (category) => {
+    const { subcategory_count, subcategories } = category;
+    
+    if (subcategory_count > 0 && subcategories.length > 0) {
+      // Show first 2-3 subcategories if available
+      const subcategoryNames = subcategories.slice(0, 3).map(sub => sub.name).join('، ');
+      return subcategory_count > subcategories.length 
+        ? `${subcategoryNames} والمزيد` 
+        : subcategoryNames;
+    }
+    
+    // Generic fallback description
+    return 'تصفح مجموعة متنوعة من المنتجات عالية الجودة';
+  };
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setIsLoading(true);
+        const [data, response, responseCode, error] = await api.get('/category/getAll');
+        
+        if (responseCode === 200 && data) {
+          setCategories(data.categories || []);
+        } else {
+          toast({
+            title: 'خطأ في تحميل الفئات',
+            description: error || 'فشل في تحميل فئات المنتجات',
+            variant: 'destructive',
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        toast({
+          title: 'خطأ في الاتصال',
+          description: 'تعذر الاتصال بالخادم',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [api, toast]);
+
   return (
     <div className="min-h-screen bg-shop-bg">
       <Header />
@@ -49,9 +105,6 @@ const Index = () => {
                   <ArrowLeft className="mr-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-4">
-                تصفح الفئات
-              </Button>
             </div>
           </div>
         </div>
@@ -89,60 +142,67 @@ const Index = () => {
           <h2 className="text-3xl font-bold text-center mb-12 text-primary">
             فئات المنتجات
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <Link to="/shop?category=1">
-              <Card className="hover-lift cursor-pointer overflow-hidden">
-                <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center">
-                  <ShoppingBag className="h-16 w-16 text-primary" />
-                </div>
-                <CardContent className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-primary">
-                    الأدوات الكهربائية
-                  </h3>
-                  <p className="text-muted-foreground mt-2">
-                    مثاقب، مناشير، وأدوات كهربائية متطورة
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link to="/shop?category=2">
-              <Card className="hover-lift cursor-pointer overflow-hidden">
-                <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center">
-                  <Shield className="h-16 w-16 text-primary" />
-                </div>
-                <CardContent className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-primary">
-                    أدوات البناء
-                  </h3>
-                  <p className="text-muted-foreground mt-2">
-                    أدوات احترافية لجميع أعمال البناء والتشييد
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link to="/shop?category=3">
-              <Card className="hover-lift cursor-pointer overflow-hidden">
-                <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center">
-                  <Truck className="h-16 w-16 text-primary" />
-                </div>
-                <CardContent className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-primary">
-                    قطع الغيار
-                  </h3>
-                  <p className="text-muted-foreground mt-2">
-                    قطع غيار أصلية لجميع أنواع الأدوات
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+          
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              {[1, 2, 3].map((item) => (
+                <Card key={item} className="overflow-hidden animate-pulse">
+                  <div className="aspect-video bg-gray-200"></div>
+                  <CardContent className="p-6 text-center">
+                    <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : categories.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {categories.slice(0, 6).map((category) => (
+                <Link key={category.id} to={`/shop?category=${encodeURIComponent(category.name)}`}>
+                  <Card className="hover-lift cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg">
+                    <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center relative">
+                      <div className="text-6xl font-bold text-primary/30">
+                        {category.name.charAt(0)}
+                      </div>
+                      {category.subcategory_count > 0 && (
+                        <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
+                          {category.subcategory_count} : فئة فرعية
+                        </div>
+                      )}
+                    </div>
+                    <CardContent className="p-6 text-center">
+                      <h3 className="text-xl font-semibold text-primary mb-2">
+                        {category.name}
+                      </h3>
+                      <p className="text-muted-foreground text-sm">
+                        {getCategoryDescription(category)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">لا توجد فئات متاحة حالياً</p>
+            </div>
+          )}
+          
+          {categories.length > 6 && (
+            <div className="text-center mt-8">
+              <Link to="/shop">
+                <Button variant="outline" size="lg">
+                  عرض جميع الفئات
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-gradient-to-r from-primary to-primary-glow">
+      <section className="py-16 px-4 bg-primary">
         <div className="container mx-auto text-center">
           <div className="max-w-2xl mx-auto text-white">
             <h2 className="text-3xl font-bold mb-4">
@@ -152,7 +212,7 @@ const Index = () => {
               اكتشف أفضل العروض والمنتجات الجديدة
             </p>
             <Link to="/shop">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-4">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-4">
                 تصفح المتجر
                 <ArrowLeft className="mr-2 h-5 w-5" />
               </Button>

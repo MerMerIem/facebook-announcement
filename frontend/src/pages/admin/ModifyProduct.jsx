@@ -17,7 +17,7 @@ const ModifyProduct = () => {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [productData, setProductData] = useState(null);
-
+  const [deletedImages, setDeletedImages] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     description: "<p></p>",
@@ -63,7 +63,7 @@ const ModifyProduct = () => {
           discount_price: data.discount_price || "",
           discount_start: data.discount_start || "",
           discount_end: data.discount_end || "",
-          tags: "", // You might need to fetch tags separately if available
+          tags: data.tags || "", // You might need to fetch tags separately if available
         });
 
         // Process images
@@ -129,15 +129,25 @@ const ModifyProduct = () => {
     const files = Array.from(e.target.files).slice(0, 10 - images.length);
     const validImages = [];
     let hasErrors = false;
+    let processedCount = 0;
 
-    files.forEach((file) => {
+    if (files.length === 0) {
+      toast("تنبيه", {
+        description: "لم يتم اختيار أي ملفات",
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Filter valid files first
+    const validFiles = files.filter((file) => {
       if (file.size > 5 * 1024 * 1024) {
         toast.error("خطأ في رفع الصورة", {
           description: `الصورة ${file.name} تتجاوز حد 5 ميجابايت`,
           duration: 4000,
         });
         hasErrors = true;
-        return;
+        return false;
       }
       if (!file.type.startsWith("image/")) {
         toast.error("نوع ملف غير صالح", {
@@ -145,9 +155,17 @@ const ModifyProduct = () => {
           duration: 4000,
         });
         hasErrors = true;
-        return;
+        return false;
       }
+      return true;
+    });
 
+    if (validFiles.length === 0) {
+      return;
+    }
+
+    // Process each valid file
+    validFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         validImages.push({
@@ -156,34 +174,50 @@ const ModifyProduct = () => {
           name: file.name,
           isExisting: false,
         });
-        if (
-          validImages.length ===
-          files.filter(
-            (f) => f.size <= 5 * 1024 * 1024 && f.type.startsWith("image/")
-          ).length
-        ) {
+
+        processedCount++;
+
+        // Only update state when ALL files are processed
+        if (processedCount === validFiles.length) {
           setImages((prev) => [...prev, ...validImages]);
-          if (validImages.length > 0) {
-            toast.success("تم رفع الصور بنجاح", {
-              description: `تم رفع ${validImages.length} صورة بنجاح`,
-              duration: 3000,
-            });
-          }
+          toast.success("تم رفع الصور بنجاح", {
+            description: `تم رفع ${validImages.length} صورة بنجاح`,
+            duration: 3000,
+          });
         }
       };
+
+      reader.onerror = () => {
+        processedCount++;
+        toast.error("خطأ في قراءة الملف", {
+          description: `فشل في قراءة ${file.name}`,
+          duration: 4000,
+        });
+
+        if (processedCount === validFiles.length && validImages.length > 0) {
+          setImages((prev) => [...prev, ...validImages]);
+        }
+      };
+
       reader.readAsDataURL(file);
     });
-
-    if (files.length === 0) {
-      toast("تنبيه", {
-        description: "لم يتم اختيار أي ملفات",
-        duration: 3000,
-      });
-    }
   };
 
   const removeImage = (indexToRemove) => {
     const removedImage = images[indexToRemove];
+
+    // If it's an existing image, add it to deleted images list
+    if (removedImage.isExisting) {
+      setDeletedImages((prev) => [
+        ...prev,
+        {
+          id: removedImage.id,
+          url: removedImage.url,
+          public_id: removedImage.public_id,
+        },
+      ]);
+    }
+
     setImages((prev) => prev.filter((_, i) => i !== indexToRemove));
 
     if (mainImageIndex === indexToRemove) {
@@ -219,12 +253,12 @@ const ModifyProduct = () => {
     if (!formData.category) newErrors.category = "الفئة مطلوبة";
     if (!formData.subcategory) newErrors.subcategory = "الفئة الفرعية مطلوبة";
 
-    // Validate discount_percentage ONLY if it's defined
+    // Optional: Only validate discount_percentage if present and not 0
     if (
       formData.discount_percentage !== undefined &&
       formData.discount_percentage !== null &&
       formData.discount_percentage !== "" &&
-      formData.discount_percentage !== 0
+      Number(formData.discount_percentage) !== 0
     ) {
       if (
         formData.discount_percentage < 0 ||
@@ -234,35 +268,9 @@ const ModifyProduct = () => {
       }
     }
 
-    // Validate discount dates and price ONLY if any of them is filled
-    const hasManualDiscount =
-      formData.discount_price ||
-      formData.discount_start ||
-      formData.discount_end;
-
-    if (hasManualDiscount) {
-      if (!formData.discount_price) {
-        newErrors.discount_price = "سعر الخصم مطلوب عند وجود تاريخ خصم";
-      }
-
-      if (!formData.discount_start) {
-        newErrors.discount_start = "تاريخ بداية الخصم مطلوب";
-      }
-
-      if (!formData.discount_end) {
-        newErrors.discount_end = "تاريخ نهاية الخصم مطلوب";
-      }
-
-      if (
-        formData.discount_start &&
-        formData.discount_end &&
-        formData.discount_start > formData.discount_end
-      ) {
-        newErrors.discount_end = "تاريخ النهاية يجب أن يكون بعد تاريخ البداية";
-      }
-    }
-
     setErrors(newErrors);
+
+    console.log(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
       toast.error("خطأ في التحقق من البيانات", {
@@ -304,6 +312,8 @@ const ModifyProduct = () => {
       formDataToSend.append("profit", parseFloat(formData.profit));
       formDataToSend.append("category", formData.category);
       formDataToSend.append("subcategory", formData.subcategory);
+
+      // Calculate main_image_index based on current images array
       formDataToSend.append("main_image_index", mainImageIndex);
 
       // Optional discount
@@ -327,31 +337,39 @@ const ModifyProduct = () => {
       }
 
       // Optional tags
-      if (formData.tags) {
+      if (typeof formData.tags === "string") {
         const tags = formData.tags
           .split(",")
           .map((tag) => tag.trim())
           .filter((tag) => tag);
         formDataToSend.append("tags", JSON.stringify(tags));
+      } else if (Array.isArray(formData.tags)) {
+        const tags = formData.tags
+          .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
+          .filter((tag) => tag);
+        formDataToSend.append("tags", JSON.stringify(tags));
       }
 
-      // Add new images only
+      // Add only new images (not existing ones)
       const newImages = images.filter((img) => !img.isExisting);
       newImages.forEach((image) => {
         formDataToSend.append("images", image.file);
       });
 
-      // Send existing image IDs and their order
-      const existingImages = images.filter((img) => img.isExisting);
-      if (existingImages.length > 0) {
-        formDataToSend.append(
-          "existing_images",
-          JSON.stringify(existingImages.map((img) => img.id))
-        );
+      // Send deleted images IDs and URLs for cleanup
+      if (deletedImages.length > 0) {
+        formDataToSend.append("deleted_images", JSON.stringify(deletedImages));
       }
 
-      const [data, _, responseCode, error] = await api.put(
-        `/product/update/${id}`,
+      console.log("FormData being sent:", {
+        newImagesCount: newImages.length,
+        deletedImagesCount: deletedImages.length,
+        mainImageIndex: mainImageIndex,
+        totalCurrentImages: images.length,
+      });
+
+      const [data, _, responseCode, error] = await api.post(
+        `/product/modify/${id}`,
         formDataToSend,
         {
           headers: {
@@ -372,6 +390,10 @@ const ModifyProduct = () => {
             textAlign: "right",
           },
         });
+
+        // Clear deleted images list after successful update
+        setDeletedImages([]);
+
         // Optionally navigate back or refresh data
         // navigate("/admin/products");
       } else {
@@ -503,9 +525,7 @@ const ModifyProduct = () => {
             >
               <ArrowLeft size={20} className="text-gray-600" />
             </button>
-            <h1 className="text-3xl font-bold text-gray-900">
-              تعديل المنتج: {productData?.name}
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">تعديل المنتج</h1>
           </div>
           <p className="text-gray-600">قم بتعديل معلومات المنتج وصوره</p>
         </div>
@@ -691,30 +711,30 @@ const ModifyProduct = () => {
                 </h3>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
+                    {/* Discount Percentage */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        الخصم عند شراء اكثر من منتج %
+                        الخصم عند شراء أكثر من منتج (%)
                       </label>
                       <input
                         type="number"
                         name="discount_percentage"
-                        value={formData.discount_percentage}
+                        value={formData.discount_percentage || ""}
                         onChange={handleInputChange}
                         min="0"
                         max="100"
-                        className={`w-full px-4 py-3 border rounded-lg ${
-                          errors.discount_percentage
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         placeholder="0"
                       />
-                      {errors.discount_percentage && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.discount_percentage}
-                        </p>
-                      )}
+                      {errors.discount_percentage &&
+                        formData.discount_percentage && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.discount_percentage}
+                          </p>
+                        )}
                     </div>
+
+                    {/* Discount Price */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         سعر خصم خاص
@@ -722,25 +742,23 @@ const ModifyProduct = () => {
                       <input
                         type="number"
                         name="discount_price"
-                        value={formData.discount_price}
+                        value={formData.discount_price || ""}
                         onChange={handleInputChange}
                         min="0"
                         step="0.01"
-                        className={`w-full px-4 py-3 border rounded-lg ${
-                          errors.discount_price
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         placeholder="0.00"
                       />
-                      {errors.discount_price && (
+                      {errors.discount_price && formData.discount_price && (
                         <p className="text-red-500 text-sm mt-1">
                           {errors.discount_price}
                         </p>
                       )}
                     </div>
                   </div>
+
                   <div className="grid grid-cols-2 gap-4">
+                    {/* Discount Start Date */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         بداية الخصم
@@ -748,20 +766,23 @@ const ModifyProduct = () => {
                       <input
                         type="date"
                         name="discount_start"
-                        value={formData.discount_start}
+                        value={
+                          formData.discount_start
+                            ? formData.discount_start.split("T")[0]
+                            : ""
+                        }
                         onChange={handleInputChange}
-                        className={`w-full px-4 py-3 border rounded-lg ${
-                          errors.discount_start
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                       />
-                      {errors.discount_start && (
+
+                      {errors.discount_start && formData.discount_start && (
                         <p className="text-red-500 text-sm mt-1">
                           {errors.discount_start}
                         </p>
                       )}
                     </div>
+
+                    {/* Discount End Date */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         نهاية الخصم
@@ -769,15 +790,16 @@ const ModifyProduct = () => {
                       <input
                         type="date"
                         name="discount_end"
-                        value={formData.discount_end}
+                        value={
+                          formData.discount_end
+                            ? formData.discount_end.split("T")[0]
+                            : ""
+                        }
                         onChange={handleInputChange}
-                        className={`w-full px-4 py-3 border rounded-lg ${
-                          errors.discount_end
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                       />
-                      {errors.discount_end && (
+
+                      {errors.discount_end && formData.discount_end && (
                         <p className="text-red-500 text-sm mt-1">
                           {errors.discount_end}
                         </p>

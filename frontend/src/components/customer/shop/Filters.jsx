@@ -3,7 +3,6 @@ import { ChevronDown, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -208,30 +207,6 @@ const Filters = ({ options, activeFilters, onFiltersChange, isOpen = true, onTog
             </CollapsibleContent>
           </Collapsible>
         )}
-
-        {/* Price Range */}
-        <Collapsible open={openSections.price} onOpenChange={() => toggleSection('price')}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">نطاق السعر</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${openSections.price ? 'rotate-180' : ''}`} />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 mt-3">
-            <Slider
-              value={activeFilters.priceRange}
-              onValueChange={handlePriceChange}
-              min={options.priceRange[0]}
-              max={options.priceRange[1]}
-              step={1000}
-              className="w-full"
-            />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>{formatPrice(activeFilters.priceRange[0])}</span>
-              <span>{formatPrice(activeFilters.priceRange[1])}</span>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
 
         {/* Discount Filter */}
         <Collapsible open={openSections.discount} onOpenChange={() => toggleSection('discount')}>

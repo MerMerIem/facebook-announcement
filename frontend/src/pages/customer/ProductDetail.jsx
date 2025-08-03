@@ -1,91 +1,97 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowRight, ShoppingCart, Heart, Share2, Minus, Plus, Timer, Truck, Shield, RotateCcw } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Minus, Plus, Timer, Truck, Shield, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/customer/layout/Header';
 import ProductCard from '@/components/customer/shop/ProductCard';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock data
-const mockProducts = [
-  {
-    id: 1,
-    name: "منشار كهربائي",
-    description: "منشار كهربائي قوي بقدرة عالية مناسب لجميع أعمال النشر والقطع. يتميز بمحرك قوي وتصميم مريح للاستخدام لفترات طويلة. مزود بشفرة عالية الجودة تضمن قطعاً دقيقاً وسريعاً. مثالي للاستخدام في ورش النجارة والمشاريع المنزلية.",
-    price: "25000.00",
-    discount_price: "10000.00",
-    discount_start: "2025-08-01T00:00:00.000Z",
-    discount_end: "2025-08-15T00:00:00.000Z",
-    category: { id: 2, name: "الأدوات الكهربائية" },
-    subcategory: { id: 1, name: "مناشير كهربائية" },
-    images: [
-      { id: 1, url: "/placeholder.svg", is_main: 1 },
-      { id: 2, url: "/placeholder.svg", is_main: 0 },
-      { id: 3, url: "/placeholder.svg", is_main: 0 }
-    ],
-    tags: [
-      { id: 1, name: "أدوات احترافية" },
-      { id: 2, name: "ضمان سنتين" }
-    ],
-    main_image_url: "/placeholder.svg",
-    has_discount: "2025-08-15T00:00:00.000Z",
-    total_images: 3,
-    total_tags: 2
-  },
-  {
-    id: 14,
-    name: "مثقاب لاسلكي 18 فولت 10",
-    description: "مثقاب قوي وفعال ببطارية ليثيوم أيون 18 فولت، مثالي للمشاريع المنزلية.",
-    price: "15000.00",
-    discount_price: "0.00",
-    discount_start: null,
-    discount_end: null,
-    category: { id: 2, name: "الأدوات الكهربائية" },
-    subcategory: { id: 2, name: "مثاقب كهربائية" },
-    images: [{ id: 12, url: "https://res.cloudinary.com/dj8va2cd0/image/upload/v1753784102/oyavzv8povmoad7uxvem.png", is_main: 1 }],
-    tags: [{ id: 1, name: "مستلزمات السباكة" }],
-    main_image_url: "https://res.cloudinary.com/dj8va2cd0/image/upload/v1753784102/oyavzv8povmoad7uxvem.png",
-    has_discount: null,
-    total_images: 1,
-    total_tags: 1
-  },
-  {
-    id: 15,
-    name: "مثقاب لاسلكي 18 فولت 12",
-    description: "مثقاب قوي وفعال ببطارية ليثيوم أيون 18 فولت، مثالي للمشاريع المنزلية.",
-    price: "18000.00",
-    discount_price: "0.00",
-    discount_start: null,
-    discount_end: null,
-    category: { id: 2, name: "الأدوات الكهربائية" },
-    subcategory: { id: 2, name: "مثاقب كهربائية" },
-    images: [{ id: 13, url: "https://res.cloudinary.com/dj8va2cd0/image/upload/v1753784693/ikcpff4ttbrpmhswsgnu.png", is_main: 1 }],
-    tags: [{ id: 1, name: "مستلزمات السباكة" }],
-    main_image_url: "https://res.cloudinary.com/dj8va2cd0/image/upload/v1753784693/ikcpff4ttbrpmhswsgnu.png",
-    has_discount: null,
-    total_images: 1,
-    total_tags: 1
-  }
-];
+import { useApi } from '@/contexts/RestContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
   const { addItem, getItemQuantity } = useCart();
   const { toast } = useToast();
+  const { api } = useApi();
 
   useEffect(() => {
-    // Find product by ID
-    const foundProduct = mockProducts.find(p => p.id === parseInt(id || '0'));
-    setProduct(foundProduct || null);
-  }, [id]);
+    const fetchProduct = async () => {
+      if (!id) return;
+      
+      setIsLoading(true);
+      try {
+        const [productData, response, responseCode, error] = await api.get(`/product/get/${id}`);
+        
+        if (responseCode === 200 && productData) {
+          setProduct(productData);
+          
+          // Fetch recommended products based on category/subcategory
+          if (productData.category?.id) {
+            fetchRecommendedProducts(productData.category.id, productData.subcategory?.id, productData.id);
+          }
+        } else {
+          console.error('Failed to fetch product:', error);
+          toast({
+            title: "خطأ",
+            description: error || "فشل في تحميل المنتج",
+            variant: "destructive",
+          });
+          setProduct(null);
+        }
+      } catch (err) {
+        console.error('Error fetching product:', err);
+        toast({
+          title: "خطأ",
+          description: "حدث خطأ أثناء تحميل المنتج",
+          variant: "destructive",
+        });
+        setProduct(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id, api, toast]);
+
+  const fetchRecommendedProducts = async (categoryId, subcategoryId, currentProductId) => {
+    try {
+      // You might need to adjust this endpoint based on your API
+      // This could be a general products endpoint with filters, or a specific recommended products endpoint
+      const [productsData, response, responseCode, error] = await api.get(`/products?category=${categoryId}&limit=4`);
+      
+      if (responseCode === 200 && productsData) {
+        // Filter out current product and limit to 4
+        const filtered = productsData.filter(p => p.id !== currentProductId).slice(0, 4);
+        setRecommendedProducts(filtered);
+      }
+    } catch (err) {
+      console.error('Error fetching recommended products:', err);
+      // Don't show error toast for recommended products, just log it
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-shop-bg">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">جاري تحميل المنتج...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -144,10 +150,6 @@ const ProductDetail = () => {
   };
 
   const timeRemaining = getTimeRemaining();
-  const recommendedProducts = mockProducts.filter(p => 
-    p.id !== product.id && 
-    (p.category.id === product.category.id || p.subcategory.id === product.subcategory.id)
-  ).slice(0, 4);
 
   return (
     <div className="min-h-screen bg-shop-bg">
@@ -160,8 +162,8 @@ const ProductDetail = () => {
           <span>/</span>
           <Link to="/shop" className="hover:text-primary">المتجر</Link>
           <span>/</span>
-          <Link to={`/shop?category=${product.category.id}`} className="hover:text-primary">
-            {product.category.name}
+          <Link to={`/shop?category=${product.category?.id}`} className="hover:text-primary">
+            {product.category?.name}
           </Link>
           <span>/</span>
           <span className="text-foreground">{product.name}</span>
@@ -172,18 +174,18 @@ const ProductDetail = () => {
           <div className="space-y-4">
             <div className="aspect-square bg-white rounded-lg overflow-hidden border">
               <img
-                src={product.images[selectedImageIndex]?.url || product.main_image_url || '/placeholder.svg'}
+                src={product.images?.[selectedImageIndex]?.url || product.main_image_url || '/placeholder.svg'}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
             
             {/* Thumbnail Images */}
-            {product.images.length > 1 && (
+            {product.images && product.images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto">
                 {product.images.map((image, index) => (
                   <button
-                    key={image.id}
+                    key={image.id || index}
                     onClick={() => setSelectedImageIndex(index)}
                     className={`flex-shrink-0 w-20 h-20 border-2 rounded-lg overflow-hidden ${
                       selectedImageIndex === index ? 'border-primary' : 'border-border'
@@ -205,15 +207,21 @@ const ProductDetail = () => {
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
               <div className="flex items-center gap-2 mb-4">
-                <Badge variant="outline">{product.category.name}</Badge>
-                <Badge variant="outline">{product.subcategory.name}</Badge>
+                {product.category?.name && (
+                  <Badge variant="outline">{product.category.name}</Badge>
+                )}
+                {product.subcategory?.name && (
+                  <Badge variant="outline">{product.subcategory.name}</Badge>
+                )}
               </div>
               
               {/* Tags */}
-              {product.tags.length > 0 && (
+              {product.tags && product.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {product.tags.map((tag) => (
-                    <Badge key={tag.id} variant="secondary">{tag.name}</Badge>
+                  {product.tags.map((tag, index) => (
+                    <Badge key={tag.id || index} variant="secondary">
+                      {typeof tag === 'string' ? tag : tag.name}
+                    </Badge>
                   ))}
                 </div>
               )}
@@ -280,12 +288,6 @@ const ProductDetail = () => {
                   <ShoppingCart className="h-5 w-5 ml-2" />
                   إضافة للسلة
                 </Button>
-                <Button variant="outline" size="lg">
-                  <Heart className="h-5 w-5" />
-                </Button>
-                <Button variant="outline" size="lg">
-                  <Share2 className="h-5 w-5" />
-                </Button>
               </div>
             </div>
 
@@ -318,9 +320,12 @@ const ProductDetail = () => {
             
             <TabsContent value="description" className="p-6">
               <h3 className="text-lg font-semibold mb-4">وصف المنتج</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {product.description}
-              </p>
+              <div
+                  className="prose"
+                  dangerouslySetInnerHTML={{
+                    __html: product.description,
+                  }}
+                />
             </TabsContent>
             
             <TabsContent value="specifications" className="p-6">
@@ -328,19 +333,15 @@ const ProductDetail = () => {
               <div className="space-y-2">
                 <div className="flex justify-between py-2 border-b">
                   <span className="font-medium">الفئة:</span>
-                  <span>{product.category.name}</span>
+                  <span>{product.category?.name}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="font-medium">الفئة الفرعية:</span>
-                  <span>{product.subcategory.name}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="font-medium">رقم المنتج:</span>
-                  <span>#{product.id}</span>
+                  <span>{product.subcategory?.name}</span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="font-medium">عدد الصور:</span>
-                  <span>{product.total_images}</span>
+                  <span className="font-medium">وسوم:</span>
+                  <span>{product.tags?.map(tag => typeof tag === 'string' ? tag : tag.name).join(', ')}</span>
                 </div>
               </div>
             </TabsContent>

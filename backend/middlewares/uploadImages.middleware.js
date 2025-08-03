@@ -53,7 +53,7 @@ const uploadImages = async (req, res, next) => {
       req.uploadedImages = results.map((result, index) => ({
         url: result.secure_url,
         public_id: result.public_id,
-        is_main: index === mainImageIndex ? 1 : 0 
+        is_main: index === mainImageIndex ? 1 : 0,
       }));
 
       next(); // Proceed to modifyProduct with uploaded image URLs

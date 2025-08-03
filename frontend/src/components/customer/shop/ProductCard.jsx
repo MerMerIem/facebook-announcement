@@ -13,7 +13,8 @@ const ProductCard = ({ product }) => {
   const { toast } = useToast();
   const itemQuantity = getItemQuantity(product.id);
 
-  const hasDiscount = product.has_discount && new Date(product.has_discount) > new Date();
+  // Fix discount logic - use the has_discount field from backend
+  const hasDiscount = product.has_discount === true || product.has_discount === 1;
   const originalPrice = parseFloat(product.price || '0');
   const discountPrice = parseFloat(product.discount_price || '0');
   const currentPrice = hasDiscount && discountPrice > 0 ? discountPrice : originalPrice;
@@ -37,10 +38,10 @@ const ProductCard = ({ product }) => {
   };
 
   const getTimeRemaining = () => {
-    if (!product.has_discount) return null;
+    if (!hasDiscount || !product.discount_end) return null;
     
     const now = new Date();
-    const endDate = new Date(product.has_discount);
+    const endDate = new Date(product.discount_end);
     const timeDiff = endDate.getTime() - now.getTime();
     
     if (timeDiff <= 0) return null;
@@ -84,9 +85,6 @@ const ProductCard = ({ product }) => {
             <Button size="sm" variant="secondary" className="rounded-full">
               <Eye className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="secondary" className="rounded-full">
-              <Heart className="h-4 w-4" />
-            </Button>
           </div>
 
           {/* Quantity Badge */}
@@ -106,26 +104,33 @@ const ProductCard = ({ product }) => {
               {product.name}
             </h3>
             
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {product.description}
-            </p>
+            <div
+                className="prose"
+                dangerouslySetInnerHTML={{
+                  __html: product.description,
+                }}
+            />
 
             {/* Category and Subcategory */}
             <div className="flex flex-wrap gap-1">
-              <Badge variant="outline" className="text-xs">
-                {product.category.name}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {product.subcategory.name}
-              </Badge>
+              {product.category?.name && (
+                <Badge variant="outline" className="text-xs">
+                  {product.category.name}
+                </Badge>
+              )}
+              {product.subcategory?.name && (
+                <Badge variant="outline" className="text-xs">
+                  {product.subcategory.name}
+                </Badge>
+              )}
             </div>
 
-            {/* Tags */}
-            {product.tags.length > 0 && (
+            {/* Tags - Fixed to handle array of strings */}
+            {product.tags && Array.isArray(product.tags) && product.tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {product.tags.slice(0, 2).map((tag) => (
-                  <Badge key={tag.id} variant="secondary" className="text-xs">
-                    {tag.name}
+                {product.tags.slice(0, 2).map((tag, index) => (
+                  <Badge key={`tag-${index}`} variant="secondary" className="text-xs">
+                    {typeof tag === 'string' ? tag : tag.name}
                   </Badge>
                 ))}
                 {product.tags.length > 2 && (
