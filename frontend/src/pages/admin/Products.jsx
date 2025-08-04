@@ -111,6 +111,7 @@ export default function Products() {
 
   const fetchProductDetails = async (id) => {
     const [data, _, responseCode, error] = await api.get(`/product/get/${id}`);
+    console.log("data",data)
 
     if (!error && responseCode === 200 && data) {
       setSelectedProduct(data);
@@ -812,7 +813,8 @@ export default function Products() {
                         <h3 className="text-lg font-semibold mb-3 text-gray-800 text-right">
                           تفاصيل إضافية
                         </h3>
-                        <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                          {/* Discount Status */}
                           <div className="flex justify-between items-center">
                             <div>
                               {selectedProduct.discount_start &&
@@ -854,6 +856,25 @@ export default function Products() {
                             </div>
                             <span className="text-gray-700">حالة الخصم:</span>
                           </div>
+
+                          {/* Tags */}
+                          {selectedProduct?.tags && selectedProduct.tags.length > 0 && (
+                            <div className="border-t border-gray-200 pt-4">
+                              <div className="flex justify-between items-center">
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedProduct.tags.map((tag, index) => (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                                <span className="text-gray-700">العلامات:</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

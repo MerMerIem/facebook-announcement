@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingBag, Truck, Shield, Headphones, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import Header from '@/components/customer/layout/Header';
-import { useApi } from '@/contexts/RestContext';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  ShoppingBag,
+  Truck,
+  Shield,
+  Headphones,
+  ArrowLeft,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import Header from "@/components/customer/layout/Header";
+import { useApi } from "@/contexts/RestContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [categories, setCategories] = useState([]);
@@ -17,40 +23,43 @@ const Index = () => {
   const features = [
     {
       icon: ShoppingBag,
-      title: 'تشكيلة واسعة',
-      description: 'آلاف المنتجات من أفضل الماركات العالمية'
+      title: "تشكيلة واسعة",
+      description: "آلاف المنتجات من أفضل الماركات العالمية",
     },
     {
       icon: Truck,
-      title: 'توصيل سريع',
-      description: 'توصيل لجميع أنحاء الجزائر في أسرع وقت'
+      title: "توصيل سريع",
+      description: "توصيل لجميع أنحاء الجزائر في أسرع وقت",
     },
     {
       icon: Shield,
-      title: 'ضمان الجودة',
-      description: 'جميع منتجاتنا أصلية ومضمونة الجودة'
+      title: "ضمان الجودة",
+      description: "جميع منتجاتنا أصلية ومضمونة الجودة",
     },
     {
       icon: Headphones,
-      title: 'دعم العملاء',
-      description: 'فريق دعم متاح 24/7 لمساعدتك'
-    }
+      title: "دعم العملاء",
+      description: "فريق دعم متاح 24/7 لمساعدتك",
+    },
   ];
 
   // Generate description based on subcategories or general fallback
   const getCategoryDescription = (category) => {
     const { subcategory_count, subcategories } = category;
-    
+
     if (subcategory_count > 0 && subcategories.length > 0) {
       // Show first 2-3 subcategories if available
-      const subcategoryNames = subcategories.slice(0, 3).map(sub => sub.name).join('، ');
-      return subcategory_count > subcategories.length 
-        ? `${subcategoryNames} والمزيد` 
+      const subcategoryNames = subcategories
+        .slice(0, 3)
+        .map((sub) => sub.name)
+        .join("، ");
+      return subcategory_count > subcategories.length
+        ? `${subcategoryNames} والمزيد`
         : subcategoryNames;
     }
-    
+
     // Generic fallback description
-    return 'تصفح مجموعة متنوعة من المنتجات عالية الجودة';
+    return "تصفح مجموعة متنوعة من المنتجات عالية الجودة";
   };
 
   // Fetch categories from API
@@ -58,23 +67,25 @@ const Index = () => {
     const fetchCategories = async () => {
       try {
         setIsLoading(true);
-        const [data, response, responseCode, error] = await api.get('/category/getAll');
-        
+        const [data, response, responseCode, error] = await api.get(
+          "/category/getAll"
+        );
+
         if (responseCode === 200 && data) {
           setCategories(data.categories || []);
         } else {
           toast({
-            title: 'خطأ في تحميل الفئات',
-            description: error || 'فشل في تحميل فئات المنتجات',
-            variant: 'destructive',
+            title: "خطأ في تحميل الفئات",
+            description: error || "فشل في تحميل فئات المنتجات",
+            variant: "destructive",
           });
         }
       } catch (err) {
-        console.error('Error fetching categories:', err);
+        console.error("Error fetching categories:", err);
         toast({
-          title: 'خطأ في الاتصال',
-          description: 'تعذر الاتصال بالخادم',
-          variant: 'destructive',
+          title: "خطأ في الاتصال",
+          description: "تعذر الاتصال بالخادم",
+          variant: "destructive",
         });
       } finally {
         setIsLoading(false);
@@ -86,8 +97,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-shop-bg">
-      <Header />
-      
+      <div dir="ltr">
+        <Header />
+      </div>
+
       {/* Hero Section */}
       <section className="relative py-20 px-4">
         <div className="container mx-auto text-center">
@@ -100,7 +113,10 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/shop">
-                <Button size="lg" className="gradient-primary text-white border-0 hover:opacity-90 text-lg px-8 py-4">
+                <Button
+                  size="lg"
+                  className="gradient-primary text-white border-0 hover:opacity-90 text-lg px-8 py-4"
+                >
                   تسوق الآن
                   <ArrowLeft className="mr-2 h-5 w-5" />
                 </Button>
@@ -126,9 +142,7 @@ const Index = () => {
                   <h3 className="text-xl font-semibold mb-2 text-primary">
                     {feature.title}
                   </h3>
-                  <p className="text-muted-foreground">
-                    {feature.description}
-                  </p>
+                  <p className="text-muted-foreground">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -142,13 +156,13 @@ const Index = () => {
           <h2 className="text-3xl font-bold text-center mb-12 text-primary">
             فئات المنتجات
           </h2>
-          
+
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               {[1, 2, 3].map((item) => (
-                <Card key={item} className="overflow-hidden animate-pulse">
+                <Card key={item} className="overflow-hidden animate-pulse p-0">
                   <div className="aspect-video bg-gray-200"></div>
-                  <CardContent className="p-6 text-center">
+                  <CardContent className="p-6 text-center p-0">
                     <div className="h-6 bg-gray-200 rounded mb-2"></div>
                     <div className="h-4 bg-gray-200 rounded"></div>
                   </CardContent>
@@ -158,8 +172,11 @@ const Index = () => {
           ) : categories.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {categories.slice(0, 6).map((category) => (
-                <Link key={category.id} to={`/shop?category=${encodeURIComponent(category.name)}`}>
-                  <Card className="hover-lift cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg">
+                <Link
+                  key={category.id}
+                  to={`/shop?category=${encodeURIComponent(category.name)}`}
+                >
+                  <Card className="hover-lift cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg p-0 border-gray-200">
                     <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center relative">
                       <div className="text-6xl font-bold text-primary/30">
                         {category.name.charAt(0)}
@@ -187,7 +204,7 @@ const Index = () => {
               <p className="text-muted-foreground">لا توجد فئات متاحة حالياً</p>
             </div>
           )}
-          
+
           {categories.length > 6 && (
             <div className="text-center mt-8">
               <Link to="/shop">
@@ -205,9 +222,7 @@ const Index = () => {
       <section className="py-16 px-4 bg-primary">
         <div className="container mx-auto text-center">
           <div className="max-w-2xl mx-auto text-white">
-            <h2 className="text-3xl font-bold mb-4">
-              ابدأ التسوق الآن
-            </h2>
+            <h2 className="text-3xl font-bold mb-4">ابدأ التسوق الآن</h2>
             <p className="text-xl mb-8 opacity-90">
               اكتشف أفضل العروض والمنتجات الجديدة
             </p>

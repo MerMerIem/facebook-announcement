@@ -11,31 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import Header from '@/components/customer/layout/Header';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock wilayas data
-const mockWilayas = [
-  { id: 1, name: "أدرار", delivery_fee: "3500.00" },
-  { id: 2, name: "الشلف", delivery_fee: "0.00" },
-  { id: 3, name: "الأغواط", delivery_fee: "0.00" },
-  { id: 4, name: "أم البواقي", delivery_fee: "0.00" },
-  { id: 5, name: "باتنة", delivery_fee: "0.00" },
-  { id: 6, name: "بجاية", delivery_fee: "0.00" },
-  { id: 7, name: "بسكرة", delivery_fee: "0.00" },
-  { id: 8, name: "بشار", delivery_fee: "0.00" },
-  { id: 9, name: "البليدة", delivery_fee: "0.00" },
-  { id: 10, name: "البويرة", delivery_fee: "0.00" },
-  { id: 11, name: "تمنراست", delivery_fee: "0.00" },
-  { id: 12, name: "تبسة", delivery_fee: "0.00" },
-  { id: 13, name: "تلمسان", delivery_fee: "0.00" },
-  { id: 14, name: "تيارت", delivery_fee: "0.00" },
-  { id: 15, name: "تيزي وزو", delivery_fee: "500.00" },
-  { id: 16, name: "الجزائر", delivery_fee: "300.00" },
-];
+import { useApi } from '@/contexts/RestContext'; // Add this import
 
 const Checkout = () => {
-  const { items, total, clearCart } = useCart();
+  const { items, total, clearCart, pricingData, loadingPricing } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { api } = useApi(); // Add this line
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -49,16 +31,36 @@ const Checkout = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const selectedWilaya = mockWilayas.find(w => w.id === formData.wilayaId);
-  const deliveryFee = parseFloat(selectedWilaya?.delivery_fee || '0');
-  const finalTotal = total + deliveryFee;
+  // Get wilayas from pricing data
+  const wilayas = pricingData?.data?.wilayas || [];
+  
+  // Get selected wilaya from pricing data
+  const selectedWilaya = wilayas.find(w => w.id === formData.wilayaId);
+  
+  // Get delivery option for selected wilaya from pricing data
+  const selectedDeliveryOption = pricingData?.data?.delivery_options?.find(
+    option => option.wilaya_id === formData.wilayaId
+  );
+  
+  // Use server-calculated values when available
+  const subtotal = pricingData?.data?.subtotal || total;
+  const deliveryFee = selectedDeliveryOption?.delivery_fee || 0;
+  const finalTotal = selectedDeliveryOption?.total_with_delivery || (subtotal + deliveryFee);
+  const totalSavings = pricingData?.data?.total_savings || 0;
 
   const formatPrice = (price) => {
+    // Handle undefined, null, or non-numeric values
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice)) {
+      console.warn('Invalid price value:', price);
+      return '0 د.ج';
+    }
+    
     return new Intl.NumberFormat('ar-DZ', {
       style: 'currency',
       currency: 'DZD',
       minimumFractionDigits: 0,
-    }).format(price);
+    }).format(numericPrice);
   };
 
   const validateForm = () => {
@@ -109,27 +111,85 @@ const Checkout = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get the selected wilaya name
+      const selectedWilayaName = wilayas.find(w => w.id === formData.wilayaId)?.name || '';
       
-      // Clear cart after successful order
-      clearCart();
-      
-      toast({
-        title: "تم إرسال الطلب بنجاح!",
-        description: "سيتم الاتصال بك قريباً لتأكيد الطلب",
-      });
-      
-      navigate('/order-success');
+      // Prepare the order data to match the backend API structure
+      const orderData = {
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        wilaya: selectedWilayaName,
+        address: formData.address,
+        notes: formData.notes || null,
+        items: items.map(item => ({
+          product_id: item.product.id,
+          quantity: item.quantity
+        }))
+      };
+
+      console.log('Sending order data:', orderData);
+
+      // Make the API call to create the order
+      const [orderResponse, response, responseCode, error] = await api.post(
+        "/order/add", // Adjust this endpoint path as needed
+        orderData
+      );
+
+      if (responseCode === 201 && orderResponse?.success) {
+        // Clear cart after successful order
+        clearCart();
+        
+        toast({
+          title: "تم إرسال الطلب بنجاح!",
+          description: `رقم الطلب: ${orderResponse.orderId}. سيتم الاتصال بك قريباً لتأكيد الطلب`,
+        });
+        
+        // Navigate to success page with order details
+        navigate('/order-success', { 
+          state: { 
+            orderId: orderResponse.orderId,
+            totalPrice: orderResponse.totalPrice,
+            subtotal: orderResponse.subtotal,
+            deliveryFee: orderResponse.deliveryFee
+          }
+        });
+      } else {
+        console.error("Order creation error:", error);
+        toast({
+          title: "خطأ في إرسال الطلب",
+          description: error || "حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
+      console.error("Network error:", error);
       toast({
-        title: "خطأ في إرسال الطلب",
-        description: "حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى",
+        title: "خطأ في الاتصال",
+        description: "تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getItemPrice = (item) => {
+    // Use server pricing data if available
+    if (pricingData?.data?.pricing_details) {
+      const serverItem = pricingData.data.pricing_details.find(
+        detail => detail.product_id === item.product.id
+      );
+      if (serverItem) {
+        return serverItem.unit_price;
+      }
+    }
+
+    // Fallback to client-side calculation
+    const hasDiscount = item.product.has_discount;
+    const discountPrice = parseFloat(item.product.discount_price || '0');
+    const originalPrice = parseFloat(item.product.price || '0');
+    return hasDiscount && discountPrice > 0 ? discountPrice : originalPrice;
   };
 
   if (items.length === 0) {
@@ -205,7 +265,7 @@ const Checkout = () => {
                           id="phone"
                           value={formData.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
-                          placeholder="0123456789"
+                          placeholder="05XXXXXXXX"
                           className={errors.phone ? 'border-destructive' : ''}
                         />
                         {errors.phone && (
@@ -244,19 +304,24 @@ const Checkout = () => {
                       <Select 
                         value={formData.wilayaId.toString()} 
                         onValueChange={(value) => handleInputChange('wilayaId', parseInt(value))}
+                        disabled={loadingPricing || wilayas.length === 0}
                       >
                         <SelectTrigger className={errors.wilayaId ? 'border-destructive' : ''}>
-                          <SelectValue placeholder="اختر الولاية" />
+                          <SelectValue placeholder={
+                            loadingPricing ? "جاري التحميل..." : 
+                            wilayas.length === 0 ? "لا توجد ولايات متاحة" : 
+                            "اختر الولاية"
+                          } />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockWilayas.map((wilaya) => (
+                          {wilayas.map((wilaya) => (
                             <SelectItem key={wilaya.id} value={wilaya.id.toString()}>
-                              {wilaya.name}
-                              {parseFloat(wilaya.delivery_fee) > 0 && (
-                                <span className="text-muted-foreground mr-2">
-                                  ({formatPrice(parseFloat(wilaya.delivery_fee))})
+                              <div className="flex justify-between items-center w-full">
+                                <span>{wilaya.name}</span>
+                                <span className="text-sm text-muted-foreground mr-2">
+                                  {wilaya.delivery_fee === 0 ? 'مجاني' : formatPrice(wilaya.delivery_fee)}
                                 </span>
-                              )}
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -304,63 +369,180 @@ const Checkout = () => {
                 <CardTitle>ملخص الطلب</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Cart Items */}
-                <div className="space-y-3">
-                  {items.map((item) => {
-                    const hasDiscount = item.product.has_discount && new Date(item.product.has_discount) > new Date();
-                    const discountPrice = parseFloat(item.product.discount_price || '0');
-                    const originalPrice = parseFloat(item.product.price || '0');
-                    const itemPrice = hasDiscount && discountPrice > 0 ? discountPrice : originalPrice;
-                    
-                    return (
-                      <div key={item.product.id} className="flex gap-3">
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                          <img
-                            src={item.product.main_image_url || '/placeholder.svg'}
-                            alt={item.product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm line-clamp-2">
-                            {item.product.name}
-                          </h4>
-                          <div className="flex justify-between items-center mt-1">
-                            <span className="text-sm text-muted-foreground">
-                              الكمية: {item.quantity}
-                            </span>
-                            <span className="font-medium">
-                              {formatPrice(itemPrice * item.quantity)}
+                {/* Wilaya Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    اختر الولاية للتوصيل
+                  </label>
+                  
+                  <Select 
+                    value={formData.wilayaId.toString()} 
+                    onValueChange={(value) => handleInputChange('wilayaId', parseInt(value))}
+                    disabled={!pricingData?.data?.wilayas || loadingPricing}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        loadingPricing ? "جاري التحميل..." : 
+                        !pricingData?.data?.wilayas ? "لا توجد بيانات" : 
+                        "اختر الولاية"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pricingData?.data?.wilayas?.map((wilaya) => (
+                        <SelectItem key={wilaya.id} value={wilaya.id.toString()}>
+                          <div className="flex justify-between items-center w-full">
+                            <span>{wilaya.name}</span>
+                            <span className="text-sm text-muted-foreground mr-2">
+                              {wilaya.delivery_fee === 0 ? 'مجاني' : formatPrice(wilaya.delivery_fee)}
                             </span>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        </SelectItem>
+                      )) || []}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Separator />
 
-                {/* Pricing */}
+                {loadingPricing && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    جاري حساب الأسعار...
+                  </div>
+                )}
+
+                {/* Cart Items - Use server pricing data when available */}
+                <div className="space-y-3">
+                  {pricingData?.data?.pricing_details ? (
+                    // Use server-side pricing details
+                    pricingData.data.pricing_details.map((serverItem) => {
+                      // Find the corresponding cart item for image
+                      const cartItem = items.find(item => item.product.id === serverItem.product_id);
+                      
+                      return (
+                        <div key={serverItem.product_id} className="flex gap-3">
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            {cartItem?.product?.main_image_url ? (
+                              <img
+                                src={cartItem.product.main_image_url}
+                                alt={serverItem.product_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs">
+                                صورة
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm line-clamp-2">
+                              {serverItem.product_name}
+                            </h4>
+                            <div className="flex justify-between items-center mt-1">
+                              <span className="text-sm text-muted-foreground">
+                                الكمية: {serverItem.quantity}
+                              </span>
+                              <div className="text-right">
+                                <span className="font-medium">
+                                  {formatPrice(serverItem.item_total)}
+                                </span>
+                                {serverItem.used_discount && (
+                                  <div className="text-xs text-muted-foreground line-through">
+                                    {formatPrice(serverItem.original_price * serverItem.quantity)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {serverItem.special_pricing && (
+                              <div className="text-xs text-green-600 mt-1">
+                                تسعير خاص متاح
+                              </div>
+                            )}
+                            {serverItem.savings > 0 && (
+                              <div className="text-xs text-green-600 mt-1">
+                                وفرت: {formatPrice(serverItem.savings)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    // Fallback to original cart items display
+                    items.map((item) => {
+                      const itemPrice = getItemPrice(item);
+                      
+                      return (
+                        <div key={item.product.id} className="flex gap-3">
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            <img
+                              src={item.product.main_image_url || '/placeholder.svg'}
+                              alt={item.product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm line-clamp-2">
+                              {item.product.name}
+                            </h4>
+                            <div className="flex justify-between items-center mt-1">
+                              <span className="text-sm text-muted-foreground">
+                                الكمية: {item.quantity}
+                              </span>
+                              <span className="font-medium">
+                                {formatPrice(itemPrice * item.quantity)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Pricing Summary */}
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>المجموع الفرعي:</span>
-                    <span>{formatPrice(total)}</span>
+                    <span>{formatPrice(subtotal)}</span>
                   </div>
+                  
+                  {totalSavings > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>إجمالي التوفير:</span>
+                      <span>-{formatPrice(totalSavings)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between">
                     <span>رسوم التوصيل:</span>
                     <span>
-                      {deliveryFee === 0 ? (
-                        <span className="text-success">مجاني</span>
+                      {formData.wilayaId ? (
+                        deliveryFee === 0 ? (
+                          <span className="text-success">مجاني</span>
+                        ) : (
+                          formatPrice(deliveryFee)
+                        )
                       ) : (
-                        formatPrice(deliveryFee)
+                        <span className="text-muted-foreground">اختر الولاية</span>
                       )}
                     </span>
                   </div>
+                  
+                  {formData.wilayaId > 0 && selectedDeliveryOption && (
+                    <div className="text-sm text-muted-foreground">
+                      التوصيل إلى: {selectedDeliveryOption.wilaya_name}
+                    </div>
+                  )}
+                  
                   <Separator />
                   <div className="flex justify-between font-bold text-lg">
                     <span>المجموع الكلي:</span>
-                    <span className="price-color">{formatPrice(finalTotal)}</span>
+                    <span className="price-color">
+                      {formData.wilayaId ? formatPrice(finalTotal) : formatPrice(subtotal)}
+                    </span>
                   </div>
                 </div>
 
@@ -368,15 +550,19 @@ const Checkout = () => {
                   onClick={handleSubmit}
                   className="w-full" 
                   size="lg"
-                  disabled={isSubmitting || items.length === 0}
+                  disabled={isSubmitting || items.length === 0 || loadingPricing || !formData.wilayaId}
                 >
-                  {isSubmitting ? 'جاري إرسال الطلب...' : 'تأكيد الطلب'}
+                  {isSubmitting ? 'جاري إرسال الطلب...' : 
+                   loadingPricing ? 'جاري حساب الأسعار...' : 
+                   !formData.wilayaId ? 'اختر الولاية أولاً' :
+                   'تأكيد الطلب'}
                 </Button>
 
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>• سيتم الاتصال بك لتأكيد الطلب</p>
                   <p>• الدفع عند الاستلام</p>
                   <p>• إمكانية الإرجاع خلال 14 يوم</p>
+                  <p>• {pricingData?.data?.items_count || items.length} منتج في السلة</p>
                 </div>
               </CardContent>
             </Card>

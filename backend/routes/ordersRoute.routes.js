@@ -14,6 +14,7 @@ import {
   getRecent,
   getTodaysOrders,
   updateOrderStatus,
+  calculatePricing,
 } from "../controllers/ordersController.controller.js";
 
 const router = Router();
@@ -24,6 +25,8 @@ router.post("/add", verifyWilaya, addOrder); // Create new order
 // Admin routes (authentication required)
 router.get("/getAll", verfyToken(), isAuthorized, getAllOrders); // Get all orders with pagination
 router.get("/get/:id", verfyToken(), isAuthorized, verifyId, getOrderById); // Get order by ID
+router.post("/calculate-pricing", calculatePricing);
+
 router.post(
   "/:id",
   verfyToken(),
@@ -43,4 +46,5 @@ router.patch(
 
 router.get("/getRecent", verfyToken(), isAuthorized, getRecent);
 router.get("/getTodays", verfyToken(), isAuthorized, getTodaysOrders);
+
 export default router;

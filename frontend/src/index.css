@@ -177,6 +177,10 @@ body {
   letter-spacing: var(--tracking-normal);
 }
 
+* {
+  font-family: var(--font-admin);
+}
+
 .jodit-wysiwyg {
   font-family: "Almarai", sans-serif !important;
 }

@@ -140,24 +140,58 @@ export async function modifyCategory(req,res){
 export async function deleteCategory(req, res) {
     const { id } = req.params;
 
-    const connection = await db.getConnection(); // assuming you're using a pool
+    const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
+        // Check if category exists
         const [rows] = await connection.execute("SELECT * FROM categories WHERE id = ?", [id]);
         if (rows.length === 0) {
             await connection.rollback();
             return res.status(404).json({ message: "Category not found" });
         }
 
-        // Delete subcategories first
+        // Get all subcategories for this category to track what we're deleting
+        const [subcategories] = await connection.execute("SELECT id FROM subcategories WHERE category_id = ?", [id]);
+        
+        let deletedProductsCount = 0;
+        let deletedSubcategoriesCount = subcategories.length;
+
+        // Delete products first (they reference subcategories)
+        if (subcategories.length > 0) {
+            const subcategoryIds = subcategories.map(sub => sub.id);
+            const placeholders = subcategoryIds.map(() => '?').join(',');
+            
+            // Count products that will be deleted
+            const [productCount] = await connection.execute(
+                `SELECT COUNT(*) as count FROM products WHERE subcategory_id IN (${placeholders})`,
+                subcategoryIds
+            );
+            deletedProductsCount = productCount[0].count;
+
+            // Delete all products that belong to these subcategories
+            await connection.execute(
+                `DELETE FROM products WHERE subcategory_id IN (${placeholders})`,
+                subcategoryIds
+            );
+        }
+
+        // Delete subcategories (now safe since products are deleted)
         await connection.execute("DELETE FROM subcategories WHERE category_id = ?", [id]);
 
         // Delete the category
         await connection.execute("DELETE FROM categories WHERE id = ?", [id]);
 
         await connection.commit();
-        res.status(200).json({ message: "Category and its subcategories deleted successfully" });
+        
+        res.status(200).json({ 
+            message: "Category deleted successfully with all related data",
+            deletedData: {
+                category: 1,
+                subcategories: deletedSubcategoriesCount,
+                products: deletedProductsCount
+            }
+        });
     } catch (err) {
         await connection.rollback();
         console.error("Erreur lors de la suppression :", err);

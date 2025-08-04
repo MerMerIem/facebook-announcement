@@ -76,6 +76,7 @@ export default function Subcategories() {
       } else {
         throw new Error(subcatsError || catsError || "Failed to fetch data");
       }
+
     } catch (err) {
       console.error("Error fetching data:", err);
       toast({
@@ -374,7 +375,7 @@ export default function Subcategories() {
                 صفحة {currentPage} من {pagination.totalPages}
                 {pagination && (
                   <span className="mr-2">
-                    • المجموع: {pagination.totalItems} فئة فرعية
+                    • المجموع: {pagination.total} فئة فرعية
                   </span>
                 )}
               </p>

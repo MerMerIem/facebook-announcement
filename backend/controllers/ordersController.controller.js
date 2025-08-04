@@ -256,6 +256,174 @@ export async function addOrder(req, res) {
   }
 }
 
+export async function calculatePricing(req, res) {
+  const { items } = req.body;
+
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Items array is required and cannot be empty",
+    });
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item.product_id || !item.quantity || item.quantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Item ${i + 1}: product_id and positive quantity are required`,
+      });
+    }
+  }
+
+  try {
+    let subtotal = 0;
+    const pricingDetails = [];
+    const notFoundProducts = [];
+
+    // Fetch all wilayas sorted by ID (ASC)
+    console.log("Fetching wilayas sorted by ID...");
+    const [wilayasResult] = await db.execute(
+      "SELECT id, name, delivery_fee FROM wilayas ORDER BY id ASC"
+    );
+
+    const wilayas = wilayasResult.map(wilaya => ({
+      id: wilaya.id,
+      name: wilaya.name,
+      delivery_fee: Number(wilaya.delivery_fee)
+    }));
+
+    console.log(`Found ${wilayas.length} wilayas (sorted by ID)`);
+
+    for (const item of items) {
+      console.log(`Fetching product with ID ${item.product_id}`);
+      const [productResult] = await db.execute(
+        "SELECT id, name, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit FROM products WHERE id = ?",
+        [item.product_id]
+      );
+
+      if (productResult.length === 0) {
+        console.warn(`Product with ID ${item.product_id} not found`);
+        notFoundProducts.push(item.product_id);
+        continue;
+      }
+
+      const product = productResult[0];
+      console.log("Fetched product:", product.name);
+
+      let unitPrice = Number(product.price);
+      let usedDiscount = false;
+      let specialPricing = false;
+
+      // Check if discount is active
+      if (product.discount_price) {
+        const discountStart = new Date(product.discount_start);
+        const discountEnd = new Date(product.discount_end);
+        const now = new Date();
+
+        if (now >= discountStart && now <= discountEnd) {
+          unitPrice = Number(product.discount_price);
+          usedDiscount = true;
+          console.log(
+            `Discount applied on ${product.name}: using discount price ${unitPrice}`
+          );
+        }
+      }
+
+      // Apply special pricing logic for quantity > 1
+      if (item.quantity === 1) {
+        subtotal += unitPrice * item.quantity;
+        console.log(
+          `Item: ${product.name}, Quantity: ${item.quantity}, Unit Price: ${unitPrice}, Subtotal now: ${subtotal}`
+        );
+      } else {
+        // Special pricing for multiple quantities
+        const productOriginalPrice = product.discount_price
+          ? Number(product.discount_price)
+          : Number(product.price);
+
+        console.log("Original price:", productOriginalPrice);
+
+        const profitReduction = Number(
+          product.profit * (product.discount_percentage / 100)
+        );
+
+        unitPrice = productOriginalPrice - profitReduction;
+        specialPricing = true;
+
+        console.log(
+          `Special pricing for ${product.name} (Qty: ${item.quantity}): ${unitPrice}`
+        );
+
+        subtotal += unitPrice * item.quantity;
+        console.log(`Subtotal updated after ${product.name}: ${subtotal}`);
+      }
+
+      const itemTotal = unitPrice * item.quantity;
+
+      pricingDetails.push({
+        product_id: item.product_id,
+        product_name: product.name,
+        quantity: item.quantity,
+        original_price: Number(product.price),
+        discount_price: product.discount_price ? Number(product.discount_price) : null,
+        unit_price: unitPrice,
+        item_total: itemTotal,
+        used_discount: usedDiscount,
+        special_pricing: specialPricing,
+        savings: specialPricing ? 
+          (Number(product.price) * item.quantity) - itemTotal : 
+          (usedDiscount ? (Number(product.price) - unitPrice) * item.quantity : 0)
+      });
+    }
+
+    if (notFoundProducts.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Product(s) not found`,
+        details: {
+          notFoundProductIds: notFoundProducts,
+          message: `Products with the following IDs do not exist: ${notFoundProducts.join(", ")}`,
+        },
+      });
+    }
+
+    const totalSavings = pricingDetails.reduce((sum, item) => sum + item.savings, 0);
+
+    // Calculate total with delivery fee for each wilaya (already sorted by ID)
+    const pricingWithDelivery = wilayas.map(wilaya => ({
+      wilaya_id: wilaya.id,
+      wilaya_name: wilaya.name,
+      delivery_fee: wilaya.delivery_fee,
+      subtotal: subtotal,
+      total_with_delivery: subtotal + wilaya.delivery_fee,
+      total_savings: totalSavings
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        subtotal,
+        total_savings: totalSavings,
+        items_count: pricingDetails.length,
+        pricing_details: pricingDetails,
+        delivery_options: pricingWithDelivery, // Already sorted by wilaya_id
+        wilayas: wilayas // Already sorted by id
+      },
+      message: "Pricing calculated successfully with delivery options",
+    });
+
+  } catch (err) {
+    console.error("Error calculating pricing:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while calculating pricing",
+      ...(process.env.NODE_ENV === "development" && { error: err.message }),
+    });
+  }
+}
+
 // only for the admin
 
 export async function getOrderById(req, res) {

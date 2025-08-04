@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Search, ShoppingCart, Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { useCart } from '@/contexts/CartContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { Search, ShoppingCart, Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useCart } from "@/contexts/CartContext";
+import { Link, useNavigate } from "react-router-dom";
 
-const Header = ({ onSearch, searchQuery = '' }) => {
+const Header = ({ onSearch, searchQuery = "" }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const { itemCount } = useCart();
@@ -30,11 +30,16 @@ const Header = ({ onSearch, searchQuery = '' }) => {
             <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary-glow rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl">S</span>
             </div>
-            <span className="text-xl font-bold text-primary hidden sm:block">Sekkar Quincaillerie</span>
+            <span className="text-xl font-bold text-primary hidden sm:block">
+              Sekkar Quincaillerie
+            </span>
           </Link>
 
           {/* Search Bar - Desktop */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-8">
+          <form
+            onSubmit={handleSearch}
+            className="hidden md:flex flex-1 max-w-2xl mx-8"
+          >
             <div className="relative w-full">
               <Input
                 type="text"
@@ -60,9 +65,9 @@ const Header = ({ onSearch, searchQuery = '' }) => {
               <Button variant="outline" size="sm" className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 {itemCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-red-600! p-0 flex items-center justify-center text-xs"
                   >
                     {itemCount}
                   </Badge>
@@ -77,7 +82,11 @@ const Header = ({ onSearch, searchQuery = '' }) => {
               className="md:hidden"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>

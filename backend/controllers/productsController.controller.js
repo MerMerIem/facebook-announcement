@@ -595,6 +595,7 @@ export async function modifyProduct(req, res) {
       deleted_images,
       main_image_index,
     } = req.body || {};
+    console.log("req",req.body)
 
     const discount_start = toDateOnly(discount_start_str);
     const discount_end = toDateOnly(discount_end_str);
@@ -620,16 +621,16 @@ export async function modifyProduct(req, res) {
 
     let final_discount_start = discount_start;
     let final_discount_end = discount_end;
-    let final_discount_price = discount_price;
+    let final_discount_price = null; // Initialize as null instead of discount_price
 
-    // Use discount_price directly if it's provided and not negative
-    if (parsedDiscountPrice < 0 || isNaN(parsedDiscountPrice)) {
-      final_discount_price = 0;
+    // Only set discount_price if it's provided and valid
+    if (!isNaN(parsedDiscountPrice) && parsedDiscountPrice >= 0) {
+      final_discount_price = parsedDiscountPrice;
     }
 
     // Reset discount fields if discount percentage is invalid
     if (parsedDiscount <= 0 || isNaN(parsedDiscount)) {
-      final_discount_price = 0;
+      final_discount_price = null; // Set to null instead of 0
       final_discount_start = null;
       final_discount_end = null;
     }
@@ -698,7 +699,7 @@ export async function modifyProduct(req, res) {
         profit,
         price,
         parsedDiscount,
-        final_discount_price,
+        final_discount_price, // This will be null if not provided/invalid
         final_discount_start || null,
         final_discount_end || null,
         category_id,

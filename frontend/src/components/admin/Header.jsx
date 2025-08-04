@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Menu, Bell, User, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Menu, Bell, User, Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,7 +11,9 @@ export function Header({ onMenuClick, unreadCount, loading, error }) {
   const [email, setEmail] = useState("admin@store.com");
   const [userLoading, setUserLoading] = useState(false);
   const [userError, setUserError] = useState(null);
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const { api } = useApi();
+  const navigate = useNavigate();
 
   const fetchUser = async () => {
     setUserLoading(true);
@@ -31,6 +34,35 @@ export function Header({ onMenuClick, unreadCount, loading, error }) {
       console.error("API Call Failed:", err);
     } finally {
       setUserLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setLogoutLoading(true);
+    
+    try {
+      const [data, response, responseCode, error] = await api.delete("/auth/logout");
+      
+      if (responseCode === 200) {
+        // Clear any user data from state
+        setUser("المدير");
+        setEmail("admin@store.com");
+        
+        // Clear tokens from storage if needed
+        localStorage.removeItem("authToken");
+        sessionStorage.removeItem("authToken");
+        
+        // Redirect to login page
+        navigate("/admin/login");
+      } else {
+        console.error("Logout failed:", error);
+        // You might want to show a toast notification here
+      }
+    } catch (err) {
+      console.error("Logout API call failed:", err);
+      // Handle network/API errors
+    } finally {
+      setLogoutLoading(false);
     }
   };
 
@@ -73,6 +105,17 @@ export function Header({ onMenuClick, unreadCount, loading, error }) {
               {unreadCount}
             </span>
           )}
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleLogout}
+          disabled={logoutLoading || userLoading}
+          className="hover:bg-accent"
+          title="تسجيل الخروج"
+        >
+          <LogOut className="w-5 h-5" />
         </Button>
         
         <div className="flex items-center gap-2">

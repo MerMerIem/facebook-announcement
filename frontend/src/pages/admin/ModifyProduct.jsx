@@ -38,6 +38,7 @@ const ModifyProduct = () => {
     fetchProduct();
     fetchCategories();
   }, [id]);
+  console.log("formdata before", formData);
 
   const fetchProduct = async () => {
     try {
@@ -45,8 +46,6 @@ const ModifyProduct = () => {
       const [data, _, responseCode, error] = await api.get(
         `/product/get/${id}`
       );
-
-      console.log(data);
 
       if (responseCode === 200 && data) {
         setProductData(data);
@@ -101,6 +100,7 @@ const ModifyProduct = () => {
       setLoading(false);
     }
   };
+  console.log("formdata after", formData);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -265,6 +265,22 @@ const ModifyProduct = () => {
         formData.discount_percentage > 100
       ) {
         newErrors.discount_percentage = "الخصم يجب أن يكون بين 0 و 100%";
+      }
+    }
+
+    if (
+      formData.discount_price !== undefined &&
+      formData.discount_price !== null &&
+      formData.discount_price !== ""
+    ) {
+      if (formData.discount_price <= 0) {
+        newErrors.discount_price = "السعر بعد الخصم يجب أن يكون صالحًا";
+      }
+      if (!formData.discount_start) {
+        newErrors.discount_start = "تاريخ بداية الخصم مطلوب";
+      }
+      if (!formData.discount_end) {
+        newErrors.discount_end = "تاريخ نهاية الخصم مطلوبة";
       }
     }
 
@@ -749,7 +765,7 @@ const ModifyProduct = () => {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                         placeholder="0.00"
                       />
-                      {errors.discount_price && formData.discount_price && (
+                      {errors.discount_price && (
                         <p className="text-red-500 text-sm mt-1">
                           {errors.discount_price}
                         </p>
@@ -774,8 +790,7 @@ const ModifyProduct = () => {
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                       />
-
-                      {errors.discount_start && formData.discount_start && (
+                      {errors.discount_start && (
                         <p className="text-red-500 text-sm mt-1">
                           {errors.discount_start}
                         </p>
@@ -798,8 +813,7 @@ const ModifyProduct = () => {
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                       />
-
-                      {errors.discount_end && formData.discount_end && (
+                      {errors.discount_end && (
                         <p className="text-red-500 text-sm mt-1">
                           {errors.discount_end}
                         </p>
