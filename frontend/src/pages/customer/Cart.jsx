@@ -104,6 +104,7 @@ const Cart = () => {
     hasWilayas: !!pricingData?.data?.wilayas,
     wilayasCount: pricingData?.data?.wilayas?.length,
   });
+  console.log("items",items)
 
   if (items.length === 0) {
     return (
@@ -129,10 +130,10 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-shop-bg">
+    <div dir="rtl" className="min-h-screen bg-shop-bg">
       <Header />
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 ">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
           <Link to="/" className="hover:text-primary">
@@ -346,6 +347,15 @@ const Cart = () => {
                   </Select>
                 </div>
 
+                {/* Show warning if no wilaya is selected */}
+                {!selectedWilayaId && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                    <p className="text-sm text-yellow-800 text-right">
+                      يرجى اختيار الولاية لحساب رسوم التوصيل وإتمام الطلب
+                    </p>
+                  </div>
+                )}
+
                 <Separator />
 
                 <div className="space-y-2">
@@ -396,15 +406,36 @@ const Cart = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <Link to="/checkout" className="block">
+                  {selectedWilayaId && !isProcessing ? (
+                    <Link to="/checkout" className="block">
+                      <Button
+                        className="w-full transition-all duration-200"
+                        size="lg"
+                      >
+                        إتمام الطلب
+                      </Button>
+                    </Link>
+                  ) : (
                     <Button
-                      className="w-full"
+                      className={`w-full transition-all duration-200 ${
+                        !selectedWilayaId 
+                          ? 'opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400' 
+                          : ''
+                      }`}
                       size="lg"
-                      disabled={isProcessing || !selectedWilayaId}
+                      disabled={true}
+                      onClick={(e) => e.preventDefault()}
                     >
-                      {isProcessing ? "جاري المعالجة..." : "إتمام الطلب"}
+                      {isProcessing ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>جاري المعالجة...</span>
+                        </div>
+                      ) : (
+                        "اختر الولاية أولاً"
+                      )}
                     </Button>
-                  </Link>
+                  )}
 
                   <Link to="/shop" className="block">
                     <Button variant="outline" className="w-full">

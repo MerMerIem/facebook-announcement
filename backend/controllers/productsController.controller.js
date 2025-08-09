@@ -78,6 +78,18 @@ export async function getAllProducts(req, res) {
       productIds
     );
 
+    // ✅ Fetch variant counts for all products in one batch
+    const [variantsRows] = await db.execute(
+      `SELECT 
+        product_id,
+        COUNT(*) as variant_count,
+        COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_variant_count
+      FROM product_variants 
+      WHERE product_id IN (${productIds.map(() => "?").join(",")})
+      GROUP BY product_id`,
+      productIds
+    );
+
     // Group images by product ID
     const imagesByProduct = {};
     for (const img of imagesRows) {
@@ -103,9 +115,22 @@ export async function getAllProducts(req, res) {
       });
     }
 
+    // ✅ Group variant counts by product ID
+    const variantsByProduct = {};
+    for (const variant of variantsRows) {
+      variantsByProduct[variant.product_id] = {
+        total_variants: variant.variant_count,
+        active_variants: variant.active_variant_count,
+      };
+    }
+
     const products = rows.map((product) => {
       const images = imagesByProduct[product.id] || [];
       const tags = tagsByProduct[product.id] || [];
+      const variants = variantsByProduct[product.id] || {
+        total_variants: 0,
+        active_variants: 0,
+      };
       const mainImage = images.find((img) => img.is_main) || null;
 
       return {
@@ -133,6 +158,10 @@ export async function getAllProducts(req, res) {
           product.discount_end,
         total_images: images.length,
         total_tags: tags.length,
+        // ✅ Added variant information
+        total_variants: variants.total_variants,
+        active_variants: variants.active_variants,
+        has_variants: variants.total_variants > 0,
       };
     });
 
@@ -158,7 +187,6 @@ export async function getAllProducts(req, res) {
     });
   }
 }
-
 export async function getProductById(req, res) {
   const { id } = req.params;
 
@@ -236,6 +264,72 @@ export async function getProductById(req, res) {
 
     const tags = tagRows.map((row) => row.name);
 
+    // ✅ Get product variants with their images
+    const [variantRows] = await db.execute(
+      `
+      SELECT 
+        pv.id,
+        pv.title,
+        pv.price,
+        pv.discount_price,
+        pv.discount_start,
+        pv.discount_end,
+        pv.measure_unit,
+        pv.size,
+        pv.is_active,
+        JSON_ARRAYAGG(
+          CASE 
+            WHEN pvi.id IS NOT NULL 
+            THEN JSON_OBJECT(
+              'id', pvi.id,
+              'url', pvi.url,
+              'is_primary', pvi.is_primary,
+              'sort_order', pvi.sort_order
+            )
+          END
+        ) AS images
+      FROM product_variants pv
+      LEFT JOIN product_variant_images pvi ON pv.id = pvi.variant_id
+      WHERE pv.product_id = ?
+      GROUP BY pv.id, pv.title, pv.price, pv.discount_price, 
+               pv.discount_start, pv.discount_end, pv.measure_unit, 
+               pv.size, pv.is_active
+      ORDER BY pv.id
+      `,
+      [id]
+    );
+
+    // Process variants to include discount status and primary image
+    const variants = variantRows.map((variant) => {
+      const images = variant.images
+        ? variant.images.filter((img) => img !== null)
+        : [];
+      const primaryImage = images.find((img) => img.is_primary === 1);
+
+      return {
+        id: variant.id,
+        title: variant.title,
+        price: variant.price,
+        discount_price: variant.discount_price,
+        discount_start: variant.discount_start,
+        discount_end: variant.discount_end,
+        measure_unit: variant.measure_unit,
+        size: variant.size,
+        is_active: variant.is_active,
+        has_discount:
+          variant.discount_price &&
+          variant.discount_start &&
+          variant.discount_end,
+        images: images.sort((a, b) => a.sort_order - b.sort_order),
+        primary_image_url: primaryImage
+          ? primaryImage.url
+          : images.length > 0
+          ? images[0].url
+          : null,
+        total_images: images.length,
+      };
+    });
+
     const response = {
       id: product.id,
       name: product.name,
@@ -255,6 +349,9 @@ export async function getProductById(req, res) {
       images: product.images,
       main_image_url: product.main_image_url,
       tags,
+      variants,
+      has_variants: variants.length > 0,
+      total_variants: variants.length,
       has_discount:
         product.discount_price &&
         product.discount_start &&
@@ -306,7 +403,6 @@ export async function getProductById(req, res) {
     res.status(500).json({ message: "Internal server error" });
   }
 }
-
 export async function searchProduct(req, res) {
   const {
     searchQuery,
@@ -595,7 +691,7 @@ export async function modifyProduct(req, res) {
       deleted_images,
       main_image_index,
     } = req.body || {};
-    console.log("req",req.body)
+    console.log("req", req.body);
 
     const discount_start = toDateOnly(discount_start_str);
     const discount_end = toDateOnly(discount_end_str);
@@ -1305,5 +1401,342 @@ export async function removeProductDiscountPercentage(req, res) {
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
+  }
+}
+
+// ADD PRODUCT VARIANT
+export async function addProductVariants(req, res) {
+  console.log("Adding multiple product variants");
+
+  // Helper function to format date for MySQL DATETIME
+  function toMySQLDateTime(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null; // invalid date
+    return d.toISOString().slice(0, 19).replace("T", " ");
+  }
+
+  let variants;
+  try {
+    variants = JSON.parse(req.body.variants);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: "بيانات المتغيرات غير صحيحة",
+      errorType: "INVALID_VARIANTS_DATA",
+    });
+  }
+
+  const { product_id } = req.body;
+
+  // VALIDATION
+  const errors = [];
+  if (!product_id) {
+    errors.push({ field: "product_id", message: "رقم المنتج مطلوب" });
+  }
+
+  if (!variants || !Array.isArray(variants) || variants.length === 0) {
+    errors.push({ field: "variants", message: "متغيرات المنتج مطلوبة" });
+  }
+
+  // Validate each variant
+  variants.forEach((variant, index) => {
+    if (!variant.title) {
+      errors.push({
+        field: `variants[${index}].title`,
+        message: `عنوان المتغير ${index + 1} مطلوب`,
+      });
+    }
+    if (!variant.price) {
+      errors.push({
+        field: `variants[${index}].price`,
+        message: `سعر المتغير ${index + 1} مطلوب`,
+      });
+    }
+
+    const priceFloat = parseFloat(variant.price);
+    if (isNaN(priceFloat) || priceFloat <= 0) {
+      errors.push({
+        field: `variants[${index}].price`,
+        message: `سعر المتغير ${index + 1} غير صحيح`,
+      });
+    }
+
+    // Validate discount if provided
+    const hasDiscount =
+      variant.discount_price &&
+      parseFloat(variant.discount_price) > 0 &&
+      variant.discount_start &&
+      variant.discount_end;
+
+    if (hasDiscount) {
+      const startDate = new Date(variant.discount_start);
+      const endDate = new Date(variant.discount_end);
+      if (startDate >= endDate) {
+        errors.push({
+          field: `variants[${index}].discount_dates`,
+          message: `تواريخ الخصم للمتغير ${index + 1} غير صحيحة`,
+        });
+      }
+      if (parseFloat(variant.discount_price) >= priceFloat) {
+        errors.push({
+          field: `variants[${index}].discount_price`,
+          message: `سعر الخصم للمتغير ${index + 1} يجب أن يكون أقل من السعر`,
+        });
+      }
+    }
+  });
+
+  if (errors.length) {
+    return res.status(400).json({
+      success: false,
+      message: "بيانات غير مكتملة",
+      errors,
+      errorType: "VALIDATION_ERROR",
+    });
+  }
+
+  // Check if we have variant images
+  const variantImages = req.variantUploadedImages || {};
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // Verify product exists
+    const [productCheck] = await conn.execute(
+      "SELECT id FROM products WHERE id = ?",
+      [product_id]
+    );
+    if (!productCheck.length) {
+      await conn.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "المنتج غير موجود",
+        errorType: "PRODUCT_NOT_FOUND",
+      });
+    }
+
+    const insertedVariants = [];
+
+    // Process each variant
+    for (let i = 0; i < variants.length; i++) {
+      const variant = variants[i];
+      const priceFloat = parseFloat(variant.price);
+
+      const hasDiscount =
+        variant.discount_price &&
+        parseFloat(variant.discount_price) > 0 &&
+        variant.discount_start &&
+        variant.discount_end;
+
+      // Insert variant
+      const cols = [
+        "product_id",
+        "title",
+        "price",
+        "measure_unit",
+        "size",
+        "is_active",
+      ];
+      const vals = [
+        product_id,
+        variant.title,
+        priceFloat,
+        variant.measure_unit || null,
+        variant.size || null,
+        variant.is_active ? 1 : 0,
+      ];
+
+      if (hasDiscount) {
+        cols.push("discount_price", "discount_start", "discount_end");
+        vals.push(
+          parseFloat(variant.discount_price),
+          toMySQLDateTime(variant.discount_start),
+          toMySQLDateTime(variant.discount_end)
+        );
+      }
+
+      const sql = `INSERT INTO product_variants (${cols.join(
+        ","
+      )}) VALUES (${cols.map(() => "?").join(",")})`;
+
+      const [result] = await conn.execute(sql, vals);
+      const variantId = result.insertId;
+
+      // Insert variant images if available
+      const currentVariantImages = variantImages[i] || [];
+      if (currentVariantImages.length === 0) {
+        await conn.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `لا توجد صور للمتغير ${i + 1}`,
+          errorType: "NO_IMAGES_FOR_VARIANT",
+        });
+      }
+
+      const mainImageIndex = parseInt(variant.main_image_index) || 0;
+
+      for (
+        let imgIndex = 0;
+        imgIndex < currentVariantImages.length;
+        imgIndex++
+      ) {
+        const image = currentVariantImages[imgIndex];
+        await conn.execute(
+          `INSERT INTO product_variant_images (variant_id, url, is_primary, sort_order) VALUES (?, ?, ?, ?)`,
+          [variantId, image.url, imgIndex === mainImageIndex ? 1 : 0, imgIndex]
+        );
+      }
+
+      insertedVariants.push({
+        variantId,
+        title: variant.title,
+        imagesCount: currentVariantImages.length,
+      });
+    }
+
+    await conn.commit();
+
+    res.status(201).json({
+      success: true,
+      message: `تمت إضافة ${variants.length} متغيرات بنجاح`,
+      data: {
+        insertedVariants,
+        totalVariants: variants.length,
+      },
+    });
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Database error:", err);
+    res.status(500).json({
+      success: false,
+      message: "خطأ في الخادم",
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+// MODIFY PRODUCT VARIANT
+export async function modifyProductVarient(req, res) {
+  const variantId = req.params.id;
+  const {
+    title,
+    price,
+    discount_price,
+    discount_start,
+    discount_end,
+    measure_unit,
+    size,
+    is_active,
+    main_image_index = 0,
+  } = req.body;
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // Check variant exists
+    const [variantCheck] = await conn.execute(
+      "SELECT id FROM product_variants WHERE id = ?",
+      [variantId]
+    );
+    if (!variantCheck.length) {
+      await conn.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "الفئة غير موجودة",
+        errorType: "VARIANT_NOT_FOUND",
+      });
+    }
+
+    // Build update fields
+    const updates = [];
+    const values = [];
+
+    if (title) {
+      updates.push("title = ?");
+      values.push(title);
+    }
+    if (price) {
+      const p = parseFloat(price);
+      if (isNaN(p) || p <= 0) {
+        return res
+          .status(400)
+          .json({ success: false, message: "سعر غير صحيح" });
+      }
+      updates.push("price = ?");
+      values.push(p);
+    }
+    if (measure_unit) {
+      updates.push("measure_unit = ?");
+      values.push(measure_unit);
+    }
+    if (size) {
+      updates.push("size = ?");
+      values.push(size);
+    }
+    if (typeof is_active !== "undefined") {
+      updates.push("is_active = ?");
+      values.push(is_active ? 1 : 0);
+    }
+
+    if (discount_price && discount_start && discount_end) {
+      const dp = parseFloat(discount_price);
+      if (dp >= parseFloat(price)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "سعر الخصم غير صحيح" });
+      }
+      updates.push(
+        "discount_price = ?",
+        "discount_start = ?",
+        "discount_end = ?"
+      );
+      values.push(dp, discount_start, discount_end);
+    }
+
+    if (updates.length) {
+      const sql = `UPDATE product_variants SET ${updates.join(
+        ", "
+      )} WHERE id = ?`;
+      values.push(variantId);
+      await conn.execute(sql, values);
+    }
+
+    // Replace images if new ones uploaded
+    const imageUrls = req.uploadedImages?.map((img) => img.url) || [];
+    if (imageUrls.length) {
+      await conn.execute(
+        "DELETE FROM product_variant_images WHERE variant_id = ?",
+        [variantId]
+      );
+      for (let i = 0; i < imageUrls.length; i++) {
+        await conn.execute(
+          `INSERT INTO product_variant_images (variant_id, url, is_primary, sort_order) VALUES (?, ?, ?, ?)`,
+          [variantId, imageUrls[i], i === parseInt(main_image_index) ? 1 : 0, i]
+        );
+      }
+    }
+
+    await conn.commit();
+    res.json({
+      success: true,
+      message: "تم تعديل الفئة بنجاح",
+      data: { variantId },
+    });
+  } catch (err) {
+    if (conn) await conn.rollback();
+    res.status(500).json({
+      success: false,
+      message: "خطأ في الخادم",
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  } finally {
+    if (conn) conn.release();
   }
 }

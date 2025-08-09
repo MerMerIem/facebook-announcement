@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Toaster } from "sonner"; // Import directly from sonner
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -18,17 +18,29 @@ import Tags from "./pages/admin/Tags";
 import Wilayas from "./pages/admin/Wilayas";
 import Products from "./pages/admin/Products";
 import Orders from "./pages/admin/Orders";
+import { AdminProfile } from "./components/admin/AdminProfile";
 // import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./contexts/protectedRoute";
 import AuthProvider from "./contexts/AuthContext";
-import {CartProvider} from "./contexts/CartContext";
+import { CartProvider } from "./contexts/CartContext";
+import { setupPushNotifications } from "./lib/pushNotifications";
+
 import AddProductPage from "@/pages/admin/AddProductPage";
+import AddProductVariant from "@/pages/admin/AddProductVarient";
 
 import ModifyProduct from "@/pages/admin/ModifyProduct";
 const queryClient = new QueryClient();
 
 function App() {
+  useEffect(() => {
+    if (
+      window.location.pathname === "/admin" ||
+      window.location.pathname === "/admin/dashboard"
+    ) {
+      setupPushNotifications();
+    }
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
@@ -94,6 +106,15 @@ function App() {
                     }
                   />
                   <Route
+                    path="/admin/products/:productId/add-variants"
+                    element={
+                      <AdminLayout>
+                        <AddProductVariant />
+                      </AdminLayout>
+                    }
+                  />
+
+                  <Route
                     path="/admin/orders"
                     element={
                       <AdminLayout>
@@ -114,6 +135,14 @@ function App() {
                     element={
                       <AdminLayout>
                         <ModifyProduct />
+                      </AdminLayout>
+                    }
+                  />
+                  <Route
+                    path="/admin/profile"
+                    element={
+                      <AdminLayout>
+                        <AdminProfile />
                       </AdminLayout>
                     }
                   />

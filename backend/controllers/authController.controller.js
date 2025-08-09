@@ -83,7 +83,7 @@ export async function login(req, res) {
       secure: false,
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/auth/me",
+      path: "/auth",
     });
 
     res.status(200).json({ message: "Login successful" });
@@ -105,6 +105,7 @@ export async function checkLogin(req, res) {
       try {
         const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
 
+        console.log("user", username);
         return res.status(200).json({
           message: "Access token valid",
           user: {
@@ -210,6 +211,9 @@ export async function checkLogin(req, res) {
 }
 
 export async function logout(req, res) {
+  const refreshToken = req.cookies?.refreshToken;
+  console.log("Logout called with refreshToken:", refreshToken);
+
   try {
     res.clearCookie("accessToken", {
       httpOnly: true,
@@ -221,11 +225,113 @@ export async function logout(req, res) {
       httpOnly: true,
       secure: false,
       sameSite: "strict",
+      path: "/auth",
     });
 
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error);
     return res.status(500).json({ message: "Server error during logout" });
+  }
+}
+
+export async function updateProfile(req, res) {
+  const { username, newPassword } = req.body;
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  let connection;
+  try {
+    // Get a connection from the pool
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // 1. Get current user data
+    const [userRows] = await connection.execute(
+      "SELECT * FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const currentUser = userRows[0];
+
+    // 2. Prepare update data
+    const updateData = {};
+    const updateFields = [];
+
+    if (username && username !== currentUser.username) {
+      const [usernameCheck] = await connection.execute(
+        "SELECT id FROM users WHERE username = ? AND id != ?",
+        [username, userId]
+      );
+
+      if (usernameCheck.length > 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({ message: "Username already taken" });
+      }
+
+      updateData.username = username;
+      updateFields.push("username = ?");
+    }
+
+    if (newPassword) {
+      if (newPassword.length < 6) {
+        await connection.rollback();
+        connection.release();
+        return res
+          .status(400)
+          .json({ message: "Password must be at least 6 characters" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      updateData.password = hashedPassword;
+      updateFields.push("password = ?");
+    }
+
+    // 3. Perform update if there are changes
+    if (updateFields.length > 0) {
+      const query = `UPDATE users SET ${updateFields.join(", ")} WHERE id = ?`;
+      const params = [...Object.values(updateData), userId];
+
+      await connection.execute(query, params);
+
+      if (newPassword) {
+        await connection.execute(
+          "DELETE FROM refresh_tokens WHERE user_id = ?",
+          [userId]
+        );
+      }
+    }
+
+    await connection.commit();
+
+    // 4. Get updated user data
+    const [updatedUser] = await connection.execute(
+      "SELECT id, email, username, role FROM users WHERE id = ?",
+      [userId]
+    );
+
+    connection.release(); // Release the connection back to the pool
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: updatedUser[0],
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+      connection.release();
+    }
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }

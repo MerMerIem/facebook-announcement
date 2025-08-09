@@ -19,11 +19,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Edit, ChevronLeft, ChevronRight, MapPin, Truck } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner"; // Changed from useToast to sonner
 import { useApi } from "@/contexts/RestContext";
 
 export default function Wilayas() {
-  const { toast } = useToast();
   const { api } = useApi();
   
   const [wilayas, setWilayas] = useState([]);
@@ -56,20 +55,30 @@ export default function Wilayas() {
         setPagination(data.pagination || { totalPages: 1, totalItems: 0 });
       } else {
         console.error("Error fetching wilayas:", error || "No data returned");
-        toast({
-          title: "خطأ",
+        toast.error("خطأ", {
           description: "فشل في تحميل الولايات",
-          variant: "destructive",
+          duration: 4000,
+          style: {
+            background: "#ef4444",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
         });
         setWilayas([]);
         setPagination({ totalPages: 1, totalItems: 0 });
       }
     } catch (err) {
       console.error("Unexpected error fetching wilayas:", err);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "حدث خطأ غير متوقع أثناء تحميل الولايات",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
       setWilayas([]);
       setPagination({ totalPages: 1, totalItems: 0 });
@@ -103,16 +112,29 @@ export default function Wilayas() {
         ));
         setEditingWilaya(null);
         setDeliveryFee("");
-        toast({ title: "تم تحديث رسوم التوصيل بنجاح" });
+        toast.success("تم تحديث رسوم التوصيل بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to update wilaya");
       }
     } catch (error) {
       console.error("Error updating wilaya:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في تحديث رسوم التوصيل",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     }
   };
@@ -143,7 +165,7 @@ export default function Wilayas() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div className="flex items-center gap-3">
         <MapPin className="w-8 h-8 text-primary" />
         <div>
@@ -251,12 +273,12 @@ export default function Wilayas() {
                             تعديل الرسوم
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent dir="rtl">
                           <DialogHeader>
-                            <DialogTitle>تعديل رسوم التوصيل - {wilaya.name}</DialogTitle>
+                            <DialogTitle className="text-right">تعديل رسوم التوصيل - {wilaya.name}</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4">
-                            <div>
+                            <div className="text-right">
                               <Label htmlFor="delivery-fee">رسوم التوصيل (د.ج)</Label>
                               <Input
                                 id="delivery-fee"
@@ -266,6 +288,8 @@ export default function Wilayas() {
                                 value={deliveryFee}
                                 onChange={(e) => setDeliveryFee(e.target.value)}
                                 placeholder="0.00"
+                                className="text-right"
+                                dir="rtl"
                               />
                               <p className="text-xs text-muted-foreground mt-1">
                                 أدخل 0 للتوصيل المجاني

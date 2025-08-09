@@ -124,7 +124,7 @@ const loadCartFromStorage = () => {
     const savedCart = localStorage.getItem(CART_STORAGE_KEY);
     if (savedCart) {
       const parsed = JSON.parse(savedCart);
-      console.log("Cart loaded from localStorage:", parsed);
+      // console.log("Cart loaded from localStorage:", parsed);
       return Array.isArray(parsed) ? parsed : [];
     }
   } catch (error) {

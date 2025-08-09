@@ -5,19 +5,18 @@ import {
   Truck,
   Shield,
   Headphones,
-  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Header from "@/components/customer/layout/Header";
 import { useApi } from "@/contexts/RestContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner"; // Replaced useToast with sonner
 
 const Index = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { api } = useApi();
-  const { toast } = useToast();
 
   // Static features data
   const features = [
@@ -74,18 +73,24 @@ const Index = () => {
         if (responseCode === 200 && data) {
           setCategories(data.categories || []);
         } else {
-          toast({
-            title: "خطأ في تحميل الفئات",
+          toast.error("خطأ في تحميل الفئات", {
             description: error || "فشل في تحميل فئات المنتجات",
-            variant: "destructive",
+            duration: 4000,
+            style: {
+              direction: "rtl",
+              textAlign: "right",
+            },
           });
         }
       } catch (err) {
         console.error("Error fetching categories:", err);
-        toast({
-          title: "خطأ في الاتصال",
+        toast.error("خطأ في الاتصال", {
           description: "تعذر الاتصال بالخادم",
-          variant: "destructive",
+          duration: 4000,
+          style: {
+            direction: "rtl",
+            textAlign: "right",
+          },
         });
       } finally {
         setIsLoading(false);
@@ -93,7 +98,7 @@ const Index = () => {
     };
 
     fetchCategories();
-  }, [api, toast]);
+  }, [api]);
 
   return (
     <div className="min-h-screen bg-shop-bg">
@@ -118,7 +123,7 @@ const Index = () => {
                   className="gradient-primary text-white border-0 hover:opacity-90 text-lg px-8 py-4"
                 >
                   تسوق الآن
-                  <ArrowLeft className="mr-2 h-5 w-5" />
+                  <ArrowRight className="mr-2 h-5 w-5" />
                 </Button>
               </Link>
             </div>
@@ -210,7 +215,7 @@ const Index = () => {
               <Link to="/shop">
                 <Button variant="outline" size="lg">
                   عرض جميع الفئات
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <ArrowRight className="mr-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>
@@ -229,7 +234,7 @@ const Index = () => {
             <Link to="/shop">
               <Button size="lg" variant="outline" className="text-lg px-8 py-4">
                 تصفح المتجر
-                <ArrowLeft className="mr-2 h-5 w-5" />
+                <ArrowRight className="mr-2 h-5 w-5" />
               </Button>
             </Link>
           </div>

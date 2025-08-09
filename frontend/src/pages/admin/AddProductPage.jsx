@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Upload, Trash2, Star, ArrowLeft } from "lucide-react";
+import { Upload, Trash2, Star, ArrowRight } from "lucide-react";
 import DescriptionEditor from "@/components/admin/DescriptionEditor";
 import { useApi } from "@/contexts/RestContext";
 import { toast } from "sonner";
@@ -243,7 +243,11 @@ const ProductPage = () => {
           parseFloat(formData.discount_percentage)
         );
       }
-      if (formData.discount_price && formData.discount_start && formData.discount_end){
+      if (
+        formData.discount_price &&
+        formData.discount_start &&
+        formData.discount_end
+      ) {
         formDataToSend.append(
           "discount_price",
           parseFloat(formData.discount_price)
@@ -436,7 +440,7 @@ const ProductPage = () => {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
-              <ArrowLeft size={20} className="text-gray-600" />
+              <ArrowRight size={20} className="text-gray-600" />
             </button>
             <h1 className="text-3xl font-bold text-gray-900">
               إضافة منتج جديد
@@ -819,6 +823,7 @@ const ProductPage = () => {
                   </div>
                 </div>
               </div>
+              
             </div>
           </div>
 

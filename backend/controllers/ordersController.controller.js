@@ -1,5 +1,6 @@
 import db from "../config/db.js";
-import Cookies from "js-cookie";
+import { sendPushNotification } from "../utils/sendPushNotification.js";
+
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -44,6 +45,7 @@ export async function addOrder(req, res) {
       });
     }
   }
+
 
   try {
     await db.query("START TRANSACTION");
@@ -170,51 +172,16 @@ export async function addOrder(req, res) {
       );
     }
 
-    /* Commented out notification related code
-    const [userResult] = await db.execute(
-      "SELECT id FROM users WHERE email = ?",
-      ["kadriyacine93@gmail.com"]
+    const adminUserId = 4;
+    await db.execute(
+      `INSERT INTO notification (user_id, content, notification_status, time)
+     VALUES (?, ?, ?, NOW())`,
+      [adminUserId, `طلب جديد #${orderId} من ${full_name}`, "unread"]
     );
 
-    const notificationContent = `Nouvelle commande #${orderId} arrive. Total: ${totalPrice} DA`;
-
-    if (userResult.length > 0) {
-      const userId = userResult[0].id;
-
-      await db.execute(
-        "INSERT INTO notification (content, notification_status, time, user_id) VALUES (?, ?, NOW(), ?)",
-        [notificationContent, "unread", userId]
-      );
-
-      const [subscriptions] = await db.query(
-        "SELECT endpoint, keys FROM push_subscriptions WHERE user_id = ?",
-        [userId]
-      );
-
-      if (subscriptions.length > 0) {
-        const subscription = {
-          endpoint: subscriptions[0].endpoint,
-          keys: JSON.parse(subscriptions[0].keys),
-        };
-
-        await fetch(`${link}/send-notification`, {
-          method: "POST",
-          body: JSON.stringify(subscription),
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${Cookies.get("accessToken")}`,
-          },
-        }).catch((err) => console.error("Push notification error:", err));
-      }
-    } else {
-      await db.execute(
-        "INSERT INTO notification (content, notification_status, time, user_id) VALUES (?, ?, NOW(), NULL)",
-        [notificationContent, "unread"]
-      );
-    }
-    */
-
     await db.query("COMMIT");
+
+    await sendPushNotification(4);
 
     res.status(201).json({
       success: true,
@@ -287,10 +254,10 @@ export async function calculatePricing(req, res) {
       "SELECT id, name, delivery_fee FROM wilayas ORDER BY id ASC"
     );
 
-    const wilayas = wilayasResult.map(wilaya => ({
+    const wilayas = wilayasResult.map((wilaya) => ({
       id: wilaya.id,
       name: wilaya.name,
-      delivery_fee: Number(wilaya.delivery_fee)
+      delivery_fee: Number(wilaya.delivery_fee),
     }));
 
     console.log(`Found ${wilayas.length} wilayas (sorted by ID)`);
@@ -366,14 +333,18 @@ export async function calculatePricing(req, res) {
         product_name: product.name,
         quantity: item.quantity,
         original_price: Number(product.price),
-        discount_price: product.discount_price ? Number(product.discount_price) : null,
+        discount_price: product.discount_price
+          ? Number(product.discount_price)
+          : null,
         unit_price: unitPrice,
         item_total: itemTotal,
         used_discount: usedDiscount,
         special_pricing: specialPricing,
-        savings: specialPricing ? 
-          (Number(product.price) * item.quantity) - itemTotal : 
-          (usedDiscount ? (Number(product.price) - unitPrice) * item.quantity : 0)
+        savings: specialPricing
+          ? Number(product.price) * item.quantity - itemTotal
+          : usedDiscount
+          ? (Number(product.price) - unitPrice) * item.quantity
+          : 0,
       });
     }
 
@@ -383,21 +354,26 @@ export async function calculatePricing(req, res) {
         message: `Product(s) not found`,
         details: {
           notFoundProductIds: notFoundProducts,
-          message: `Products with the following IDs do not exist: ${notFoundProducts.join(", ")}`,
+          message: `Products with the following IDs do not exist: ${notFoundProducts.join(
+            ", "
+          )}`,
         },
       });
     }
 
-    const totalSavings = pricingDetails.reduce((sum, item) => sum + item.savings, 0);
+    const totalSavings = pricingDetails.reduce(
+      (sum, item) => sum + item.savings,
+      0
+    );
 
     // Calculate total with delivery fee for each wilaya (already sorted by ID)
-    const pricingWithDelivery = wilayas.map(wilaya => ({
+    const pricingWithDelivery = wilayas.map((wilaya) => ({
       wilaya_id: wilaya.id,
       wilaya_name: wilaya.name,
       delivery_fee: wilaya.delivery_fee,
       subtotal: subtotal,
       total_with_delivery: subtotal + wilaya.delivery_fee,
-      total_savings: totalSavings
+      total_savings: totalSavings,
     }));
 
     res.status(200).json({
@@ -408,11 +384,10 @@ export async function calculatePricing(req, res) {
         items_count: pricingDetails.length,
         pricing_details: pricingDetails,
         delivery_options: pricingWithDelivery, // Already sorted by wilaya_id
-        wilayas: wilayas // Already sorted by id
+        wilayas: wilayas, // Already sorted by id
       },
       message: "Pricing calculated successfully with delivery options",
     });
-
   } catch (err) {
     console.error("Error calculating pricing:", err);
 
@@ -492,7 +467,7 @@ export async function getAllOrders(req, res) {
       LEFT JOIN wilayas w ON o.wilaya = w.name
       LEFT JOIN order_items oi ON o.id = oi.order_id
     `;
-    
+
     let countQuery = "SELECT COUNT(DISTINCT o.id) as total FROM orders o";
     let whereClauses = [];
     let params = [];
@@ -533,7 +508,7 @@ export async function getAllOrders(req, res) {
     // Execute both queries in parallel
     const [orders, totalResult] = await Promise.all([
       db.query(query, params),
-      db.query(countQuery, countParams)
+      db.query(countQuery, countParams),
     ]);
 
     const total = totalResult[0][0].total;

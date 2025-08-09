@@ -133,13 +133,6 @@ export default function Dashboard() {
         bgColor: "bg-orange-50",
       },
       {
-        title: "العملاء",
-        value: stats.totalUsers?.toString() || "0",
-        icon: Users,
-        color: "text-purple-600",
-        bgColor: "bg-purple-50",
-      },
-      {
         title: "إجمالي الإيرادات",
         value: stats.totalRevenue
           ? `${stats.totalRevenue.toLocaleString()} د.ج`

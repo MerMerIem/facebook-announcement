@@ -7,7 +7,7 @@ import ApiProvider from "./contexts/RestContext";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ApiProvider>
-        <App />
+      <App />
     </ApiProvider>
   </StrictMode>
 );

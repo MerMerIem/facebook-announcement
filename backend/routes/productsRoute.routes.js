@@ -16,6 +16,8 @@ import {
   searchProduct,
   getAllProducts,
   getProductById,
+  addProductVariants,
+  modifyProductVarient,
   removeProductDiscountPercentage,
 } from "../controllers/productsController.controller.js";
 import { uploadImages } from "../middlewares/uploadImages.middleware.js";
@@ -65,6 +67,27 @@ router.delete(
   isAuthorized,
   verifyId,
   removeProductDiscountPercentage
+);
+
+router.post(
+  "/add/variant",
+  verfyToken(),
+  isAuthorized,
+  uploadImages,
+  validateNumber,
+  validateDiscountDates,
+  addProductVariants
+);
+
+router.post(
+  "/modify/variant/:id",
+  verfyToken(),
+  isAuthorized,
+  verifyId,
+  uploadImages,
+  validateNumber,
+  validateDiscountDates,
+  modifyProductVarient
 );
 
 export default router;

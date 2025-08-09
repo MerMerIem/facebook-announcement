@@ -1,0 +1,474 @@
+-- MySQL dump 10.13  Distrib 8.0.40, for Linux (x86_64)
+--
+-- Host: localhost    Database: quincaillerie_sekkar
+-- ------------------------------------------------------
+-- Server version	8.0.40
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `categories`
+--
+
+DROP TABLE IF EXISTS `categories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `categories` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `categories`
+--
+
+LOCK TABLES `categories` WRITE;
+/*!40000 ALTER TABLE `categories` DISABLE KEYS */;
+INSERT INTO `categories` VALUES (2,'الأدوات الكهربائية'),(8,'الأدوات اليدوية'),(9,'معدات التثبيت'),(10,'مستلزمات السباكة'),(14,'معدات التخزين'),(15,'معدات منزلية'),(16,'معدات وأدوات تركيب الغاز الطبيعي'),(17,'Pvc');
+/*!40000 ALTER TABLE `categories` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `notification`
+--
+
+DROP TABLE IF EXISTS `notification`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `notification` (
+  `notification_id` int NOT NULL AUTO_INCREMENT,
+  `content` varchar(255) DEFAULT NULL,
+  `notification_status` varchar(255) DEFAULT NULL,
+  `time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `user_id` int DEFAULT NULL,
+  PRIMARY KEY (`notification_id`),
+  KEY `idx_notification_user_id` (`user_id`),
+  KEY `idx_notification_time` (`time`),
+  KEY `idx_notification_status` (`notification_status`),
+  CONSTRAINT `notification_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `notification`
+--
+
+LOCK TABLES `notification` WRITE;
+/*!40000 ALTER TABLE `notification` DISABLE KEYS */;
+INSERT INTO `notification` VALUES (3,'Nouvelle commande #65 de eren luffy2','read','2025-08-05 02:15:00',4),(4,'Nouvelle commande #66 de eren luffy2','read','2025-08-05 02:15:47',4),(5,'Nouvelle commande #67 de eren luffy2','read','2025-08-05 02:17:17',4),(6,'Nouvelle commande #68 de eren luffy2','read','2025-08-05 02:18:05',4),(7,'Nouvelle commande #69 de SELMOUNE Meriem','read','2025-08-05 09:15:41',4),(8,'Nouvelle commande #70 de mer sel','read','2025-08-05 09:41:26',4),(9,'طلب جديد #71 من mer sel','read','2025-08-05 12:05:52',4),(10,'طلب جديد #72 من mer sel','read','2025-08-05 12:20:28',4),(11,'طلب جديد #73 من mer sel','read','2025-08-05 12:23:22',4),(12,'طلب جديد #74 من eren luffy','read','2025-08-05 12:40:21',4),(13,'طلب جديد #75 من mer sel','read','2025-08-05 13:27:50',4),(14,'طلب جديد #76 من nom prenom','read','2025-08-07 21:52:35',4);
+/*!40000 ALTER TABLE `notification` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `order_items`
+--
+
+DROP TABLE IF EXISTS `order_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `order_items` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `order_id` int DEFAULT NULL,
+  `product_id` int DEFAULT NULL,
+  `variant_id` int DEFAULT NULL,
+  `quantity` int DEFAULT NULL,
+  `unit_price` decimal(10,2) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `order_id` (`order_id`),
+  KEY `product_id` (`product_id`),
+  KEY `idx_order_items_variant_id` (`variant_id`),
+  CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `order_items_ibfk_3` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=104 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `order_items`
+--
+
+LOCK TABLES `order_items` WRITE;
+/*!40000 ALTER TABLE `order_items` DISABLE KEYS */;
+INSERT INTO `order_items` VALUES (88,61,62,NULL,2,498.00),(89,62,61,NULL,1,10000.00),(90,63,63,NULL,1,11000.00),(91,64,61,NULL,1,10000.00),(92,65,63,NULL,1,11000.00),(93,66,63,NULL,1,11000.00),(94,67,61,NULL,1,10000.00),(95,68,61,NULL,1,10000.00),(96,69,61,NULL,1,10000.00),(97,70,65,NULL,2,547.00),(99,72,61,NULL,1,10000.00),(100,73,62,NULL,1,500.00),(101,74,61,NULL,1,10000.00),(102,75,61,NULL,1,10000.00),(103,76,61,NULL,3,8950.00);
+/*!40000 ALTER TABLE `order_items` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `orders`
+--
+
+DROP TABLE IF EXISTS `orders`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `orders` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `total_price` decimal(10,2) DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'en attente',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `full_name` varchar(100) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `wilaya` varchar(100) DEFAULT NULL,
+  `address` text,
+  `delivery_location` enum('home','office') NOT NULL DEFAULT 'home',
+  `notes` text,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=77 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `orders`
+--
+
+LOCK TABLES `orders` WRITE;
+/*!40000 ALTER TABLE `orders` DISABLE KEYS */;
+INSERT INTO `orders` VALUES (61,1296.00,'مؤكد','2025-08-04 15:38:05','SELMOUNE Meriem','meriemselmoune945@gmail.com','0784196102','الجزائر','AAAAAAAAAAAAA','home',NULL),(62,13500.00,'في الانتظار','2025-08-05 02:03:34','eren luffy','eqweqweqer6@gmail.com','0556998265','أدرار','ALgeria\nB4','home','weweqqweeqw'),(63,14500.00,'في الانتظار','2025-08-05 02:07:30','eren luffy2','setwertr77@gmail.com','0556998298','أدرار','ALgeria\nB4','home',NULL),(64,13500.00,'في الانتظار','2025-08-05 02:09:35','eren luffy2','setwertr77@gmail.com','0556998298','أدرار','ALgeria\nB4','home',NULL),(65,11000.00,'في الانتظار','2025-08-05 02:15:00','eren luffy2','setwertr77@gmail.com','0556998298','أم البواقي','ALgeria\nB4','home',NULL),(66,11000.00,'في الانتظار','2025-08-05 02:15:47','eren luffy2','setwertr77@gmail.com','0556998298','الأغواط','ALgeria\nB4','home','weweqqweeqw'),(67,10000.00,'في الانتظار','2025-08-05 02:17:17','eren luffy2','setwertr77@gmail.com','0556998298','الشلف','ALgeria\nB4','home',NULL),(68,10000.00,'في الانتظار','2025-08-05 02:18:05','eren luffy2','setwertr77@gmail.com','0556998298','الأغواط','ALgeria\nB4','home','weweqqweeqw'),(69,10300.00,'في الانتظار','2025-08-05 09:15:41','SELMOUNE Meriem','meriemselmoune945@gmail.com','0784196102','الجزائر','AAAAAAAAAAAAA','home','nothing'),(70,1394.00,'في الانتظار','2025-08-05 09:41:26','mer sel','meriemselmoune945@gmail.com','0784196102','الجزائر','AAAAAAAAAAAAA','home',NULL),(72,10300.00,'ملغى','2025-08-05 12:20:28','mer sel','meriemselmoune945@gmail.com','0784196102','الجزائر','AAAAAAAAAAAAA','home',NULL),(73,500.00,'ملغى','2025-08-05 12:23:22','mer sel','meriemselmoune945@gmail.com','0784196102','بسكرة','AAAAAAAAAAAAA','home',NULL),(74,13500.00,'مؤكد','2025-08-05 12:40:21','eren luffy','eqweqweqer6@gmail.com','0556998265','أدرار','ALgeria\nB4','home','weweqqweeqw'),(75,10500.00,'في الانتظار','2025-08-05 13:27:50','mer sel','meriemselmoune945@gmail.com','0784196102','تيزي وزو','AAAAAAAAAAAAA','home',NULL),(76,27150.00,'مؤكد','2025-08-07 21:52:35','nom prenom','example@gmail.com','0784196102','الجزائر','AAAAAAAAAAAAA','home','add a note');
+/*!40000 ALTER TABLE `orders` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `product_images`
+--
+
+DROP TABLE IF EXISTS `product_images`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_images` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `url` text,
+  `product_id` int DEFAULT NULL,
+  `is_main` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `product_id` (`product_id`),
+  CONSTRAINT `product_images_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_images`
+--
+
+LOCK TABLES `product_images` WRITE;
+/*!40000 ALTER TABLE `product_images` DISABLE KEYS */;
+INSERT INTO `product_images` VALUES (86,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754317328/ftfhnvfeifxi8xxisiy6.jpg',61,0),(87,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754317327/z3bv885yidimkwe3nkta.jpg',61,0),(88,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754317327/zoctkq6e68a33bupdi3b.jpg',61,0),(89,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754317327/er31t2q8nfguswte9dmy.jpg',61,1),(90,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754317675/k0bl96e0nmmddn9hgyf1.jpg',62,1),(91,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754317675/qbmkgnvunmpqid1ogtg9.jpg',62,0),(92,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754317979/wictpugzqmncgxvvmym5.jpg',63,1),(93,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754317979/at46ieq9xif93awyxtt4.jpg',63,0),(94,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754318139/cwg3qj0tagrexrc3wms7.jpg',64,0),(95,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754318139/pg5dnal1hknhtajuok5z.jpg',64,1),(96,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754319016/fpuowua8sxzymbddpm2y.jpg',65,0),(97,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754319016/jpztfc1kjmpyqqbce3ot.jpg',65,1),(98,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754319016/byymt6ijxgk1eaftbg6i.jpg',65,0),(99,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754319016/j5xozesaoypcflwnzkg2.jpg',65,0);
+/*!40000 ALTER TABLE `product_images` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `product_tags`
+--
+
+DROP TABLE IF EXISTS `product_tags`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_tags` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int DEFAULT NULL,
+  `tag_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `product_id` (`product_id`),
+  KEY `tag_id` (`tag_id`),
+  CONSTRAINT `product_tags_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `product_tags_ibfk_2` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=152 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_tags`
+--
+
+LOCK TABLES `product_tags` WRITE;
+/*!40000 ALTER TABLE `product_tags` DISABLE KEYS */;
+INSERT INTO `product_tags` VALUES (148,64,4),(150,63,4),(151,61,19);
+/*!40000 ALTER TABLE `product_tags` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `product_variant_images`
+--
+
+DROP TABLE IF EXISTS `product_variant_images`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_variant_images` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `variant_id` int NOT NULL,
+  `url` text NOT NULL,
+  `alt_text` varchar(255) DEFAULT NULL,
+  `is_primary` tinyint(1) DEFAULT '0',
+  `sort_order` int DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_variant_images_variant_id` (`variant_id`),
+  KEY `idx_variant_images_primary` (`is_primary`),
+  CONSTRAINT `product_variant_images_ibfk_1` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_variant_images`
+--
+
+LOCK TABLES `product_variant_images` WRITE;
+/*!40000 ALTER TABLE `product_variant_images` DISABLE KEYS */;
+INSERT INTO `product_variant_images` VALUES (1,1,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754712171/e0ygvjql59h8g6lfuagx.jpg',NULL,1,0,'2025-08-09 04:02:52'),(2,2,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754728942/diwxusbpwn5pcng1onw9.jpg',NULL,1,0,'2025-08-09 08:42:23'),(3,3,'https://res.cloudinary.com/dj8va2cd0/image/upload/v1754729085/lu9ympqrarjtm6lcn1c3.jpg',NULL,1,0,'2025-08-09 08:44:45');
+/*!40000 ALTER TABLE `product_variant_images` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `product_variants`
+--
+
+DROP TABLE IF EXISTS `product_variants`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_variants` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `discount_price` decimal(10,2) DEFAULT NULL,
+  `discount_start` date DEFAULT NULL,
+  `discount_end` date DEFAULT NULL,
+  `measure_unit` varchar(50) DEFAULT NULL,
+  `size` varchar(100) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_product_variants_product_id` (`product_id`),
+  KEY `idx_product_variants_active` (`is_active`),
+  CONSTRAINT `product_variants_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_variants`
+--
+
+LOCK TABLES `product_variants` WRITE;
+/*!40000 ALTER TABLE `product_variants` DISABLE KEYS */;
+INSERT INTO `product_variants` VALUES (1,61,'werwrweer',10000.00,9000.00,'2025-08-01','2025-08-03','ampere','50',1,'2025-08-09 04:02:52','2025-08-09 04:02:52'),(2,61,'خزان مياه حجم 1000L',10000.00,NULL,NULL,NULL,'liter','1000',1,'2025-08-09 08:42:23','2025-08-09 08:42:23'),(3,61,'خزان مياه حجم  500L',8000.00,NULL,NULL,NULL,'liter','500',1,'2025-08-09 08:44:45','2025-08-09 08:44:45');
+/*!40000 ALTER TABLE `product_variants` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `products`
+--
+
+DROP TABLE IF EXISTS `products`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `products` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `description` text,
+  `discount_price` decimal(10,2) DEFAULT NULL,
+  `discount_start` date DEFAULT NULL,
+  `discount_end` date DEFAULT NULL,
+  `category_id` int NOT NULL,
+  `subcategory_id` int NOT NULL,
+  `initial_price` decimal(10,2) DEFAULT NULL,
+  `profit` decimal(10,2) DEFAULT NULL,
+  `discount_percentage` decimal(5,2) DEFAULT '0.00',
+  `price` decimal(10,2) NOT NULL DEFAULT '0.00',
+  PRIMARY KEY (`id`),
+  KEY `fk_products_category` (`category_id`),
+  KEY `fk_products_subcategory` (`subcategory_id`),
+  CONSTRAINT `fk_products_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_products_subcategory` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `products`
+--
+
+LOCK TABLES `products` WRITE;
+/*!40000 ALTER TABLE `products` DISABLE KEYS */;
+INSERT INTO `products` VALUES (61,'خزان المياه','<div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">دفعة جديدة لخزانات المياه متعددة الانواع  ذات 7 طبقات  و جودة عالية  باسعار خيالية <span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span> كما عودنا زبائننا الكرام </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">الخزانات المائية متعددة الاحجام  </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>500L</strong> vertical </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>1000L</strong> vertical </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>800L</strong> vertical </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>1000L</strong> horizontal </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>1000L</strong> boMbe </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>1500L </strong>horizontal </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>1500L </strong>bombe </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>2000L</strong> horizontal </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>2000L</strong> bombe </div>',9000.00,'2025-08-01','2025-08-03',14,11,9000.00,1000.00,5.00,10000.00),(62,'Suport machine a lavè','<div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">Suport machine a lavè anti vibration très efficace<span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"😍\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t2/1/16/1f60d.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"👌\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t7b/1/16/1f44c.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"👌\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t7b/1/16/1f44c.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span></div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">لكل من يعاني من <em>ضجيج غسالة</em> الملابس محلنا يوفر لكم منتج فعال جدا و ب <strong>سعر تنافسي</strong>  <u>الكمية محدودة </u></div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">سارعو للحصول عليه و لا تضيعو الفرصة <span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"😍\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t2/1/16/1f60d.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"😍\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t2/1/16/1f60d.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span></div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">للطلب او الاستفسار اتصل با الارقام التالية</div>',NULL,NULL,NULL,15,12,400.00,100.00,2.00,500.00),(63,'أجهزة لحام كهربائية','<div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">Poste a souder mig/mma 140 220v disponible </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">لحام كهربائي  honest pro mig  ذو جودة عالمية  يعمل با  baget  و السلك دون توفر قارورة الغاز فهو يشتغل با الكهرباء 220v </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">معه لفافة سلك مجانية تدوم <strong>لاكثر من ثلاثة اشهر</strong> </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">يعمل على التلحيم بشكل جد رائع </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>خفيف و محمول</strong> يمكنك من اخذه لجميع الاماكن </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\"><strong>سهل الاستعمال موفر للجهد</strong> <span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span> </div>',NULL,NULL,NULL,2,13,9500.00,1500.00,0.00,11000.00),(64,'غسالات ضغط كهربائية','<div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">Nettoyeur pression à batterie DinGQI disponible avec dès prix chock <span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span> </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">لا عناء من اليوم مع غسالة الضغط ذات الجودة العالمية التي تعمل با البطارية و تدوم ل <strong>6 ساعات دون توقف</strong> كما انها تحتوي على بطاريتين ذات ال 22 فولت كما ان لها رؤوس متعددة و <strong>من السهل اخذها لاي مكان تريده</strong> دون ان ننسى تسهيلاتها في الاعمال المنزلية <span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span></div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">هذا المنتج من افضل المنتجات امسهلة للحيات اليومية و اقتصادية للمياه    .</div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; font-size: 15px;\">لا تترددو في اقتنائها  </div>',4000.00,'2025-08-28','2025-08-30',2,14,4000.00,500.00,2.00,4500.00),(65,'فرش تنظيف كهربائية للآلات','<div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-size: 15px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">brosse nettoyage perceuse<span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"🔥\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t50/1/16/1f525.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span> </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-size: 15px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">محلنا يوفر لكم جميع الادوات الموفرة للجهد </div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-size: 15px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><span class=\"html-span xdj266r x14z9mp xat24cr x1lziwak xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs\" style=\"text-decoration: none; margin: 0px; text-align: inherit; padding: 0px; overflow-wrap: break-word; font-family: inherit;\"></span>فرشات مساعدة لجميع  الاشغال اليدوية <span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"😍\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t2/1/16/1f60d.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"😍\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t2/1/16/1f60d.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span></div><div dir=\"auto\" style=\"font-family: &quot;Segoe UI Historic&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif; color: rgb(8, 8, 9); font-size: 15px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: pre-wrap; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">وايضا بسعر مغري جدا كما عودناكم <span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"😊\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t7f/1/16/1f60a.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span><span class=\"html-span xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs x3nfvp2 x1j61x8r x1fcty0u xdj266r xat24cr xm2jcoa x1mpyi22 xxymvpz xlup9mm x1kky2od\" style=\"text-decoration: none; text-align: inherit; padding: 0px; overflow-wrap: break-word; margin: 0px 1px; font-weight: 400; font-style: normal; display: inline-flex; vertical-align: middle; width: 16px; height: 16px; font-family: inherit;\"><img height=\"16\" width=\"16\" class=\"xz74otr x15mokao x1ga7v0g x16uus16 xbiv7yw\" alt=\"😊\" referrerpolicy=\"origin-when-cross-origin\" src=\"https://static.xx.fbcdn.net/images/emoji.php/v9/t7f/1/16/1f60a.png\" style=\"border: 0px; border-radius: 0px; object-fit: fill;\"></span></div><br class=\"Apple-interchange-newline\">',NULL,NULL,NULL,8,17,400.00,150.00,2.00,550.00);
+/*!40000 ALTER TABLE `products` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `push_subscriptions`
+--
+
+DROP TABLE IF EXISTS `push_subscriptions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `push_subscriptions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `endpoint` text NOT NULL,
+  `subscription_keys` json NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `push_subscriptions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `push_subscriptions`
+--
+
+LOCK TABLES `push_subscriptions` WRITE;
+/*!40000 ALTER TABLE `push_subscriptions` DISABLE KEYS */;
+INSERT INTO `push_subscriptions` VALUES (11,4,'https://fcm.googleapis.com/fcm/send/cXNjvYYb-hM:APA91bHeHbG4o8O2HMfAwRUlo5BaXnIqSnBe78XnYzAxp6qworSpcdqtNZ_DIQRmX1Nbd5YwfjlsqNpLITF6HoEtWD8VSSHenNzmVdD9JdkMCadvAeHuZu9KryTRC0A9VVxmVI7ucfcn','{\"auth\": \"D84g5g9z1mQlGHZ5IuMthg\", \"p256dh\": \"BMLwVlK_iO5Eey3k8EFetugwoxM9SIdgvWLuPmcpWp3ZBCLVDj03SoY-PwBxkq5kguBi16GTMGy0raVUZd_r9ig\"}','2025-08-05 03:06:51'),(12,4,'https://fcm.googleapis.com/fcm/send/eWef4Avjjsw:APA91bHCEy9opcUYLgPpgQn3JjtAam-31XPTTqRw3dJrrKs0ASv_7gdoWSrVvJb3w96Kg19jOqVkMqwUsprt40erXL3z8M895Eaz5D8CsIiUcGaTY5QYQMOpWxclTwkQlWdKmtYDVUac','{\"auth\": \"jt8U89WDq72GFhWWAazCdQ\", \"p256dh\": \"BMxnb1dt_ko16Bj88ACztMO4-xlUKmwapWLFudtuCP-YAHH_GXBcqAwQducORuUNq2Pi9xS5xydg0tW2u5GEqsU\"}','2025-08-05 03:06:52'),(13,4,'https://fcm.googleapis.com/fcm/send/dHDtxP9-zKM:APA91bEiJZvqFMtxR1P6-iPHoYdCLtpFHxJuaXHZfTVJh-Rkd7DsT7LXpU5r7KizXdvke5c4XXmDfnb5qLCVTb8dcLQOr1KiMnUcMVA1xcWcdPw4TazUd7G1RiOb12J8cS5s1pd_tiZo','{\"auth\": \"nILmr53OZmVvSpQ70b2eaw\", \"p256dh\": \"BOazUTi6xs23vM5YljOpWagLc-rQj_EB8NrQZ7B7dBIOjcre142XR_9hKAbc5bGG9H2zwJgO_ROrO-amsEBaTis\"}','2025-08-05 12:30:06'),(14,4,'https://fcm.googleapis.com/fcm/send/cb7QmjzogeA:APA91bHy8p6JEgEOBWKyRH5-WJ0AECHWvKP_XSW4fda2smzhIuj1rkd8zi-hDrFT2LiAMO6bZo-xWbGugufFYyiKQHuld-psaa_ET5DxrJDPwYsj8zXU6jiBFGY_yUHhCuZEOtUuDvjG','{\"auth\": \"Xc9B17cr2gCiO5pKvO7WBQ\", \"p256dh\": \"BGf4v-HREfrXDFsEm0Tl87GcupcCsY-NQe1Ozok92bL5w1suwwuLnp1Gc30NjceumFg8Q6R81W6FyX7iKNKtt7Q\"}','2025-08-05 12:30:07'),(15,4,'https://fcm.googleapis.com/fcm/send/cb7QmjzogeA:APA91bHy8p6JEgEOBWKyRH5-WJ0AECHWvKP_XSW4fda2smzhIuj1rkd8zi-hDrFT2LiAMO6bZo-xWbGugufFYyiKQHuld-psaa_ET5DxrJDPwYsj8zXU6jiBFGY_yUHhCuZEOtUuDvjG','{\"auth\": \"Xc9B17cr2gCiO5pKvO7WBQ\", \"p256dh\": \"BGf4v-HREfrXDFsEm0Tl87GcupcCsY-NQe1Ozok92bL5w1suwwuLnp1Gc30NjceumFg8Q6R81W6FyX7iKNKtt7Q\"}','2025-08-05 12:31:44'),(16,4,'https://fcm.googleapis.com/fcm/send/cb7QmjzogeA:APA91bHy8p6JEgEOBWKyRH5-WJ0AECHWvKP_XSW4fda2smzhIuj1rkd8zi-hDrFT2LiAMO6bZo-xWbGugufFYyiKQHuld-psaa_ET5DxrJDPwYsj8zXU6jiBFGY_yUHhCuZEOtUuDvjG','{\"auth\": \"Xc9B17cr2gCiO5pKvO7WBQ\", \"p256dh\": \"BGf4v-HREfrXDFsEm0Tl87GcupcCsY-NQe1Ozok92bL5w1suwwuLnp1Gc30NjceumFg8Q6R81W6FyX7iKNKtt7Q\"}','2025-08-05 12:31:44'),(17,4,'https://fcm.googleapis.com/fcm/send/eWef4Avjjsw:APA91bHCEy9opcUYLgPpgQn3JjtAam-31XPTTqRw3dJrrKs0ASv_7gdoWSrVvJb3w96Kg19jOqVkMqwUsprt40erXL3z8M895Eaz5D8CsIiUcGaTY5QYQMOpWxclTwkQlWdKmtYDVUac','{\"auth\": \"jt8U89WDq72GFhWWAazCdQ\", \"p256dh\": \"BMxnb1dt_ko16Bj88ACztMO4-xlUKmwapWLFudtuCP-YAHH_GXBcqAwQducORuUNq2Pi9xS5xydg0tW2u5GEqsU\"}','2025-08-05 12:37:49'),(18,4,'https://fcm.googleapis.com/fcm/send/eWef4Avjjsw:APA91bHCEy9opcUYLgPpgQn3JjtAam-31XPTTqRw3dJrrKs0ASv_7gdoWSrVvJb3w96Kg19jOqVkMqwUsprt40erXL3z8M895Eaz5D8CsIiUcGaTY5QYQMOpWxclTwkQlWdKmtYDVUac','{\"auth\": \"jt8U89WDq72GFhWWAazCdQ\", \"p256dh\": \"BMxnb1dt_ko16Bj88ACztMO4-xlUKmwapWLFudtuCP-YAHH_GXBcqAwQducORuUNq2Pi9xS5xydg0tW2u5GEqsU\"}','2025-08-05 12:37:49'),(19,4,'https://fcm.googleapis.com/fcm/send/cb7QmjzogeA:APA91bHy8p6JEgEOBWKyRH5-WJ0AECHWvKP_XSW4fda2smzhIuj1rkd8zi-hDrFT2LiAMO6bZo-xWbGugufFYyiKQHuld-psaa_ET5DxrJDPwYsj8zXU6jiBFGY_yUHhCuZEOtUuDvjG','{\"auth\": \"9wSWGux0H9xxPlFY-4hK7A\", \"p256dh\": \"BKXQw_Lo4asaA_Ukg-U8i-IE0wxsFASu3WMwMKM4RuWogyQw-QAmnuIQGoPv4oojAgAoUDPCM5yg8epO8W1akLU\"}','2025-08-05 16:03:56'),(20,4,'https://fcm.googleapis.com/fcm/send/cb7QmjzogeA:APA91bHy8p6JEgEOBWKyRH5-WJ0AECHWvKP_XSW4fda2smzhIuj1rkd8zi-hDrFT2LiAMO6bZo-xWbGugufFYyiKQHuld-psaa_ET5DxrJDPwYsj8zXU6jiBFGY_yUHhCuZEOtUuDvjG','{\"auth\": \"9wSWGux0H9xxPlFY-4hK7A\", \"p256dh\": \"BKXQw_Lo4asaA_Ukg-U8i-IE0wxsFASu3WMwMKM4RuWogyQw-QAmnuIQGoPv4oojAgAoUDPCM5yg8epO8W1akLU\"}','2025-08-05 16:03:56'),(21,4,'https://fcm.googleapis.com/fcm/send/cb7QmjzogeA:APA91bHy8p6JEgEOBWKyRH5-WJ0AECHWvKP_XSW4fda2smzhIuj1rkd8zi-hDrFT2LiAMO6bZo-xWbGugufFYyiKQHuld-psaa_ET5DxrJDPwYsj8zXU6jiBFGY_yUHhCuZEOtUuDvjG','{\"auth\": \"ymQYQqdEr6oLSxVsrSRsmw\", \"p256dh\": \"BH9OZVpWz8V8W_NBT0xgZCxVv_1kKZEQUgmnr_Z5qIjRNxDi66VlM2kDBlUioRUqsINuPmgKynqsnc0Sc8biTK0\"}','2025-08-08 14:17:43');
+/*!40000 ALTER TABLE `push_subscriptions` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `refresh_tokens`
+--
+
+DROP TABLE IF EXISTS `refresh_tokens`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `refresh_tokens` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `token` text NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `user_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `refresh_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=257 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `refresh_tokens`
+--
+
+LOCK TABLES `refresh_tokens` WRITE;
+/*!40000 ALTER TABLE `refresh_tokens` DISABLE KEYS */;
+INSERT INTO `refresh_tokens` VALUES (220,'e1064c7be06050a2780b6cddf6c5fa01569203530d0d0d8e569f90998f72af8927a8f9de3adf03bedb880860dc59a77ac8b3bf7db569087f807b732f5cf030da','2025-08-11 18:02:30',4),(221,'3437c78ba8fbc22f3e262ac8574f9b8bd31e19adc42ca0598c4957cb247be75c6b39ca2c6d2e351b2c3559df6a13b3c41f3a0e56f10c627f8f07367c0c99ba6b','2025-08-11 18:04:06',4),(222,'25cb3c299612d985c28bf533db900c2a645ebf8ffa3ff8ec15dd4f81fc4c48c5ad6d38a2f30b6184c78a6426053f9bc05ffb3a104a6f6e329630f839ebabf54b','2025-08-11 19:39:10',4),(223,'c9a39d22f11fb53e38dda8bd6249f749e6560e98a74c119c84a126da896a02f400b0bc87f65e3cc51f8bc75cf1145fcf3d9d7868d13a20d3c58585eefbe1be93','2025-08-11 19:39:56',4),(224,'a8f35ffca0069c7db762a15d08b7da2c5f0e0c4fa04434d57853dd5738fdc667c75be0bc1244575c477f51ccc49783235e29515845fd9857f8a9679082f4fbd4','2025-08-12 01:33:34',4),(225,'3b20928b53f762e88c190b51eb87f57d9f12856e3d173a4e5a05b6d56e13da417153674111f70bc4b64861ea01f420ac6036b893a36d3b975389371e21f17d32','2025-08-12 09:20:19',4),(226,'685811bd91ebec51b3c25c94d5697e023dbb812d5a0a27952169040da007f5105ef29591f823056a778800232329724a5fb71e0b8c4f73e84dbaf038ed2fa4bb','2025-08-12 11:00:16',4),(227,'208a17222c62d371805284ccbe3741f1d946b540760849ebbc9c507f6559d6e2204638b347aaea1aa31468faf2f955a0b112f8db24f3b8fd8d50b5da1deb50dd','2025-08-12 11:48:44',4),(228,'01911f24c1e26f63b6d03791484725a52655b4f6ea7a0748594b37db12a411aab24dddfb2a56071e38dcea5097f5de05406311ef71dadf3772b5a39697135af0','2025-08-12 12:36:39',4),(229,'4d8cb8c1e146fcba7267c8990e333555ec0b9040355f3334f3a96e984c317f91446215614e1948188131bb297b8f5a50ba2562d2befcb045bf9131bd8025f301','2025-08-12 13:28:26',4),(230,'8481d31e3bddd7dec3e0e0b3d71613d2c79d9e2a1639b935ad82e7797a368096cba0639c30d6458eae93b49053bb0a44032d04e39bc93dd4893fdd5e276992fb','2025-08-12 14:06:47',4),(231,'f221b4e5ad9fa3b64da27a6898d27d8afba7cb4497ca4c35268a0d6fdae29e3e324c19cda937c9cfe67432bcbcb4965680cbf0265370022dd352eb0fd9710f14','2025-08-14 21:52:54',4),(232,'d5bc83b1b9fccd13a513b58ec7769e4f09d1e27641b2ede003f78a4a9993326814534238e5261fd159bc61774e87055d5debd5192438c84c06aa7476573318d8','2025-08-14 22:08:04',4),(233,'34970790662fd9c886fc4ce86cc7be6ab4bc1d77fa488fceacb1a0e212412643be0ec0c094753a4ed5b5ee71bd48491b0a6ef87aefcec963c99c68e7178c2b2c','2025-08-14 22:08:22',4),(234,'fa52558b390f5056f463dd86cfa10bfa0fbfc15175d951c3934f70a3a4e933eca40511846352dc10ac83973f0a20d6d9e87e86e55dde378156afa891120ade1b','2025-08-14 22:08:50',4),(235,'450ab1fabb2cbf51e8963361f70055c92648d671cff184d265fc4c0bde4bdedcbd329651c5c0ed0e19a05769301e2af29f144d7e79c13baf2dedb5826b5bbd54','2025-08-14 22:09:56',4),(236,'5e6e8fc54d0c5f63da9d98273c4eade9702670205b68b9cb43214c5a2b2e6b6f379bbca22a9f63470b6219b85784413fda7ca638e089aab6d1d6cd7ff9ff0d63','2025-08-14 22:10:00',4),(237,'7f4183c61728afdbd8e34747e8907b0c6818efe023a8d8d48dc42fc2db070a5e8a97d83d92f65174c1a2f08e93985e54d37a83f880e61c8f499f7b13075b93fb','2025-08-14 22:10:45',4),(238,'c38f3591fc248c6c003ebc9026684abc3688e949b30d888e754defe92478621286f127f54146829de9584e2c323026d465bbe1ae0b263e6d1610f0c8b03959df','2025-08-14 22:11:03',4),(239,'edf3d9cb654374bc9e5d4dca2b1ec69c66e247adc73f12242bec6cd95ebbf57577b16c501437fd6796d11432799130e20925d9ea5f56ed9a874d7777e5f77107','2025-08-14 22:13:49',4),(240,'258fb81f25c0211d7b6fb991efb88d50977461ced487182c02da54a32170df2349c020e485b411c7a3dfd9d557f57ab5cd13f091a496745eeb98a55d6ff33973','2025-08-14 22:20:12',4),(241,'84183f3325bdf5757e201b49c7a446180d6000f728a5119d5ab2c38a13dea256844d80cb9b60450c18874efb890187dae23206e43151b1130cee6d068159ff09','2025-08-15 00:40:11',4),(242,'4d7eb61784e7d042f9ee1dc7cd0da97fd5c596b2da1892d46353bfd075b51c7e6d2f2a46c9e4d3e7e5bea6b40a3376c6faaeae671661da85fc540d30d25be121','2025-08-15 00:59:12',4),(243,'857f594ebe4397d585a607d7555bb76519dd4a74d13b5deb62c9e03e6fb4aee551b73d4698cad2ee44ea6643ca3b45c82602aa81ab75ff7d1e30f9a2450d8290','2025-08-15 01:02:27',4),(244,'a0f5b7657423f82c563d61c81d369b1238a262f4c0b26ac66cd8dfe1b229da3b5f3fdac77f8331ab411214eb6e59941e08ad97ba0eb338ce179c3dfe294d9f2a','2025-08-15 01:04:35',4),(245,'b77b3a5e593fc65799b7b0980689611d4f62689a18a31afbcf5f9195a9767dbe2543466f93c711a608a8fcbb4797966f1b6ec167e05531d11decdcc45cf7b1b0','2025-08-15 01:06:24',4),(246,'d0e0a71340d5acf5350e0d23f60ce7c982bb50fa487dab7cc9c57a07ff7f39aede82f94b214182d6082bd2f70051f87a499e5abaf9f611543248e45508c354e7','2025-08-15 01:06:37',4),(247,'c52adcc6316daf737b26d13b7dff6e804d154adb310ec86a6bdced985562fc285fd4703bb2a3ae5b3f0e5916cc08ab60ef8e55e0bae24e44495d3ad1e0562afa','2025-08-15 01:08:24',4),(248,'28d1f89018342771e360716f77da74f3b217dfd15d226af1da4e6d79f80286e185c447b878a79146b356c6b02dab4e8808eca811db8ae864091dab59695ae3b3','2025-08-15 01:11:04',4),(249,'64e7a036f78a15a4c8b00ed3b9adfdfa6c24bd390411cbcee23f300cd840ad70207f4666241e02a8e1414628b4a353c0fc2b9157851e8b1e3f10eb77359fd78f','2025-08-15 13:46:46',4),(250,'fbff8e4b124037d68a96c58aca61333e73781a18118bb4eadda6d4789949d8a4b175a4a9b699468169293aa41ff68239b7010db00c1a76bda6a44413d200179b','2025-08-15 13:48:14',4),(251,'7b8bac3e4c49adeb918706e51012c9fb93738a190aeb138f39d37de26a974f8c4f2f3763030b26259adf0b6e6beba0c3182946aa24cf14f0627e77426c7717a7','2025-08-15 13:50:01',4),(252,'50716a8e8ddd9af78b3615a2caecf2c2d3f248589003379cf5409e5a50f5948fa2fd532ec25b7eddcc98c2c4c40b785120c91eb76eaed7696c5fae3954fdcce5','2025-08-15 14:05:22',4),(253,'55e3a20924077f98753b9fdc09e545003d989c23e334709656052618c14240f8072f6ef25a2549f5020addfea84ecb2318bcc055ba6dbba1473298ff14c2949f','2025-08-15 14:35:55',4),(254,'c455b3083ed3ac8b8f12641f0c7818c0a19c8d609cf3d2b44730d1cdafaf947ff6df56230f34537fa7cb45e326e29134f30f2acc4976a3e03aaf8e29a7e3197d','2025-08-15 14:47:04',4),(255,'ed8ed7a61d699bf7a247b24568eb1c06786e1fff5956a6114498832e0178aeee8d3f179f83a465a62f6967987f8e515272c65fc943aa5f27d71f6ede155276f5','2025-08-15 19:08:16',4),(256,'acfd88c68616a3566d355cf05f700a0c36a5b49e16a0904aba84f3a297329a9f969bc18f12cced183edc988adb8b17fe7834d5160a856be770f3546e7d6f3325','2025-08-15 22:29:11',4);
+/*!40000 ALTER TABLE `refresh_tokens` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `subcategories`
+--
+
+DROP TABLE IF EXISTS `subcategories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `subcategories` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `category_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `category_id` (`category_id`),
+  CONSTRAINT `subcategories_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `subcategories`
+--
+
+LOCK TABLES `subcategories` WRITE;
+/*!40000 ALTER TABLE `subcategories` DISABLE KEYS */;
+INSERT INTO `subcategories` VALUES (1,'مناشير كهربائية',2),(2,'مثاقب كهربائية',2),(7,'مفاتيح الربط',8),(8,'مفاتيح أنابيب',10),(11,'خزانات المياه',14),(12,'ملحقات الأجهزة المنزلية',15),(13,'أجهزة لحام كهربائية',2),(14,'غسالات ضغط كهربائية',2),(15,'أنابيب النحاس',16),(16,'حنفيات الغاز',16),(17,'فرش تنظيف',8),(18,'انبوب مياه',17);
+/*!40000 ALTER TABLE `subcategories` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `tags`
+--
+
+DROP TABLE IF EXISTS `tags`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tags` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `tags`
+--
+
+LOCK TABLES `tags` WRITE;
+/*!40000 ALTER TABLE `tags` DISABLE KEYS */;
+INSERT INTO `tags` VALUES (2,'مانع تسرب'),(4,'يدوي'),(6,'معدات ثقيلة'),(19,'بنية متينة');
+/*!40000 ALTER TABLE `tags` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `users`
+--
+
+DROP TABLE IF EXISTS `users`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(100) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `role` enum('client','admin') DEFAULT 'client',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `users`
+--
+
+LOCK TABLES `users` WRITE;
+/*!40000 ALTER TABLE `users` DISABLE KEYS */;
+INSERT INTO `users` VALUES (4,'soce','kadriyacine93@gmail.com','$2a$10$OWs9nst7YcbBnadzlUzL0OdLjBJyGVIoAfHJnhzXFHj8U6iq7s50.','admin');
+/*!40000 ALTER TABLE `users` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `wilayas`
+--
+
+DROP TABLE IF EXISTS `wilayas`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `wilayas` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `delivery_fee` decimal(10,2) NOT NULL DEFAULT '0.00',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `wilayas`
+--
+
+LOCK TABLES `wilayas` WRITE;
+/*!40000 ALTER TABLE `wilayas` DISABLE KEYS */;
+INSERT INTO `wilayas` VALUES (1,'أدرار',3500.00),(2,'الشلف',2500.00),(3,'الأغواط',3200.00),(4,'أم البواقي',2000.00),(5,'باتنة',0.00),(6,'بجاية',0.00),(7,'بسكرة',0.00),(8,'بشار',0.00),(9,'البليدة',1000.00),(10,'البويرة',0.00),(11,'تمنراست',0.00),(12,'تبسة',0.00),(13,'تلمسان',0.00),(14,'تيارت',0.00),(15,'تيزي وزو',500.00),(16,'الجزائر',300.00),(17,'الجلفة',0.00),(18,'جيجل',0.00),(19,'سطيف',0.00),(20,'سعيدة',0.00),(21,'سكيكدة',0.00),(22,'سيدي بلعباس',0.00),(23,'عنابة',0.00),(24,'قالمة',0.00),(25,'قسنطينة',0.00),(26,'المدية',0.00),(27,'مستغانم',0.00),(28,'مستغانم',0.00),(29,'معسكر',0.00),(30,'ورقلة',0.00),(31,'وهران',0.00),(32,'البيض',0.00),(33,'إليزي',0.00),(34,'برج بوعريريج',0.00),(35,'بومرداس',600.00),(36,'الطارف',0.00),(37,'تندوف',0.00),(38,'تيسمسيلت',0.00),(39,'الوادي',0.00),(40,'خنشلة',0.00),(41,'سوق أهراس',0.00),(42,'تيبازة',550.00),(43,'ميلة',0.00),(44,'عين الدفلى',0.00),(45,'النعامة',0.00),(46,'عين تموشنت',0.00),(47,'غرداية',0.00),(48,'غليزان',0.00),(49,'المغير',0.00),(50,'المنيعة',0.00),(51,'أولاد جلال',0.00),(52,'برج باجي مختار',0.00),(53,'بني عباس',0.00),(54,'تيميمون',0.00),(55,'تقرت',0.00),(56,'جانت',0.00),(57,'عين صالح',4000.00),(58,'عين قزام',0.00);
+/*!40000 ALTER TABLE `wilayas` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2025-08-09  9:06:46

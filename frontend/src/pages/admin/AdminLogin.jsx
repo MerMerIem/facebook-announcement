@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "frontend/src/components/ui/button";
 import { Input } from "frontend/src/components/ui/input";
@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "frontend/src/components/ui/card";
-import { ArrowLeft, LogIn } from "lucide-react";
+import { ArrowRight, LogIn } from "lucide-react";
 import { useAuth } from "frontend/src/contexts/AuthContext";
-import { useToast } from "frontend/src/hooks/use-toast";
+import { toast } from "sonner"; // Changed to sonner
 import { useApi } from "../../contexts/RestContext";
 
 const AdminLogin = () => {
@@ -19,8 +19,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const { toast } = useToast();
+  const { login, isAuthenticated } = useAuth();
 
   const { api } = useApi();
 
@@ -28,41 +27,50 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const body = { email, password };
+    // Use your AuthContext login function
+    const result = await login({ email, password });
 
-    const [userData, response, responseCode, error] = await api.post(
-      "/auth/login",
-      body
-    );
-
-    if (responseCode === 200 && userData) {
-      toast({
-        title: "Login Successful",
-        description: "Welcome to the admin panel",
+    if (result.success) {
+      toast.success("تم تسجيل الدخول بنجاح", {
+        description: "مرحباً بكم في لوحة الإدارة",
+        duration: 3000,
+        style: {
+          background: "#22c55e",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
-      console.log("it is called");
-      setTimeout(() => {
-        console.log("navigating now...");
 
-        navigate("/admin/dashboard", { replace: true });
-      }, 100);
+      // Navigate right after authentication is set
+      navigate("/admin/dashboard", { replace: true });
     } else {
-      console.error("Login error:", error);
-      toast({
-        title: "Login Failed",
-        description: error || "Invalid email or password",
-        variant: "destructive",
+      toast.error("فشل تسجيل الدخول", {
+        description: result.error || "البريد الإلكتروني أو كلمة المرور غير صالحة",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "ltr",
+          textAlign: "left",
+        },
       });
     }
 
     setIsLoading(false);
   };
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/admin/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
   return (
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <Button variant="ghost" onClick={() => navigate("/")} className="mb-6">
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowRight className="w-4 h-4 mr-2" />
           Back to Store
         </Button>
 

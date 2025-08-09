@@ -20,12 +20,11 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner"; // Changed from useToast to sonner
 import { useApi } from "@/contexts/RestContext";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function Categories() {
-  const { toast } = useToast();
   const { api } = useApi();
   
   const [categories, setCategories] = useState([]);
@@ -67,20 +66,30 @@ export default function Categories() {
         });
       } else {
         console.error("Error fetching categories:", error || "No data returned");
-        toast({
-          title: "خطأ",
+        toast.error("خطأ", {
           description: "فشل في تحميل الفئات",
-          variant: "destructive",
+          duration: 4000,
+          style: {
+            background: "#ef4444",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
         });
         setCategories([]);
         setPagination({ totalPages: 1, totalItems: 0 });
       }
     } catch (err) {
       console.error("Unexpected error fetching categories:", err);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "حدث خطأ غير متوقع أثناء تحميل الفئات",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
       setCategories([]);
       setPagination({ totalPages: 1, totalItems: 0 });
@@ -110,16 +119,29 @@ export default function Categories() {
         setNewCategoryName("");
         setIsAddOpen(false);
         fetchData(currentPage);
-        toast({ title: "تم إضافة الفئة بنجاح" });
+        toast.success("تم إضافة الفئة بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to add category");
       }
     } catch (error) {
       console.error("Error adding category:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في إضافة الفئة",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     }
   };
@@ -136,16 +158,29 @@ export default function Categories() {
         setEditingCategory(null);
         setNewCategoryName("");
         fetchData(currentPage);
-        toast({ title: "تم تحديث الفئة بنجاح" });
+        toast.success("تم تحديث الفئة بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to update category");
       }
     } catch (error) {
       console.error("Error updating category:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في تحديث الفئة",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     }
   };
@@ -170,16 +205,29 @@ export default function Categories() {
 
       if (!error && responseCode === 200) {
         fetchData(currentPage);
-        toast({ title: "تم حذف الفئة بنجاح" });
+        toast.success("تم حذف الفئة بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to delete category");
       }
     } catch (error) {
       console.error("Error deleting category:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في حذف الفئة",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     } finally {
       setDeleteConfirmation({ 
@@ -205,7 +253,7 @@ export default function Categories() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">إدارة الفئات الرئيسية</h1>
         
@@ -216,18 +264,20 @@ export default function Categories() {
               إضافة فئة جديدة
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent dir="rtl">
             <DialogHeader>
-              <DialogTitle>إضافة فئة جديدة</DialogTitle>
+              <DialogTitle className="text-right">إضافة فئة جديدة</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">اسم الفئة</Label>
+              <div className="text-right">
+                <Label htmlFor="name" className="text-right block">اسم الفئة</Label>
                 <Input
                   id="name"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="أدخل اسم الفئة"
+                  className="text-right"
+                  dir="rtl"
                 />
               </div>
               <Button onClick={handleAdd} className="w-full">
@@ -273,7 +323,7 @@ export default function Categories() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Dialog open={editingCategory?.id === category.id} onOpenChange={(open) => {
+                      <Dialog open={editingCategory?.id === category.id} onOpenChange={(open) => {
                           if (!open) {
                             setEditingCategory(null);
                             setNewCategoryName("");
@@ -291,17 +341,19 @@ export default function Categories() {
                               <Edit className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent dir="rtl">
                             <DialogHeader>
-                              <DialogTitle>تعديل الفئة</DialogTitle>
+                              <DialogTitle className="text-right">تعديل الفئة</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="edit-name">اسم الفئة</Label>
+                              <div className="text-right">
+                                <Label htmlFor="edit-name" className="text-right block">اسم الفئة</Label>
                                 <Input
                                   id="edit-name"
                                   value={newCategoryName}
                                   onChange={(e) => setNewCategoryName(e.target.value)}
+                                  className="text-right"
+                                  dir="rtl"
                                 />
                               </div>
                               <Button onClick={() => handleEdit(category)} className="w-full">
@@ -388,6 +440,7 @@ export default function Categories() {
         isLoading={deleteConfirmation.isLoading}
         confirmText="حذف"
         cancelText="إلغاء"
+        dir="rtl"
       />
     </div>
   );

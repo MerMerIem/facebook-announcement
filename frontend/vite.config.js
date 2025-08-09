@@ -12,4 +12,6 @@ export default defineConfig({
       "frontend/src": path.resolve(__dirname, "src"),
     },
   },
+
+
 });

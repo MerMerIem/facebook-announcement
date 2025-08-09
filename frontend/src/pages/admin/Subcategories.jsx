@@ -26,12 +26,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, Tag } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner"; // Changed from useToast to sonner
 import { useApi } from "@/contexts/RestContext";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function Subcategories() {
-  const { toast } = useToast();
   const { api } = useApi();
   
   const [subcategories, setSubcategories] = useState([]);
@@ -79,10 +78,15 @@ export default function Subcategories() {
 
     } catch (err) {
       console.error("Error fetching data:", err);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في تحميل البيانات",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
       setSubcategories([]);
       setCategories([]);
@@ -114,16 +118,29 @@ export default function Subcategories() {
         setFormData({ name: "", category_id: "" });
         setIsAddOpen(false);
         fetchData(currentPage);
-        toast({ title: "تم إضافة الفئة الفرعية بنجاح" });
+        toast.success("تم إضافة الفئة الفرعية بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to add subcategory");
       }
     } catch (error) {
       console.error("Error adding subcategory:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في إضافة الفئة الفرعية",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     }
   };
@@ -141,16 +158,29 @@ export default function Subcategories() {
         setEditingSubcategory(null);
         setFormData({ name: "", category_id: "" });
         fetchData(currentPage);
-        toast({ title: "تم تحديث الفئة الفرعية بنجاح" });
+        toast.success("تم تحديث الفئة الفرعية بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to update subcategory");
       }
     } catch (error) {
       console.error("Error updating subcategory:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في تحديث الفئة الفرعية",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     }
   };
@@ -175,16 +205,29 @@ export default function Subcategories() {
 
       if (!error && responseCode === 200) {
         fetchData(currentPage);
-        toast({ title: "تم حذف الفئة الفرعية بنجاح" });
+        toast.success("تم حذف الفئة الفرعية بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to delete subcategory");
       }
     } catch (error) {
       console.error("Error deleting subcategory:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في حذف الفئة الفرعية",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     } finally {
       setDeleteConfirmation({ 
@@ -212,7 +255,7 @@ export default function Subcategories() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">إدارة الفئات الفرعية</h1>
         
@@ -223,21 +266,23 @@ export default function Subcategories() {
               إضافة فئة فرعية
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent dir="rtl">
             <DialogHeader>
-              <DialogTitle>إضافة فئة فرعية جديدة</DialogTitle>
+              <DialogTitle className="text-right">إضافة فئة فرعية جديدة</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
+              <div className="text-right">
                 <Label htmlFor="name">اسم الفئة الفرعية</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="أدخل اسم الفئة الفرعية"
+                  className="text-right"
+                  dir="rtl"
                 />
               </div>
-              <div>
+              <div className="text-right">
                 <Label htmlFor="category">الفئة الرئيسية</Label>
                 <Select
                   value={formData.category_id}
@@ -315,20 +360,22 @@ export default function Subcategories() {
                               <Edit className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent dir="rtl">
                             <DialogHeader>
-                              <DialogTitle>تعديل الفئة الفرعية</DialogTitle>
+                              <DialogTitle className="text-right">تعديل الفئة الفرعية</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
-                              <div>
+                              <div className="text-right">
                                 <Label htmlFor="edit-name">اسم الفئة الفرعية</Label>
                                 <Input
                                   id="edit-name"
                                   value={formData.name}
                                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                  className="text-right"
+                                  dir="rtl"
                                 />
                               </div>
-                              <div>
+                              <div className="text-right">
                                 <Label htmlFor="edit-category">الفئة الرئيسية</Label>
                                 <Select
                                   value={formData.category_id}
@@ -435,6 +482,7 @@ export default function Subcategories() {
         isLoading={deleteConfirmation.isLoading}
         confirmText="حذف"
         cancelText="إلغاء"
+        dir="rtl"
       />
     </div>
   );

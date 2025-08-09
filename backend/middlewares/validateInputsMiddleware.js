@@ -9,13 +9,11 @@ export async function verifyCredintials(req, res, next) {
       body("email").isEmail().withMessage("Invalid email").run(req),
       body("password")
         .isLength({ min: 6 })
-        .withMessage("Password must contain at least 8 characters.")
+        .withMessage("Password must contain at least 6 characters.")
         .matches(/[A-Z]/)
         .withMessage("Password must contain at least one capital letter.")
         .matches(/[a-z]/)
         .withMessage("Password must contain at least one lowercase letter.")
-        .matches(/[0-9]/)
-        .withMessage("Password must contain at least one number.")
         .run(req)
     );
 

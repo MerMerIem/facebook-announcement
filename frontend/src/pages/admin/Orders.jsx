@@ -16,8 +16,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -26,75 +24,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, Trash2, Package, Filter, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Search, Eye, Trash2, Package, Filter } from "lucide-react";
+import { toast } from "sonner";
 import { useApi } from "@/contexts/RestContext";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 // Status constants to ensure consistency
 const ORDER_STATUS = {
   PENDING: "في الانتظار",
   CONFIRMED: "مؤكد",
   DELIVERED: "تم التسليم",
-  CANCELLED: "ملغى"
-};
-
-const ConfirmationDialog = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  title = "تأكيد الحذف",
-  message = "هل أنت متأكد من أنك تريد حذف هذا العنصر؟",
-  confirmText = "حذف",
-  cancelText = "إلغاء",
-  variant = "destructive",
-  isLoading = false,
-}) => {
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-destructive" />
-            <DialogTitle>{title}</DialogTitle>
-          </div>
-        </DialogHeader>
-        
-        <div className="py-4">
-          <p className="text-muted-foreground">{message}</p>
-        </div>
-        
-        <DialogFooter className="flex gap-2 sm:gap-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isLoading}
-            className="flex-1"
-          >
-            {cancelText}
-          </Button>
-          <Button
-            variant={variant}
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="flex-1"
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                جاري الحذف...
-              </div>
-            ) : (
-              confirmText
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  CANCELLED: "ملغى",
 };
 
 export default function Orders() {
-  const { toast } = useToast();
   const { api } = useApi();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -158,20 +101,30 @@ export default function Orders() {
         setPagination(data.pagination || { totalPages: 1, totalItems: 0 });
       } else {
         console.error("Error fetching orders:", error || "No data returned");
-        toast({
-          title: "خطأ",
-          description: "فشل في تحميل الطلبات",
-          variant: "destructive",
+        toast.error("فشل في تحميل الطلبات", {
+          description: "حدث خطأ أثناء محاولة تحميل الطلبات",
+          duration: 4000,
+          style: {
+            background: "#ef4444",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
         });
         setOrdersList([]);
         setPagination({ totalPages: 1, totalItems: 0 });
       }
     } catch (err) {
       console.error("Unexpected error fetching orders:", err);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ غير متوقع أثناء تحميل الطلبات",
-        variant: "destructive",
+      toast.error("حدث خطأ غير متوقع", {
+        description: "فشل في تحميل الطلبات بسبب خطأ غير متوقع",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
       setOrdersList([]);
       setPagination({ totalPages: 1, totalItems: 0 });
@@ -235,19 +188,30 @@ export default function Orders() {
             order.id === orderId ? { ...order, status: newStatus } : order
           )
         );
-        toast({
-          title: "تم التحديث",
+        toast.success("تم تحديث حالة الطلب", {
           description: "تم تحديث حالة الطلب بنجاح",
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
         });
       } else {
         throw new Error(error || "Failed to update status");
       }
     } catch (error) {
       console.error("Error updating order status:", error);
-      toast({
-        title: "خطأ",
-        description: "فشل في تحديث حالة الطلب",
-        variant: "destructive",
+      toast.error("فشل في تحديث الحالة", {
+        description: "حدث خطأ أثناء محاولة تحديث حالة الطلب",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     }
   };
@@ -259,7 +223,7 @@ export default function Orders() {
 
   const confirmDelete = async () => {
     if (!orderToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       const [data, _, responseCode, error] = await api.delete(
@@ -268,20 +232,30 @@ export default function Orders() {
 
       if (!error && responseCode === 200) {
         fetchData(currentPage, statusFilter, searchTerm);
-        toast({
-          title: "تم الحذف",
+        toast.success("تم حذف الطلب", {
           description: "تم حذف الطلب بنجاح",
-          variant: "destructive",
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
         });
       } else {
         throw new Error(error || "Failed to delete order");
       }
     } catch (error) {
       console.error("Error deleting order:", error);
-      toast({
-        title: "خطأ",
-        description: "فشل في حذف الطلب",
-        variant: "destructive",
+      toast.error("فشل في حذف الطلب", {
+        description: "حدث خطأ أثناء محاولة حذف الطلب",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     } finally {
       setIsDeleting(false);
@@ -368,10 +342,18 @@ export default function Orders() {
             </SelectTrigger>
             <SelectContent side="bottom" align="end">
               <SelectItem value="all">جميع الحالات</SelectItem>
-              <SelectItem value={ORDER_STATUS.PENDING}>{ORDER_STATUS.PENDING}</SelectItem>
-              <SelectItem value={ORDER_STATUS.CONFIRMED}>{ORDER_STATUS.CONFIRMED}</SelectItem>
-              <SelectItem value={ORDER_STATUS.DELIVERED}>{ORDER_STATUS.DELIVERED}</SelectItem>
-              <SelectItem value={ORDER_STATUS.CANCELLED}>{ORDER_STATUS.CANCELLED}</SelectItem>
+              <SelectItem value={ORDER_STATUS.PENDING}>
+                {ORDER_STATUS.PENDING}
+              </SelectItem>
+              <SelectItem value={ORDER_STATUS.CONFIRMED}>
+                {ORDER_STATUS.CONFIRMED}
+              </SelectItem>
+              <SelectItem value={ORDER_STATUS.DELIVERED}>
+                {ORDER_STATUS.DELIVERED}
+              </SelectItem>
+              <SelectItem value={ORDER_STATUS.CANCELLED}>
+                {ORDER_STATUS.CANCELLED}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -572,10 +554,7 @@ export default function Orders() {
           <div className="text-sm text-muted-foreground">
             صفحة {currentPage} من {pagination.totalPages}
             {pagination && (
-              <span className="mr-2">
-                {" "}
-                • المجموع: {pagination.total} طلب
-              </span>
+              <span className="mr-2"> • المجموع: {pagination.total} طلب</span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -726,9 +705,12 @@ export default function Orders() {
                           <h4 className="font-medium text-gray-900 truncate">
                             {item.product_name}
                           </h4>
-                          <p className="text-sm text-gray-600 line-clamp-1">
-                            {item.product_description}
-                          </p>
+                          <div
+                            className="prose max-w-none text-muted-foreground"
+                            dangerouslySetInnerHTML={{
+                              __html: item.product_description,
+                            }}
+                          />
                         </div>
 
                         <div className="text-right flex-shrink-0">

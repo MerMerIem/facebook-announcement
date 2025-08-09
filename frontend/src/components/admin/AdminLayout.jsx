@@ -67,6 +67,7 @@ export function AdminLayout({ children }) {
         <Header 
           onMenuClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
           unreadCount={unreadCount} 
+          setUnreadCount={setUnreadCount}
         />
         <main className="p-6">{children}</main>
       </div>

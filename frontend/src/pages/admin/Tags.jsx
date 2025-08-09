@@ -19,12 +19,11 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, Tag } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner"; // Changed to sonner
 import { useApi } from "@/contexts/RestContext";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function Tags() {
-  const { toast } = useToast();
   const { api } = useApi();
   
   const [tags, setTags] = useState([]);
@@ -70,20 +69,30 @@ export default function Tags() {
         setPagination(data.pagination || { totalPages: 1, totalItems: 0 });
       } else {
         console.error("Error fetching tags:", error || "No data returned");
-        toast({
-          title: "خطأ",
+        toast.error("خطأ", {
           description: "فشل في تحميل العلامات",
-          variant: "destructive",
+          duration: 4000,
+          style: {
+            background: "#ef4444",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
         });
         setTags([]);
         setPagination({ totalPages: 1, totalItems: 0 });
       }
     } catch (err) {
       console.error("Unexpected error fetching tags:", err);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ غير متوقع أثناء تحميل العلامات",
-        variant: "destructive",
+      toast.error("خطأ", {
+        description: "حدث خطأ غير متوقع أثناء تحميل العلامات", 
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
       setTags([]);
       setPagination({ totalPages: 1, totalItems: 0 });
@@ -116,16 +125,29 @@ export default function Tags() {
         await fetchData(currentPage);
         setTagName("");
         setIsAddOpen(false);
-        toast({ title: "تم إضافة العلامة بنجاح" });
+        toast.success("تم إضافة العلامة بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to create tag");
       }
     } catch (error) {
       console.error("Error creating tag:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في إضافة العلامة",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     }
   };
@@ -148,16 +170,29 @@ export default function Tags() {
         ));
         setEditingTag(null);
         setTagName("");
-        toast({ title: "تم تحديث العلامة بنجاح" });
+        toast.success("تم تحديث العلامة بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff", 
+            direction: "rtl",
+            textAlign: "right",
+          },
+        });
       } else {
         throw new Error(error || "Failed to update tag");
       }
     } catch (error) {
       console.error("Error updating tag:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في تحديث العلامة",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
     }
   };
@@ -172,17 +207,30 @@ export default function Tags() {
 
       if (!error && responseCode === 200) {
         await fetchData(currentPage);
-        toast({ title: "تم حذف العلامة بنجاح" });
+        toast.success("تم حذف العلامة بنجاح", {
+          duration: 3000,
+          style: {
+            background: "#22c55e",
+            color: "#ffffff",
+            direction: "rtl", 
+            textAlign: "right",
+          },
+        });
         setDeleteConfirmation({ isOpen: false, tag: null, isLoading: false });
       } else {
         throw new Error(error || "Failed to delete tag");
       }
     } catch (error) {
       console.error("Error deleting tag:", error);
-      toast({
-        title: "خطأ",
+      toast.error("خطأ", {
         description: "فشل في حذف العلامة",
-        variant: "destructive",
+        duration: 4000,
+        style: {
+          background: "#ef4444",
+          color: "#ffffff",
+          direction: "rtl",
+          textAlign: "right",
+        },
       });
       setDeleteConfirmation(prev => ({ ...prev, isLoading: false }));
     }
@@ -228,12 +276,12 @@ export default function Tags() {
               إضافة علامة جديدة
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent dir="rtl">
             <DialogHeader>
-              <DialogTitle>إضافة علامة جديدة</DialogTitle>
+              <DialogTitle className="text-right">إضافة علامة جديدة</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
+              <div className="text-right">
                 <Label htmlFor="name">اسم العلامة</Label>
                 <Input
                   id="name"
@@ -304,12 +352,12 @@ export default function Tags() {
                               <Edit className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent dir="rtl">
                             <DialogHeader>
-                              <DialogTitle>تعديل العلامة</DialogTitle>
+                              <DialogTitle className="text-right">تعديل العلامة</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
-                              <div>
+                              <div className="text-right">
                                 <Label htmlFor="edit-name">اسم العلامة</Label>
                                 <Input
                                   id="edit-name"
