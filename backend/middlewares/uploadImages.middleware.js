@@ -14,7 +14,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 const uploadImages = async (req, res, next) => {
-  const uploadMultiple = upload.any(); // Accept any field name
+  const uploadMultiple = upload.any();
 
   uploadMultiple(req, res, async (err) => {
     if (err) {
@@ -28,6 +28,15 @@ const uploadImages = async (req, res, next) => {
     }
 
     try {
+      // Delete images from Cloudinary if deletedImagesPublicIds is provided
+      if (req.body.deletedImagesPublicIds && Array.isArray(req.body.deletedImagesPublicIds)) {
+        await Promise.all(
+          req.body.deletedImagesPublicIds.map(publicId => 
+            cloudinary.uploader.destroy(publicId)
+          )
+        );
+      }
+
       const mainImageIndex = parseInt(req.body.main_image_index, 10) || 0;
 
       // Separate files into product images & variant images
@@ -58,27 +67,45 @@ const uploadImages = async (req, res, next) => {
         )
       );
 
-      // Upload variant images grouped by variant index
+      // Upload variant images grouped by variant ID
       const variantResultsGrouped = {};
-      for (const file of variantImages) {
-        const variantIndex = parseInt(file.fieldname.split("_")[2], 10) || 0;
-
-        const result = await new Promise((resolve, reject) => {
-          cloudinary.uploader
-            .upload_stream({ resource_type: "image" }, (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            })
-            .end(file.buffer);
-        });
-
-        if (!variantResultsGrouped[variantIndex]) {
-          variantResultsGrouped[variantIndex] = [];
+      
+      // Group variant files by variant ID first
+      const variantFilesGrouped = {};
+      variantImages.forEach((file) => {
+        const variantId = file.fieldname.split("_")[2]; // Extract variant ID
+        if (!variantFilesGrouped[variantId]) {
+          variantFilesGrouped[variantId] = [];
         }
-        variantResultsGrouped[variantIndex].push({
-          url: result.secure_url,
+        variantFilesGrouped[variantId].push(file);
+      });
+
+      // Process each variant's images
+      for (const [variantId, files] of Object.entries(variantFilesGrouped)) {
+        const uploadPromises = files.map((file, fileIndex) =>
+          new Promise((resolve, reject) => {
+            cloudinary.uploader
+              .upload_stream({ resource_type: "image" }, (error, result) => {
+                if (error) reject(error);
+                else resolve({
+                  url: result.secure_url,
+                  public_id: result.public_id,
+                  fileIndex // Keep track of file index within this variant
+                });
+              })
+              .end(file.buffer);
+          })
+        );
+
+        const results = await Promise.all(uploadPromises);
+        
+        // Convert results to the expected format
+        variantResultsGrouped[variantId] = results.map(result => ({
+          url: result.url,
           public_id: result.public_id,
-        });
+          // Note: is_main logic should be handled in the main function
+          // based on main_image_index for each variant
+        }));
       }
 
       req.uploadedImages = productResults; // original product images

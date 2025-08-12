@@ -29,6 +29,9 @@ export async function getAllProducts(req, res) {
         p.discount_end,
         p.category_id,
         p.subcategory_id,
+        p.has_measure_unit,
+        p.measure_unit,
+        p.allows_custom_quantity,
         c.name AS category_name,
         s.name AS subcategory_name
       FROM products p
@@ -60,7 +63,7 @@ export async function getAllProducts(req, res) {
 
     // Fetch images for all products in one batch
     const [imagesRows] = await db.execute(
-      `SELECT id, url, is_main, product_id FROM product_images WHERE product_id IN (${productIds
+      `SELECT id, url, public_id, is_main, product_id FROM product_images WHERE product_id IN (${productIds
         .map(() => "?")
         .join(",")})`,
       productIds
@@ -99,6 +102,7 @@ export async function getAllProducts(req, res) {
       imagesByProduct[img.product_id].push({
         id: img.id,
         url: img.url,
+        public_id: img.public_id,
         is_main: img.is_main,
       });
     }
@@ -141,6 +145,9 @@ export async function getAllProducts(req, res) {
         discount_price: product.discount_price,
         discount_start: product.discount_start,
         discount_end: product.discount_end,
+        has_measure_unit: product.has_measure_unit,
+        measure_unit: product.measure_unit,
+        allows_custom_quantity: product.allows_custom_quantity,
         category: {
           id: product.category_id,
           name: product.category_name,
@@ -187,9 +194,9 @@ export async function getAllProducts(req, res) {
     });
   }
 }
+
 export async function getProductById(req, res) {
   const { id } = req.params;
-
   const isAdmin = req.user && req.user.role === "admin";
 
   try {
@@ -205,6 +212,9 @@ export async function getProductById(req, res) {
         p.discount_end,
         p.category_id,
         p.subcategory_id,
+        p.has_measure_unit,
+        p.measure_unit,
+        p.allows_custom_quantity,
         c.name AS category_name,
         s.name AS subcategory_name,
         JSON_ARRAYAGG(
@@ -235,8 +245,8 @@ export async function getProductById(req, res) {
       LEFT JOIN product_images pi ON p.id = pi.product_id
       WHERE p.id = ?
       GROUP BY p.id, p.name, p.description, p.price, p.discount_price, 
-               p.discount_start, p.discount_end, p.category_id, p.subcategory_id,
-               c.name, s.name
+              p.discount_start, p.discount_end, p.category_id, p.subcategory_id,
+              p.has_measure_unit, p.measure_unit, p.allows_custom_quantity, c.name, s.name
     `;
 
     if (isAdmin) {
@@ -251,7 +261,7 @@ export async function getProductById(req, res) {
 
     const product = rows[0];
 
-    // ✅ Get tags
+    // Get tags
     const [tagRows] = await db.execute(
       `
       SELECT t.name
@@ -264,7 +274,7 @@ export async function getProductById(req, res) {
 
     const tags = tagRows.map((row) => row.name);
 
-    // ✅ Get product variants with their images
+    // Get product variants with their images
     const [variantRows] = await db.execute(
       `
       SELECT 
@@ -277,6 +287,7 @@ export async function getProductById(req, res) {
         pv.measure_unit,
         pv.size,
         pv.is_active,
+        pv.allows_custom_quantity,
         JSON_ARRAYAGG(
           CASE 
             WHEN pvi.id IS NOT NULL 
@@ -292,8 +303,8 @@ export async function getProductById(req, res) {
       LEFT JOIN product_variant_images pvi ON pv.id = pvi.variant_id
       WHERE pv.product_id = ?
       GROUP BY pv.id, pv.title, pv.price, pv.discount_price, 
-               pv.discount_start, pv.discount_end, pv.measure_unit, 
-               pv.size, pv.is_active
+              pv.discount_start, pv.discount_end, pv.measure_unit, 
+              pv.size, pv.is_active, pv.allows_custom_quantity
       ORDER BY pv.id
       `,
       [id]
@@ -316,6 +327,7 @@ export async function getProductById(req, res) {
         measure_unit: variant.measure_unit,
         size: variant.size,
         is_active: variant.is_active,
+        allows_custom_quantity: variant.allows_custom_quantity,
         has_discount:
           variant.discount_price &&
           variant.discount_start &&
@@ -338,6 +350,9 @@ export async function getProductById(req, res) {
       discount_price: product.discount_price,
       discount_start: product.discount_start,
       discount_end: product.discount_end,
+      has_measure_unit: product.has_measure_unit,
+      measure_unit: product.measure_unit,
+      allows_custom_quantity: product.allows_custom_quantity,
       category: {
         id: product.category_id,
         name: product.category_name,
@@ -377,6 +392,8 @@ export async function getProductById(req, res) {
           p.name,
           p.description,
           p.price,
+          p.has_measure_unit,
+          p.measure_unit,
           (SELECT pi.url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) AS main_image_url
         FROM products p
         WHERE p.id != ? 
@@ -394,7 +411,13 @@ export async function getProductById(req, res) {
         product.subcategory_id,
       ]);
 
-      response.related_products = relatedRows;
+      response.related_products = relatedRows.map((related) => ({
+        ...related,
+        unit_info: {
+          has_measure_unit: related.has_measure_unit,
+          measure_unit: related.measure_unit,
+        },
+      }));
     }
 
     return res.status(200).json(response);
@@ -403,6 +426,7 @@ export async function getProductById(req, res) {
     res.status(500).json({ message: "Internal server error" });
   }
 }
+
 export async function searchProduct(req, res) {
   const {
     searchQuery,
@@ -413,6 +437,8 @@ export async function searchProduct(req, res) {
     limit = 20,
     page = 1,
   } = req.query;
+
+  console.log("request body",req.query)
 
   // Check if user is admin
   const isAdmin = req.user && req.user.role === "admin";
@@ -426,8 +452,18 @@ export async function searchProduct(req, res) {
 
   try {
     if (searchQuery) {
-      whereClauses.push("(p.name LIKE ? OR p.description LIKE ?)");
-      queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+      // Use hybrid approach: full-text search OR LIKE for short words
+      if (searchQuery.trim().length >= 4) {
+        // Use full-text search for longer queries
+        whereClauses.push(
+          "MATCH(p.name, p.description) AGAINST(? IN BOOLEAN MODE)"
+        );
+        queryParams.push(`*${searchQuery}*`);
+      } else {
+        // Fall back to LIKE search for shorter queries
+        whereClauses.push("(p.name LIKE ? OR p.description LIKE ?)");
+        queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+      }
     }
 
     if (category) {
@@ -504,6 +540,7 @@ export async function searchProduct(req, res) {
       SELECT 
         p.id, p.name, p.description, p.price,
         p.discount_price, p.discount_start, p.discount_end,
+        p.has_measure_unit, p.measure_unit, p.allows_custom_quantity,
         c.name AS category_name,
         sc.name AS subcategory_name,
         GROUP_CONCAT(DISTINCT t.name) AS tags
@@ -516,6 +553,11 @@ export async function searchProduct(req, res) {
         p.profit,
         p.discount_percentage
       `;
+    }
+
+    // Add relevance score when searching with full-text
+    if (searchQuery && searchQuery.trim().length >= 4) {
+      query += `, MATCH(p.name, p.description) AGAINST(? IN BOOLEAN MODE) AS relevance`;
     }
 
     query += `
@@ -532,18 +574,33 @@ export async function searchProduct(req, res) {
 
     query += `
       GROUP BY p.id, p.name, p.description, p.price, p.discount_price, 
-               p.discount_start, p.discount_end, c.name, sc.name
+               p.discount_start, p.discount_end, p.has_measure_unit, 
+               p.measure_unit, p.allows_custom_quantity, c.name, sc.name
     `;
 
     if (isAdmin) {
       query += `, p.initial_price, p.profit, p.discount_percentage`;
     }
 
+    // Add relevance to GROUP BY if using full-text search
+    if (searchQuery && searchQuery.trim().length >= 4) {
+      query += `, relevance`;
+      // Add relevance parameter for the SELECT clause
+      queryParams.push(`*${searchQuery}*`);
+    }
+
+    // Order by relevance when using full-text search, otherwise by ID
+    if (searchQuery && searchQuery.trim().length >= 4) {
+      query += ` ORDER BY relevance DESC`;
+    } else {
+      query += ` ORDER BY p.id DESC`;
+    }
+
     query += ` LIMIT ${numericLimit} OFFSET ${offset}`;
 
     const [products] = await db.execute(query, queryParams);
 
-    // Get total count
+    // Get total count (reuse the same where clauses and params for count query)
     let countQuery = `SELECT COUNT(DISTINCT p.id) as total FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN subcategories sc ON p.subcategory_id = sc.id
@@ -554,7 +611,12 @@ export async function searchProduct(req, res) {
       countQuery += ` WHERE ${whereClauses.join(" AND ")}`;
     }
 
-    const [totalCount] = await db.execute(countQuery, queryParams);
+    // Use original queryParams for count (without the extra relevance parameter if using full-text)
+    const countParams =
+      searchQuery && searchQuery.trim().length >= 4
+        ? queryParams.slice(0, -1)
+        : queryParams;
+    const [totalCount] = await db.execute(countQuery, countParams);
 
     if (products.length === 0) {
       return res.status(200).json({
@@ -572,7 +634,7 @@ export async function searchProduct(req, res) {
     // Fetch images for all returned products in one query
     const productIds = products.map((p) => p.id);
     const [imagesRows] = await db.execute(
-      `SELECT id, url, is_main, product_id FROM product_images WHERE product_id IN (${productIds
+      `SELECT id, url, public_id, is_main, product_id FROM product_images WHERE product_id IN (${productIds
         .map(() => "?")
         .join(",")})`,
       productIds
@@ -586,6 +648,7 @@ export async function searchProduct(req, res) {
       imagesByProduct[img.product_id].push({
         id: img.id,
         url: img.url,
+        public_id: img.public_id,
         is_main: img.is_main,
       });
     }
@@ -619,6 +682,9 @@ export async function searchProduct(req, res) {
         discount_price: product.discount_price,
         discount_start: product.discount_start,
         discount_end: product.discount_end,
+        has_measure_unit: product.has_measure_unit,
+        measure_unit: product.measure_unit,
+        allows_custom_quantity: product.allows_custom_quantity,
         current_price: hasValidDiscount
           ? product.discount_price
           : product.price, // Actual price to display
@@ -645,6 +711,15 @@ export async function searchProduct(req, res) {
         };
       }
 
+      // Add relevance score for debugging (only when using full-text search)
+      if (
+        searchQuery &&
+        searchQuery.trim().length >= 4 &&
+        product.relevance !== undefined
+      ) {
+        productData.relevance = product.relevance;
+      }
+
       return productData;
     });
 
@@ -667,10 +742,6 @@ export async function searchProduct(req, res) {
   }
 }
 
-function toDateOnly(isoString) {
-  return typeof isoString === "string" ? isoString.split("T")[0] : null;
-}
-
 export async function modifyProduct(req, res) {
   let connection;
   try {
@@ -690,7 +761,10 @@ export async function modifyProduct(req, res) {
       tags,
       deleted_images,
       main_image_index,
+      has_measure_unit,
+      measure_unit,
     } = req.body || {};
+
     console.log("req", req.body);
 
     const discount_start = toDateOnly(discount_start_str);
@@ -703,30 +777,35 @@ export async function modifyProduct(req, res) {
         deleted_images = JSON.parse(deleted_images);
       if (typeof main_image_index === "string")
         main_image_index = parseInt(main_image_index);
+
+      // Parse boolean values
+      if (typeof has_measure_unit === "string") {
+        has_measure_unit = has_measure_unit === "true";
+      } else if (has_measure_unit === undefined) {
+        has_measure_unit = false;
+      }
     } catch (parseError) {
       return res.status(400).json({
         success: false,
         message:
-          "فشل في قراءة أحد الحقول (tags, deleted_images, main_image_index)",
+          "فشل في قراءة أحد الحقول (tags, deleted_images, main_image_index, has_measure_unit)",
       });
     }
 
     let price = null;
-    const parsedDiscount = parseFloat(discount_percentage);
+    const parsedDiscount = parseFloat(discount_percentage) || 0;
     const parsedDiscountPrice = parseFloat(discount_price);
 
     let final_discount_start = discount_start;
     let final_discount_end = discount_end;
-    let final_discount_price = null; // Initialize as null instead of discount_price
+    let final_discount_price = null;
 
-    // Only set discount_price if it's provided and valid
     if (!isNaN(parsedDiscountPrice) && parsedDiscountPrice >= 0) {
       final_discount_price = parsedDiscountPrice;
     }
 
-    // Reset discount fields if discount percentage is invalid
     if (parsedDiscount <= 0 || isNaN(parsedDiscount)) {
-      final_discount_price = null; // Set to null instead of 0
+      final_discount_price = null;
       final_discount_start = null;
       final_discount_end = null;
     }
@@ -782,11 +861,13 @@ export async function modifyProduct(req, res) {
       subcategory_id = subcatRows[0].id;
     }
 
+    // Update query WITHOUT allows_custom_quantity
     await connection.execute(
       `UPDATE products SET 
         name = ?, description = ?, initial_price = ?, profit = ?, price = ?, 
         discount_percentage = ?, discount_price = ?, discount_start = ?, 
-        discount_end = ?, category_id = ?, subcategory_id = ? 
+        discount_end = ?, category_id = ?, subcategory_id = ?,
+        has_measure_unit = ?, measure_unit = ?
       WHERE id = ?`,
       [
         name,
@@ -795,11 +876,13 @@ export async function modifyProduct(req, res) {
         profit,
         price,
         parsedDiscount,
-        final_discount_price, // This will be null if not provided/invalid
+        final_discount_price,
         final_discount_start || null,
         final_discount_end || null,
         category_id,
         subcategory_id,
+        has_measure_unit,
+        measure_unit || null,
         id,
       ]
     );
@@ -821,14 +904,14 @@ export async function modifyProduct(req, res) {
     if (req.uploadedImages?.length) {
       for (const imageData of req.uploadedImages) {
         await connection.execute(
-          "INSERT INTO product_images (product_id, url) VALUES (?, ?)",
-          [id, imageData.url]
+          "INSERT INTO product_images (product_id, url, public_id) VALUES (?, ?, ?)",
+          [id, imageData.url, imageData.public_id]
         );
       }
     }
 
     const [updatedImages] = await connection.execute(
-      "SELECT id, url, is_main FROM product_images WHERE product_id = ?",
+      "SELECT id, url, public_id, is_main FROM product_images WHERE product_id = ?",
       [id]
     );
 
@@ -917,9 +1000,14 @@ export async function addProduct(req, res) {
     discount_end,
     main_image_index = 0,
     tags = [],
+    // Keep existing fields that match your schema
+    has_measure_unit = false,
+    measure_unit = null,
+    allows_custom_quantity = false,
   } = req.body;
 
-  // Enhanced validation with specific error messages
+  console.log("req body of adding", req.body);
+
   const validationErrors = [];
   if (!name)
     validationErrors.push({ field: "name", message: "اسم المنتج مطلوب" });
@@ -943,6 +1031,18 @@ export async function addProduct(req, res) {
       message: "الفئة الفرعية مطلوبة",
     });
 
+  // Validate measure_unit
+  const parsed_has_measure_unit =
+    typeof has_measure_unit === "string"
+      ? has_measure_unit.toLowerCase() === "true"
+      : has_measure_unit;
+  if (parsed_has_measure_unit && !measure_unit) {
+    validationErrors.push({
+      field: "measure_unit",
+      message: "وحدة القياس مطلوبة",
+    });
+  }
+
   if (validationErrors.length > 0) {
     return res.status(400).json({
       success: false,
@@ -953,7 +1053,6 @@ export async function addProduct(req, res) {
     });
   }
 
-  // Parse tags if it's a string
   let parsedTags = tags;
   if (typeof tags === "string") {
     try {
@@ -968,7 +1067,6 @@ export async function addProduct(req, res) {
     }
   }
 
-  // Calculate base price with validation
   const initialPriceFloat = parseFloat(initial_price);
   const profitFloat = parseFloat(profit);
 
@@ -992,7 +1090,6 @@ export async function addProduct(req, res) {
 
   const price = initialPriceFloat + profitFloat;
 
-  // Enhanced discount validation
   const hasDiscountPrice =
     discount_price !== undefined &&
     discount_price !== null &&
@@ -1008,7 +1105,6 @@ export async function addProduct(req, res) {
 
   const hasAllDiscountFields = hasDiscountPrice && hasDiscountDates;
 
-  // Validate discount dates if provided
   if (hasDiscountDates) {
     const startDate = new Date(discount_start);
     const endDate = new Date(discount_end);
@@ -1033,7 +1129,6 @@ export async function addProduct(req, res) {
     }
   }
 
-  // Get Cloudinary URLs
   const imageUrls = req.uploadedImages?.map((img) => img.url) || [];
 
   if (!imageUrls.length) {
@@ -1050,7 +1145,6 @@ export async function addProduct(req, res) {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    // 1. Verify category
     const [categoryRows] = await connection.execute(
       "SELECT id FROM categories WHERE name = ?",
       [category]
@@ -1067,7 +1161,6 @@ export async function addProduct(req, res) {
     }
     const category_id = categoryRows[0].id;
 
-    // 2. Verify subcategory
     const [subcategoryRows] = await connection.execute(
       "SELECT id FROM subcategories WHERE name = ? AND category_id = ?",
       [subcategory, category_id]
@@ -1084,7 +1177,6 @@ export async function addProduct(req, res) {
     }
     const subcategory_id = subcategoryRows[0].id;
 
-    // 3. Check for duplicate product name
     const [existingProduct] = await connection.execute(
       "SELECT id FROM products WHERE name = ?",
       [name]
@@ -1100,7 +1192,13 @@ export async function addProduct(req, res) {
       });
     }
 
-    // 4. Build SQL query dynamically
+    // Parse boolean values properly
+    const parsed_allows_custom_quantity =
+      typeof allows_custom_quantity === "string"
+        ? allows_custom_quantity.toLowerCase() === "true"
+        : allows_custom_quantity;
+
+    // Base columns and values that match your schema exactly
     const baseColumns = [
       "name",
       "description",
@@ -1110,6 +1208,9 @@ export async function addProduct(req, res) {
       "initial_price",
       "profit",
       "discount_percentage",
+      "has_measure_unit",
+      "measure_unit",
+      "allows_custom_quantity",
     ];
     const baseValues = [
       name,
@@ -1120,9 +1221,11 @@ export async function addProduct(req, res) {
       initialPriceFloat,
       profitFloat,
       parseFloat(discount_percentage),
+      parsed_has_measure_unit,
+      parsed_has_measure_unit ? measure_unit : null,
+      parsed_allows_custom_quantity,
     ];
 
-    // Add discount fields if valid
     if (hasAllDiscountFields) {
       const discountPriceFloat = parseFloat(discount_price);
 
@@ -1146,16 +1249,15 @@ export async function addProduct(req, res) {
     const [result] = await connection.execute(sql, baseValues);
     const productId = result.insertId;
 
-    // 5. Insert images
-    for (let i = 0; i < imageUrls.length; i++) {
+    for (let i = 0; i < req.uploadedImages.length; i++) {
       const isMain = i === parseInt(main_image_index);
+      const imageData = req.uploadedImages[i];
       await connection.execute(
-        "INSERT INTO product_images (url, product_id, is_main) VALUES (?, ?, ?)",
-        [imageUrls[i], productId, isMain]
+        "INSERT INTO product_images (url, public_id, product_id, is_main) VALUES (?, ?, ?, ?)",
+        [imageData.url, imageData.public_id, productId, isMain]
       );
     }
 
-    // 6. Handle tags
     let processedTagsCount = 0;
     if (parsedTags.length > 0) {
       for (const tagName of parsedTags) {
@@ -1185,7 +1287,6 @@ export async function addProduct(req, res) {
 
     await connection.commit();
 
-    // Success response with detailed information
     res.status(201).json({
       success: true,
       message: "تم إضافة المنتج بنجاح! 🎉",
@@ -1199,6 +1300,9 @@ export async function addProduct(req, res) {
         imagesCount: imageUrls.length,
         tagsCount: processedTagsCount,
         hasDiscount: hasAllDiscountFields,
+        has_measure_unit: parsed_has_measure_unit,
+        measure_unit: parsed_has_measure_unit ? measure_unit : null,
+        allows_custom_quantity: parsed_allows_custom_quantity,
         discountInfo: hasAllDiscountFields
           ? {
               discountPrice: parseFloat(discount_price),
@@ -1213,7 +1317,6 @@ export async function addProduct(req, res) {
       await connection.rollback();
     }
 
-    // Enhanced error response
     res.status(500).json({
       success: false,
       message: "خطأ في الخادم",
@@ -1226,6 +1329,10 @@ export async function addProduct(req, res) {
       connection.release();
     }
   }
+}
+
+function toDateOnly(isoString) {
+  return typeof isoString === "string" ? isoString.split("T")[0] : null;
 }
 
 export async function deleteProduct(req, res) {
@@ -1408,17 +1515,24 @@ export async function removeProductDiscountPercentage(req, res) {
 export async function addProductVariants(req, res) {
   console.log("Adding multiple product variants");
 
-  // Helper function to format date for MySQL DATETIME
+  // Helper functions
   function toMySQLDateTime(dateStr) {
     if (!dateStr) return null;
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return null; // invalid date
+    if (isNaN(d.getTime())) return null;
     return d.toISOString().slice(0, 19).replace("T", " ");
   }
 
+  function calculateDiscountPercentage(price, discountPrice) {
+    if (!discountPrice || !price || price <= 0) return null;
+    return ((price - discountPrice) / price) * 100;
+  }
+
+  // Parse variants
   let variants;
   try {
     variants = JSON.parse(req.body.variants);
+    console.log("variants", variants);
   } catch (error) {
     return res.status(400).json({
       success: false,
@@ -1428,8 +1542,9 @@ export async function addProductVariants(req, res) {
   }
 
   const { product_id } = req.body;
+  console.log("product_id", product_id);
 
-  // VALIDATION
+  // VALIDATION - Fixed for new pricing structure
   const errors = [];
   if (!product_id) {
     errors.push({ field: "product_id", message: "رقم المنتج مطلوب" });
@@ -1439,7 +1554,6 @@ export async function addProductVariants(req, res) {
     errors.push({ field: "variants", message: "متغيرات المنتج مطلوبة" });
   }
 
-  // Validate each variant
   variants.forEach((variant, index) => {
     if (!variant.title) {
       errors.push({
@@ -1447,47 +1561,70 @@ export async function addProductVariants(req, res) {
         message: `عنوان المتغير ${index + 1} مطلوب`,
       });
     }
-    if (!variant.price) {
+
+    // Validate initial_price
+    if (!variant.initial_price || variant.initial_price <= 0) {
       errors.push({
-        field: `variants[${index}].price`,
-        message: `سعر المتغير ${index + 1} مطلوب`,
+        field: `variants[${index}].initial_price`,
+        message: `السعر الأساسي للمتغير ${index + 1} مطلوب`,
       });
     }
 
-    const priceFloat = parseFloat(variant.price);
-    if (isNaN(priceFloat) || priceFloat <= 0) {
+    // Validate profit
+    if (typeof variant.profit === "undefined" || variant.profit === null) {
       errors.push({
-        field: `variants[${index}].price`,
-        message: `سعر المتغير ${index + 1} غير صحيح`,
+        field: `variants[${index}].profit`,
+        message: `الربح للمتغير ${index + 1} مطلوب`,
       });
     }
 
-    // Validate discount if provided
-    const hasDiscount =
-      variant.discount_price &&
-      parseFloat(variant.discount_price) > 0 &&
-      variant.discount_start &&
-      variant.discount_end;
+    const initialPrice = parseFloat(variant.initial_price);
+    const profit = parseFloat(variant.profit || 0);
 
-    if (hasDiscount) {
-      const startDate = new Date(variant.discount_start);
-      const endDate = new Date(variant.discount_end);
-      if (startDate >= endDate) {
-        errors.push({
-          field: `variants[${index}].discount_dates`,
-          message: `تواريخ الخصم للمتغير ${index + 1} غير صحيحة`,
-        });
-      }
-      if (parseFloat(variant.discount_price) >= priceFloat) {
+    if (isNaN(initialPrice)) {
+      errors.push({
+        field: `variants[${index}].initial_price`,
+        message: `السعر الأساسي للمتغير ${index + 1} غير صحيح`,
+      });
+    }
+
+    if (isNaN(profit) || profit < 0) {
+      errors.push({
+        field: `variants[${index}].profit`,
+        message: `الربح للمتغير ${index + 1} غير صحيح أو سالب`,
+      });
+    }
+
+    // Calculate final price (initial_price + profit)
+    const finalPrice = initialPrice + profit;
+
+    // Discount validation using calculated final price
+    if (variant.discount_price) {
+      const discountPrice = parseFloat(variant.discount_price);
+      if (discountPrice >= finalPrice) {
         errors.push({
           field: `variants[${index}].discount_price`,
-          message: `سعر الخصم للمتغير ${index + 1} يجب أن يكون أقل من السعر`,
+          message: `سعر الخصم يجب أن يكون أقل من السعر النهائي (${finalPrice.toFixed(
+            2
+          )})`,
         });
+      }
+
+      // If discount_price is provided, require discount dates
+      if (variant.discount_start && variant.discount_end) {
+        const startDate = new Date(variant.discount_start);
+        const endDate = new Date(variant.discount_end);
+        if (startDate >= endDate) {
+          errors.push({
+            field: `variants[${index}].discount_dates`,
+            message: `تاريخ انتهاء الخصم يجب أن يكون بعد تاريخ البداية`,
+          });
+        }
       }
     }
   });
 
-  if (errors.length) {
+  if (errors.length > 0) {
     return res.status(400).json({
       success: false,
       message: "بيانات غير مكتملة",
@@ -1496,12 +1633,16 @@ export async function addProductVariants(req, res) {
     });
   }
 
-  // Check if we have variant images
+  // FIXED: Get uploaded images from middleware processed data
+  // The middleware puts uploaded images in req.variantUploadedImages
   const variantImages = req.variantUploadedImages || {};
 
+  console.log("Processed variant images from middleware:", variantImages);
+
+  // Database operations
   let conn;
   try {
-    conn = await db.getConnection();
+    conn = await db.getConnection({ timeout: 30000 });
     await conn.beginTransaction();
 
     // Verify product exists
@@ -1509,6 +1650,7 @@ export async function addProductVariants(req, res) {
       "SELECT id FROM products WHERE id = ?",
       [product_id]
     );
+
     if (!productCheck.length) {
       await conn.rollback();
       return res.status(404).json({
@@ -1520,79 +1662,114 @@ export async function addProductVariants(req, res) {
 
     const insertedVariants = [];
 
-    // Process each variant
-    for (let i = 0; i < variants.length; i++) {
-      const variant = variants[i];
-      const priceFloat = parseFloat(variant.price);
+    // Process each variant with new pricing logic
+    for (const [index, variant] of variants.entries()) {
+      const initialPrice = parseFloat(variant.initial_price);
+      const profit = parseFloat(variant.profit || 0);
+      const finalPrice = initialPrice + profit; // This is the calculated price
 
+      // Discount calculations
       const hasDiscount =
         variant.discount_price &&
-        parseFloat(variant.discount_price) > 0 &&
         variant.discount_start &&
         variant.discount_end;
+      const discountPercentage = hasDiscount
+        ? calculateDiscountPercentage(
+            finalPrice,
+            parseFloat(variant.discount_price)
+          )
+        : null;
 
-      // Insert variant
+      // Prepare INSERT statement - Note: we store finalPrice as 'price' in DB
       const cols = [
         "product_id",
         "title",
-        "price",
+        "price", // This stores the calculated final price (initial_price + profit)
+        "initial_price", // This stores the initial price
+        "profit", // This stores the profit amount
         "measure_unit",
         "size",
         "is_active",
       ];
+
       const vals = [
         product_id,
         variant.title,
-        priceFloat,
+        finalPrice, // final calculated price
+        initialPrice, // initial price
+        profit, // profit amount
         variant.measure_unit || null,
         variant.size || null,
         variant.is_active ? 1 : 0,
       ];
 
+      // Add discount fields if applicable
       if (hasDiscount) {
-        cols.push("discount_price", "discount_start", "discount_end");
+        cols.push(
+          "discount_price",
+          "discount_start",
+          "discount_end",
+          "discount_percentage"
+        );
         vals.push(
           parseFloat(variant.discount_price),
           toMySQLDateTime(variant.discount_start),
-          toMySQLDateTime(variant.discount_end)
+          toMySQLDateTime(variant.discount_end),
+          discountPercentage
         );
       }
 
-      const sql = `INSERT INTO product_variants (${cols.join(
-        ","
-      )}) VALUES (${cols.map(() => "?").join(",")})`;
+      console.log("Inserting variant with values:", {
+        title: variant.title,
+        finalPrice: finalPrice,
+        initialPrice: initialPrice,
+        profit: profit,
+        discountPrice: variant.discount_price,
+      });
 
-      const [result] = await conn.execute(sql, vals);
+      // Execute INSERT
+      const [result] = await conn.execute(
+        `INSERT INTO product_variants (${cols.join(",")}) VALUES (${cols
+          .map(() => "?")
+          .join(",")})`,
+        vals
+      );
+
       const variantId = result.insertId;
 
-      // Insert variant images if available
-      const currentVariantImages = variantImages[i] || [];
+      // FIXED: Handle images from processed middleware data
+      const currentVariantImages = variantImages[index] || [];
+      console.log(
+        "currentVariantImages for variant",
+        index,
+        ":",
+        currentVariantImages
+      );
+
       if (currentVariantImages.length === 0) {
         await conn.rollback();
         return res.status(400).json({
           success: false,
-          message: `لا توجد صور للمتغير ${i + 1}`,
+          message: `لا توجد صور للمتغير ${index + 1}`,
           errorType: "NO_IMAGES_FOR_VARIANT",
         });
       }
 
       const mainImageIndex = parseInt(variant.main_image_index) || 0;
-
-      for (
-        let imgIndex = 0;
-        imgIndex < currentVariantImages.length;
-        imgIndex++
-      ) {
-        const image = currentVariantImages[imgIndex];
+      for (const [imgIndex, image] of currentVariantImages.entries()) {
         await conn.execute(
-          `INSERT INTO product_variant_images (variant_id, url, is_primary, sort_order) VALUES (?, ?, ?, ?)`,
-          [variantId, image.url, imgIndex === mainImageIndex ? 1 : 0, imgIndex]
+          `INSERT INTO product_variant_images (variant_id, url, public_id, is_primary, sort_order) VALUES (?, ?, ?, ?, ?)`,
+          [variantId, image.url, image.public_id, imgIndex === mainImageIndex ? 1 : 0, imgIndex]
         );
       }
 
       insertedVariants.push({
         variantId,
         title: variant.title,
+        initialPrice,
+        profit,
+        finalPrice,
+        discountPrice: variant.discount_price,
         imagesCount: currentVariantImages.length,
       });
     }
@@ -1621,116 +1798,801 @@ export async function addProductVariants(req, res) {
 }
 
 // MODIFY PRODUCT VARIANT
-export async function modifyProductVarient(req, res) {
-  const variantId = req.params.id;
-  const {
-    title,
-    price,
-    discount_price,
-    discount_start,
-    discount_end,
-    measure_unit,
-    size,
-    is_active,
-    main_image_index = 0,
-  } = req.body;
+export async function editVariants(req, res) {
+  console.log("Editing multiple product variants");
+
+  console.log(req.variantUploadedImages);
+  // Helper functions
+  function toMySQLDateTime(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0, 19).replace("T", " ");
+  }
+
+  function calculateDiscountPercentage(price, discountPrice) {
+    if (!discountPrice || !price || price <= 0) return null;
+    return ((price - discountPrice) / price) * 100;
+  }
+
+  // Parse variants
+  let variants;
+  try {
+    variants = JSON.parse(req.body.variants);
+    console.log("variants to edit", variants);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: "بيانات المتغيرات غير صحيحة",
+      errorType: "INVALID_VARIANTS_DATA",
+    });
+  }
+
+  const { id: productId } = req.params; // Get productId from params
+
+  // VALIDATION
+  const errors = [];
+  if (!productId) {
+    errors.push({ field: "product_id", message: "رقم المنتج مطلوب" });
+  }
+  if (!variants || !Array.isArray(variants) || variants.length === 0) {
+    errors.push({ field: "variants", message: "متغيرات المنتج مطلوبة" });
+  }
+
+  variants.forEach((variant, index) => {
+    // Validate variant ID
+    if (!variant.id) {
+      errors.push({
+        field: `variants[${index}].id`,
+        message: `رقم المتغير ${index + 1} مطلوب`,
+      });
+    }
+
+    if (!variant.title) {
+      errors.push({
+        field: `variants[${index}].title`,
+        message: `عنوان المتغير ${index + 1} مطلوب`,
+      });
+    }
+
+    // Validate initial_price
+    if (!variant.initial_price || variant.initial_price <= 0) {
+      errors.push({
+        field: `variants[${index}].initial_price`,
+        message: `السعر الأساسي للمتغير ${index + 1} مطلوب`,
+      });
+    }
+
+    // Validate profit
+    if (typeof variant.profit === "undefined" || variant.profit === null) {
+      errors.push({
+        field: `variants[${index}].profit`,
+        message: `الربح للمتغير ${index + 1} مطلوب`,
+      });
+    }
+
+    const initialPrice = parseFloat(variant.initial_price);
+    const profit = parseFloat(variant.profit || 0);
+
+    if (isNaN(initialPrice)) {
+      errors.push({
+        field: `variants[${index}].initial_price`,
+        message: `السعر الأساسي للمتغير ${index + 1} غير صحيح`,
+      });
+    }
+
+    if (isNaN(profit) || profit < 0) {
+      errors.push({
+        field: `variants[${index}].profit`,
+        message: `الربح للمتغير ${index + 1} غير صحيح أو سالب`,
+      });
+    }
+
+    // Validate discountPercentage if provided
+    if (
+      variant.discountPercentage !== null &&
+      variant.discountPercentage !== undefined &&
+      variant.discountPercentage !== ""
+    ) {
+      const discountPerc = parseFloat(variant.discountPercentage);
+      if (isNaN(discountPerc) || discountPerc < 0 || discountPerc > 100) {
+        errors.push({
+          field: `variants[${index}].discountPercentage`,
+          message: `نسبة خصم الكمية للمتغير ${
+            index + 1
+          } يجب أن تكون بين 0 و 100`,
+        });
+      }
+    }
+
+    // Calculate final price (initial_price + profit)
+    const finalPrice = initialPrice + profit;
+
+    // Discount validation using calculated final price
+    if (variant.discount_price) {
+      const discountPrice = parseFloat(variant.discount_price);
+      if (discountPrice >= finalPrice) {
+        errors.push({
+          field: `variants[${index}].discount_price`,
+          message: `سعر الخصم يجب أن يكون أقل من السعر النهائي (${finalPrice.toFixed(
+            2
+          )})`,
+        });
+      }
+
+      // If discount_price is provided, require discount dates
+      if (variant.discount_start && variant.discount_end) {
+        const startDate = new Date(variant.discount_start);
+        const endDate = new Date(variant.discount_end);
+        if (startDate >= endDate) {
+          errors.push({
+            field: `variants[${index}].discount_dates`,
+            message: `تاريخ انتهاء الخصم يجب أن يكون بعد تاريخ البداية`,
+          });
+        }
+      }
+    }
+
+    // Validate deletedImages if provided
+    if (variant.deletedImages && Array.isArray(variant.deletedImages)) {
+      for (const imageId of variant.deletedImages) {
+        if (!Number.isInteger(imageId) || imageId <= 0) {
+          errors.push({
+            field: `variants[${index}].deletedImages`,
+            message: `معرف الصورة المحذوفة غير صحيح في المتغير ${index + 1}`,
+          });
+        }
+      }
+    }
+  });
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "بيانات غير مكتملة",
+      errors,
+      errorType: "VALIDATION_ERROR",
+    });
+  }
+
+  // Get uploaded images from middleware processed data
+  const variantImages = req.variantUploadedImages || {};
+
+  // Database operations
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // Verify product exists
+    const [productCheck] = await conn.execute(
+      "SELECT id FROM products WHERE id = ?",
+      [productId]
+    );
+
+    if (!productCheck.length) {
+      await conn.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "المنتج غير موجود",
+        errorType: "PRODUCT_NOT_FOUND",
+      });
+    }
+
+    const updatedVariants = [];
+
+    // Process each variant
+    for (const [index, variant] of variants.entries()) {
+      // Verify variant exists and belongs to the correct product
+      const [variantCheck] = await conn.execute(
+        "SELECT id, product_id FROM product_variants WHERE id = ? AND product_id = ?",
+        [variant.id, productId]
+      );
+
+      if (!variantCheck.length) {
+        await conn.rollback();
+        return res.status(404).json({
+          success: false,
+          message: `المتغير برقم ${variant.id} غير موجود`,
+          errorType: "VARIANT_NOT_FOUND",
+        });
+      }
+
+      const initialPrice = parseFloat(variant.initial_price);
+      const profit = parseFloat(variant.profit || 0);
+      const finalPrice = initialPrice + profit;
+
+      // Discount calculations
+      const hasDiscount =
+        variant.discount_price &&
+        variant.discount_start &&
+        variant.discount_end;
+      const discountPercentage = hasDiscount
+        ? calculateDiscountPercentage(
+            finalPrice,
+            parseFloat(variant.discount_price)
+          )
+        : null;
+
+      // Handle bulk discount percentage
+      const bulkDiscountPercentage =
+        variant.discountPercentage && variant.discountPercentage !== ""
+          ? parseFloat(variant.discountPercentage)
+          : null;
+
+      // Prepare UPDATE statement
+      const updateCols = [
+        "title = ?",
+        "price = ?",
+        "initial_price = ?",
+        "profit = ?",
+        "measure_unit = ?",
+        "size = ?",
+        "is_active = ?",
+        "updated_at = NOW()",
+      ];
+
+      const updateVals = [
+        variant.title,
+        finalPrice,
+        initialPrice,
+        profit,
+        variant.measure_unit || null,
+        variant.size || null,
+        variant.is_active ? 1 : 0,
+      ];
+
+      // Handle discount fields
+      if (hasDiscount) {
+        updateCols.push(
+          "discount_price = ?",
+          "discount_start = ?",
+          "discount_end = ?",
+          "discount_percentage = ?"
+        );
+        updateVals.push(
+          parseFloat(variant.discount_price),
+          toMySQLDateTime(variant.discount_start),
+          toMySQLDateTime(variant.discount_end),
+          discountPercentage
+        );
+      } else {
+        // Clear discount fields if no discount
+        updateCols.push(
+          "discount_price = NULL",
+          "discount_start = NULL",
+          "discount_end = NULL",
+          "discount_percentage = NULL"
+        );
+      }
+
+      // Handle bulk discount percentage
+      updateCols.push("discount_percentage = ?");
+      updateVals.push(bulkDiscountPercentage);
+
+      updateVals.push(variant.id);
+
+      console.log("Updating variant with values:", {
+        id: variant.id,
+        title: variant.title,
+        finalPrice: finalPrice,
+        initialPrice: initialPrice,
+        profit: profit,
+        discountPrice: variant.discount_price,
+        bulkDiscountPercentage: bulkDiscountPercentage,
+      });
+
+      // Execute UPDATE
+      await conn.execute(
+        `UPDATE product_variants SET ${updateCols.join(", ")} WHERE id = ?`,
+        updateVals
+      );
+
+      // Handle image deletion if provided
+      let deletedImagesCount = 0;
+      if (variant.deletedImages && variant.deletedImages.length > 0) {
+        console.log(`Deleting images for variant ${variant.id}:`, variant.deletedImages);
+        
+        // Verify that images belong to this variant before deletion
+        const [imagesToDelete] = await conn.execute(
+          `SELECT id, public_id FROM product_variant_images 
+           WHERE id IN (${variant.deletedImages.map(() => '?').join(',')}) 
+           AND variant_id = ?`,
+          [...variant.deletedImages, variant.id]
+        );
+
+        if (imagesToDelete.length > 0) {
+          // Store public_ids of deleted images
+          if (!req.body.deletedImagesPublicKeys) {
+            req.body.deletedImagesPublicKeys = [];
+          }
+          req.body.deletedImagesPublicKeys.push(...imagesToDelete.map(img => img.public_id));
+
+          // Delete the images from database
+          await conn.execute(
+            `DELETE FROM product_variant_images 
+             WHERE id IN (${imagesToDelete.map(() => '?').join(',')}) 
+             AND variant_id = ?`,
+            [...imagesToDelete.map(img => img.id), variant.id]
+          );
+
+          deletedImagesCount = imagesToDelete.length;
+          console.log(`Successfully deleted ${deletedImagesCount} images for variant ${variant.id}`);
+        }
+      }
+
+      // Reorder remaining images after deletion
+      const [remainingImages] = await conn.execute(
+        "SELECT id FROM product_variant_images WHERE variant_id = ? ORDER BY sort_order ASC",
+        [variant.id]
+      );
+
+      for (const [imgIndex, img] of remainingImages.entries()) {
+        await conn.execute(
+          "UPDATE product_variant_images SET sort_order = ? WHERE id = ?",
+          [imgIndex, img.id]
+        );
+      }
+
+      // Handle new images if provided for this variant
+      const currentVariantImages = variantImages[variant.id];
+      let newImagesCount = 0;
+      if (currentVariantImages && currentVariantImages.length > 0) {
+        // Get current images count after deletion to continue sort_order
+        const [currentImages] = await conn.execute(
+          "SELECT COUNT(*) as count FROM product_variant_images WHERE variant_id = ?",
+          [variant.id]
+        );
+        const currentCount = currentImages[0].count;
+
+        // Insert new images
+        for (const [imgIndex, image] of currentVariantImages.entries()) {
+          await conn.execute(
+            `INSERT INTO product_variant_images (variant_id, url, public_id, is_primary, sort_order) VALUES (?, ?, ?, ?, ?)`,
+            [
+              variant.id,
+              image.url,
+              image.public_id,
+              0, // New images are not primary by default
+              currentCount + imgIndex, // Continue sort order from current images
+            ]
+          );
+        }
+
+        newImagesCount = currentVariantImages.length;
+        console.log(`Added ${newImagesCount} new images for variant ${variant.id}`);
+      }
+
+      // Update main image if specified
+      const mainImageIndex = parseInt(variant.main_image_index);
+      if (!isNaN(mainImageIndex) && mainImageIndex >= 0) {
+        // Reset all images to non-primary
+        await conn.execute(
+          "UPDATE product_variant_images SET is_primary = 0 WHERE variant_id = ?",
+          [variant.id]
+        );
+        
+        // Get all images for this variant to set the correct one as primary
+        const [allImages] = await conn.execute(
+          "SELECT id FROM product_variant_images WHERE variant_id = ? ORDER BY sort_order ASC",
+          [variant.id]
+        );
+        
+        if (allImages[mainImageIndex]) {
+          await conn.execute(
+            "UPDATE product_variant_images SET is_primary = 1 WHERE id = ?",
+            [allImages[mainImageIndex].id]
+          );
+          console.log(`Set image at index ${mainImageIndex} as primary for variant ${variant.id}`);
+        }
+      }
+
+      updatedVariants.push({
+        variantId: variant.id,
+        title: variant.title,
+        initialPrice,
+        profit,
+        finalPrice,
+        discountPrice: variant.discount_price,
+        bulkDiscountPercentage,
+        imagesDeleted: deletedImagesCount,
+        imagesAdded: newImagesCount,
+        totalImages: remainingImages.length + newImagesCount,
+      });
+    }
+
+    await conn.commit();
+
+    res.status(200).json({
+      success: true,
+      message: `تم تحديث ${variants.length} متغيرات بنجاح`,
+      data: {
+        updatedVariants,
+        totalVariants: variants.length,
+      },
+    });
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error("Database error:", err);
+    res.status(500).json({
+      success: false,
+      message: "خطأ في الخادم",
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+}
+// Delete single variant
+export async function deleteVariant(req, res) {
+  console.log("Deleting product variant");
+
+  const { id } = req.params;
+
+  // Validation
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "رقم المتغير مطلوب",
+      errorType: "VARIANT_ID_REQUIRED",
+    });
+  }
 
   let conn;
   try {
     conn = await db.getConnection();
     await conn.beginTransaction();
 
-    // Check variant exists
+    // Check if variant exists
     const [variantCheck] = await conn.execute(
-      "SELECT id FROM product_variants WHERE id = ?",
-      [variantId]
+      "SELECT id, product_id, title FROM product_variants WHERE id = ?",
+      [id]
     );
+
     if (!variantCheck.length) {
       await conn.rollback();
       return res.status(404).json({
         success: false,
-        message: "الفئة غير موجودة",
+        message: "المتغير غير موجود",
         errorType: "VARIANT_NOT_FOUND",
       });
     }
 
-    // Build update fields
-    const updates = [];
-    const values = [];
+    const variant = variantCheck[0];
 
-    if (title) {
-      updates.push("title = ?");
-      values.push(title);
-    }
-    if (price) {
-      const p = parseFloat(price);
-      if (isNaN(p) || p <= 0) {
-        return res
-          .status(400)
-          .json({ success: false, message: "سعر غير صحيح" });
-      }
-      updates.push("price = ?");
-      values.push(p);
-    }
-    if (measure_unit) {
-      updates.push("measure_unit = ?");
-      values.push(measure_unit);
-    }
-    if (size) {
-      updates.push("size = ?");
-      values.push(size);
-    }
-    if (typeof is_active !== "undefined") {
-      updates.push("is_active = ?");
-      values.push(is_active ? 1 : 0);
-    }
+    // Check if variant is used in any orders
+    const [ordersWithVariant] = await conn.execute(
+      "SELECT COUNT(*) as count FROM order_items WHERE variant_id = ?",
+      [id]
+    );
 
-    if (discount_price && discount_start && discount_end) {
-      const dp = parseFloat(discount_price);
-      if (dp >= parseFloat(price)) {
-        return res
-          .status(400)
-          .json({ success: false, message: "سعر الخصم غير صحيح" });
-      }
-      updates.push(
-        "discount_price = ?",
-        "discount_start = ?",
-        "discount_end = ?"
-      );
-      values.push(dp, discount_start, discount_end);
-    }
-
-    if (updates.length) {
-      const sql = `UPDATE product_variants SET ${updates.join(
-        ", "
-      )} WHERE id = ?`;
-      values.push(variantId);
-      await conn.execute(sql, values);
-    }
-
-    // Replace images if new ones uploaded
-    const imageUrls = req.uploadedImages?.map((img) => img.url) || [];
-    if (imageUrls.length) {
+    if (ordersWithVariant[0].count > 0) {
+      // Soft delete: just mark as inactive instead of deleting
       await conn.execute(
-        "DELETE FROM product_variant_images WHERE variant_id = ?",
-        [variantId]
+        "UPDATE product_variants SET is_active = 0 WHERE id = ?",
+        [id]
       );
-      for (let i = 0; i < imageUrls.length; i++) {
-        await conn.execute(
-          `INSERT INTO product_variant_images (variant_id, url, is_primary, sort_order) VALUES (?, ?, ?, ?)`,
-          [variantId, imageUrls[i], i === parseInt(main_image_index) ? 1 : 0, i]
-        );
+
+      await conn.commit();
+
+      res.status(200).json({
+        success: true,
+        message: "تم إلغاء تفعيل المتغير بنجاح (المتغير مستخدم في طلبات سابقة)",
+        data: {
+          deletedVariantId: parseInt(id),
+          variantTitle: variant.title,
+          action: "deactivated", // Instead of deleted
+          reason: "variant_used_in_orders",
+        },
+      });
+    } else {
+      // Hard delete if not used in orders
+      // Delete variant images first
+      const [deleteImages] = await conn.execute(
+        "DELETE FROM product_variant_images WHERE variant_id = ?",
+        [id]
+      );
+
+      // Delete the variant
+      const [deleteResult] = await conn.execute(
+        "DELETE FROM product_variants WHERE id = ?",
+        [id]
+      );
+
+      if (deleteResult.affectedRows === 0) {
+        await conn.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "فشل في حذف المتغير",
+          errorType: "DELETE_FAILED",
+        });
       }
+
+      await conn.commit();
+
+      res.status(200).json({
+        success: true,
+        message: "تم حذف المتغير بنجاح",
+        data: {
+          deletedVariantId: parseInt(id),
+          variantTitle: variant.title,
+          deletedImages: deleteImages.affectedRows,
+          action: "deleted",
+        },
+      });
     }
 
-    await conn.commit();
-    res.json({
-      success: true,
-      message: "تم تعديل الفئة بنجاح",
-      data: { variantId },
-    });
+    console.log(`Successfully processed variant ${id} deletion`);
   } catch (err) {
     if (conn) await conn.rollback();
+    console.error("Database error:", err);
+    res.status(500).json({
+      success: false,
+      message: "خطأ في الخادم",
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+}
+// Get all variants for a specific product
+export async function getVariants(req, res) {
+  console.log("Getting variants for product");
+
+  const { productId } = req.params;
+
+  // Validation
+  if (!productId) {
+    return res.status(400).json({
+      success: false,
+      message: "رقم المنتج مطلوب",
+      errorType: "PRODUCT_ID_REQUIRED",
+    });
+  }
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+
+    // First, check if product exists and get basic product info
+    // FIXED: Removed is_active column which doesn't exist in products table
+    const [productCheck] = await conn.execute(
+      `
+      SELECT 
+        id,
+        name,
+        description,
+        category_id,
+        created_at
+      FROM products 
+      WHERE id = ?
+    `,
+      [productId]
+    );
+
+    if (!productCheck.length) {
+      return res.status(404).json({
+        success: false,
+        message: "المنتج غير موجود",
+        errorType: "PRODUCT_NOT_FOUND",
+      });
+    }
+
+    const product = productCheck[0];
+
+    // Get all variants for this product with their order counts
+    const [variants] = await conn.execute(
+      `
+      SELECT 
+        pv.id,
+        pv.title,
+        pv.price,
+        pv.initial_price,
+        pv.profit,
+        pv.discount_price,
+        pv.discount_start,
+        pv.discount_end,
+        pv.discount_percentage,
+        pv.measure_unit,
+        pv.size,
+        pv.is_active,
+        pv.created_at,
+        pv.updated_at,
+        COALESCE(order_counts.total_orders, 0) as total_orders,
+        COALESCE(order_counts.total_quantity, 0) as total_quantity_ordered
+      FROM product_variants pv
+      LEFT JOIN (
+        SELECT 
+          oi.variant_id,
+          COUNT(DISTINCT oi.order_id) as total_orders,
+          SUM(oi.quantity) as total_quantity
+        FROM order_items oi
+        GROUP BY oi.variant_id
+      ) as order_counts ON pv.id = order_counts.variant_id
+      WHERE pv.product_id = ?
+      ORDER BY pv.created_at ASC
+    `,
+      [productId]
+    );
+
+    if (!variants.length) {
+      return res.status(200).json({
+        success: true,
+        message: "لا توجد متغيرات لهذا المنتج",
+        data: {
+          product: product,
+          variants: [],
+          totalVariants: 0,
+          hasVariants: false,
+        },
+      });
+    }
+
+    // Get images for all variants in one query
+    const variantIds = variants.map((v) => v.id);
+    const [images] = await conn.execute(
+      `
+      SELECT 
+        id,
+        variant_id,
+        url,
+        public_id,
+        is_primary,
+        sort_order
+      FROM product_variant_images
+      WHERE variant_id IN (${variantIds.map(() => "?").join(",")})
+      ORDER BY variant_id, sort_order ASC
+    `,
+      variantIds
+    );
+
+    // Group images by variant_id
+    const imagesByVariant = {};
+    images.forEach((image) => {
+      if (!imagesByVariant[image.variant_id]) {
+        imagesByVariant[image.variant_id] = [];
+      }
+      imagesByVariant[image.variant_id].push({
+        id: image.id,
+        url: image.url,
+        public_id: image.public_id,
+        isPrimary: image.is_primary === 1,
+        sortOrder: image.sort_order,
+      });
+    });
+
+    // Format variants with their images, calculated fields, and order information
+    const formattedVariants = variants.map((variant) => {
+      const variantImages = imagesByVariant[variant.id] || [];
+      const primaryImage =
+        variantImages.find((img) => img.isPrimary) || variantImages[0] || null;
+
+      // Calculate discount info if applicable
+      let discountInfo = null;
+      const now = new Date();
+
+      if (
+        variant.discount_price &&
+        variant.discount_start &&
+        variant.discount_end
+      ) {
+        const discountStart = new Date(variant.discount_start);
+        const discountEnd = new Date(variant.discount_end);
+        const isActiveDiscount = now >= discountStart && now <= discountEnd;
+
+        discountInfo = {
+          discountPrice: parseFloat(variant.discount_price),
+          discountPercentage: parseFloat(variant.discount_percentage || 0),
+          discountStart: variant.discount_start,
+          discountEnd: variant.discount_end,
+          isActive: isActiveDiscount,
+          savings:
+            parseFloat(variant.price) - parseFloat(variant.discount_price),
+        };
+      }
+
+      return {
+        id: variant.id,
+        title: variant.title,
+        pricing: {
+          initialPrice: parseFloat(variant.initial_price),
+          profit: parseFloat(variant.profit),
+          finalPrice: parseFloat(variant.price), // This is initial_price + profit
+          currentPrice:
+            discountInfo && discountInfo.isActive
+              ? discountInfo.discountPrice
+              : parseFloat(variant.price),
+        },
+        discount: discountInfo,
+        specifications: {
+          measureUnit: variant.measure_unit,
+          size: variant.size,
+        },
+        images: {
+          primary: primaryImage,
+          all: variantImages,
+          count: variantImages.length,
+        },
+        orders: {
+          totalOrders: parseInt(variant.total_orders),
+          totalQuantityOrdered: parseInt(variant.total_quantity_ordered),
+          hasOrders: parseInt(variant.total_orders) > 0,
+        },
+        status: {
+          isActive: variant.is_active === 1,
+          hasDiscount: discountInfo !== null,
+          hasActiveDiscount: discountInfo ? discountInfo.isActive : false,
+          hasOrders: parseInt(variant.total_orders) > 0,
+        },
+        timestamps: {
+          createdAt: variant.created_at,
+          updatedAt: variant.updated_at,
+        },
+      };
+    });
+
+    // Find main variant (first active variant, or first variant if none active)
+    const mainVariant =
+      formattedVariants.find((v) => v.status.isActive) ||
+      formattedVariants[0] ||
+      null;
+
+    // Calculate summary statistics
+    const activeVariants = formattedVariants.filter((v) => v.status.isActive);
+    const variantsWithDiscount = formattedVariants.filter(
+      (v) => v.status.hasActiveDiscount
+    );
+    const variantsWithOrders = formattedVariants.filter(
+      (v) => v.orders.hasOrders
+    );
+
+    const priceRange = {
+      min: Math.min(...formattedVariants.map((v) => v.pricing.currentPrice)),
+      max: Math.max(...formattedVariants.map((v) => v.pricing.currentPrice)),
+    };
+
+    // Calculate total orders and quantities across all variants
+    const totalOrdersCount = formattedVariants.reduce(
+      (sum, v) => sum + v.orders.totalOrders,
+      0
+    );
+    const totalQuantityOrdered = formattedVariants.reduce(
+      (sum, v) => sum + v.orders.totalQuantityOrdered,
+      0
+    );
+
+    console.log(`Found ${variants.length} variants for product ${productId}`);
+
+    res.status(200).json({
+      success: true,
+      message: `تم العثور على ${variants.length} متغيرات`,
+      data: {
+        product: {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          categoryId: product.category_id,
+          // FIXED: Removed isActive since it doesn't exist in products table
+          // If you need product-level active status, you'll need to add this column
+          // or determine it based on whether it has any active variants
+          createdAt: product.created_at,
+        },
+        variants: formattedVariants,
+        mainVariant: mainVariant,
+        summary: {
+          totalVariants: variants.length,
+          activeVariants: activeVariants.length,
+          variantsWithActiveDiscount: variantsWithDiscount.length,
+          variantsWithOrders: variantsWithOrders.length,
+          totalOrdersCount: totalOrdersCount,
+          totalQuantityOrdered: totalQuantityOrdered,
+          priceRange: priceRange,
+          hasVariants: variants.length > 0,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Database error:", err);
     res.status(500).json({
       success: false,
       message: "خطأ في الخادم",

@@ -610,7 +610,9 @@ export default function Products() {
                             size="sm"
                             aria-label="Edit variant"
                             onClick={() =>
-                              navigate(`/admin/edit-variant/${product.id}`)
+                              navigate(
+                                `/admin/products/${product.id}/edit-variants`
+                              )
                             }
                             className="group bg-white! shadow-none! flex items-center justify-center cursor-pointer transition 
         border-amber-500 text-amber-500 rounded-md
@@ -693,56 +695,73 @@ export default function Products() {
       )}
 
       {isDetailsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
           <div
-            className="bg-white rounded-lg shadow-xl max-w-7xl max-h-[90vh] w-full mx-4 overflow-hidden font-admin"
+            className="bg-white rounded-2xl shadow-2xl max-w-6xl max-h-[90vh] w-full mx-4 overflow-hidden font-admin"
             dir="rtl"
           >
             {/* Header */}
-            <div className="flex flex-row-reverse items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex flex-row-reverse items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
               <button
                 onClick={() => setIsDetailsOpen(false)}
-                className="text-gray-400 hover:text-red-600 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:shadow-lg text-gray-500 hover:text-red-500 transition-all duration-200"
               >
-                ✕
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
               </button>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {selectedProduct?.name}
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  {selectedProduct?.name}
+                </h2>
                 {isLoading && (
-                  <span className="mr-2 text-sm text-gray-500">
-                    (جاري التحميل...)
-                  </span>
+                  <div className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-blue-700">
+                      جاري التحميل...
+                    </span>
+                  </div>
                 )}
-              </h2>
+              </div>
             </div>
 
             {/* Body */}
             <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-6">
               {selectedProduct ? (
                 <div className="space-y-8">
-                  {/* Images */}
+                  {/* Images and Basic Info */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                    <div className="space-y-4">
+                      <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl overflow-hidden shadow-lg">
                         <img
                           src={
                             selectedImageUrl || selectedProduct.main_image_url
                           }
                           alt={selectedProduct?.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         />
                       </div>
 
                       {selectedProduct.images?.length > 1 && (
-                        <div className="grid grid-cols-5 gap-2 mt-3">
+                        <div className="grid grid-cols-5 gap-3">
                           {selectedProduct.images.map((img) => (
                             <div
                               key={img.id}
                               onClick={() => setSelectedImageUrl(img.url)}
-                              className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 ${
+                              className={`aspect-square rounded-xl overflow-hidden cursor-pointer border-3 transition-all duration-200 ${
                                 selectedImageUrl === img.url
-                                  ? "border-blue-500 ring-2 ring-blue-200"
-                                  : "border-gray-200 hover:border-gray-300"
+                                  ? "border-blue-500 ring-4 ring-blue-200 scale-105"
+                                  : "border-gray-200 hover:border-gray-400 hover:scale-105"
                               }`}
                             >
                               <img
@@ -756,14 +775,60 @@ export default function Products() {
                       )}
                     </div>
 
-                    {/* Product info */}
+                    {/* Product Info */}
                     <div className="space-y-6">
+                      {/* Tags */}
+                      {selectedProduct.tags &&
+                        selectedProduct.tags.length > 0 && (
+                          <section>
+                            <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                              <svg
+                                className="w-5 h-5 text-blue-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                />
+                              </svg>
+                              العلامات
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedProduct.tags.map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md hover:shadow-lg transition-shadow duration-200"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </section>
+                        )}
+
                       {/* Description */}
                       <section>
-                        <h3 className="text-lg font-semibold mb-3 text-gray-800">
+                        <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                          <svg
+                            className="w-5 h-5 text-green-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
                           الوصف
                         </h3>
-                        <div className=" rounded-lg">
+                        <div className="bg-gradient-to-br from-gray-50 to-white p-4 rounded-xl border border-gray-100">
                           <div
                             className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
                             dangerouslySetInnerHTML={{
@@ -773,93 +838,335 @@ export default function Products() {
                         </div>
                       </section>
 
-                      {/* Category */}
-                      <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                          التصنيف
-                        </h3>
-                        <div className="bg-accent/10 p-4 rounded-lg space-y-3">
-                          <div>
-                            <p className="text-sm text-gray-500 my-2">
-                              الفئة الرئيسية
-                            </p>
-                            <span className="inline-block bg-white border-gray-200 px-3 py-1 rounded-lg">
-                              {selectedProduct?.category?.name || "غير محدد"}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500 my-2">
-                              الفئة الفرعية
-                            </p>
-                            <span className="inline-block bg-white border-gray-200 px-3 py-1 rounded-lg">
-                              {selectedProduct?.subcategory?.name || "غير محدد"}
-                            </span>
-                          </div>
-                        </div>
-                      </section>
-
                       {/* Pricing */}
                       <section>
-                        <h3 className="text-lg font-semibold mb-3 text-gray-800">
+                        <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                          <svg
+                            className="w-5 h-5 text-yellow-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                            />
+                          </svg>
                           التسعير
                         </h3>
-                        <div className="bg-accent/10 p-4 rounded-lg">
-                          <p className="text-xl font-bold">
-                            {selectedProduct.price} دج
-                          </p>
-                          {selectedProduct.discount_price && (
-                            <p className="text-red-600 font-bold">
-                              {selectedProduct.discount_price} دج (سعر الخصم)
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-100">
+                          <div className="flex items-baseline gap-3">
+                            <p className="text-2xl font-bold text-green-700">
+                              {selectedProduct.price} 
+                              {selectedProduct.has_measure_unit &&
+                                selectedProduct.measure_unit && (
+                                  <span className="text-sm font-normal text-gray-600 mr-2">
+                                    / {selectedProduct.measure_unit}
+                                  </span>
+                                )}
                             </p>
-                          )}
+                            {selectedProduct.discount_price && (
+                              <p className="text-xl font-bold text-red-600 flex items-center gap-2">
+                                <span className="bg-red-100 px-2 py-1 rounded-lg">
+                                  خصم
+                                </span>
+                                {selectedProduct.discount_price} 
+                                {selectedProduct.has_measure_unit &&
+                                  selectedProduct.measure_unit && (
+                                    <span className="text-sm font-normal text-red-500 mr-2">
+                                      / {selectedProduct.measure_unit}
+                                    </span>
+                                  )}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </section>
                     </div>
                   </div>
 
+                  {/* Category & Unit Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Category */}
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <svg
+                          className="w-5 h-5 text-purple-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                          />
+                        </svg>
+                        التصنيف
+                      </h3>
+                      <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl space-y-3">
+                        <div>
+                          <p className="text-sm text-gray-500 mb-2">
+                            الفئة الرئيسية
+                          </p>
+                          <span className="inline-block bg-white border border-purple-200 px-3 py-2 rounded-lg font-medium">
+                            {selectedProduct?.category?.name || "غير محدد"}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 mb-2">
+                            الفئة الفرعية
+                          </p>
+                          <span className="inline-block bg-white border border-purple-200 px-3 py-2 rounded-lg font-medium">
+                            {selectedProduct?.subcategory?.name || "غير محدد"}
+                          </span>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Unit Information */}
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <svg
+                          className="w-5 h-5 text-indigo-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          />
+                        </svg>
+                        معلومات الوحدة
+                      </h3>
+                      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-gray-600">
+                            يحتوي على وحدة قياس
+                          </p>
+                          <span
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+                              selectedProduct.has_measure_unit ||
+                              selectedProduct.measure_unit
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {selectedProduct.has_measure_unit ||
+                            selectedProduct.measure_unit ? (
+                              <>
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                نعم
+                              </>
+                            ) : (
+                              <>
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                لا
+                              </>
+                            )}
+                          </span>
+                        </div>
+
+                        {(selectedProduct.has_measure_unit ||
+                          selectedProduct.measure_unit) && (
+                          <div>
+                            <p className="text-sm text-gray-600 mb-2">
+                              وحدة القياس
+                            </p>
+                            <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-lg font-medium">
+                              {selectedProduct.measure_unit || "غير محدد"}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-gray-600">
+                            يسمح بكمية مخصصة
+                          </p>
+                          <span
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+                              selectedProduct.allows_custom_quantity
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {selectedProduct.allows_custom_quantity ? (
+                              <>
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                نعم
+                              </>
+                            ) : (
+                              <>
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                لا
+                              </>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+
                   {/* Variants */}
-                  {selectedProduct.has_variants &&
-                    selectedProduct.variants?.length > 0 && (
-                      <section>
-                        <h3 className="text-lg font-bold mb-3 text-gray-800">
-                          النماذج المتوفرة
-                        </h3>
-                        <div className="grid sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {selectedProduct.variants.map((variant) => (
-                            <div
-                              key={variant.id}
-                              className="border border-gray-500 rounded-lg p-4 space-y-3 bg-white "
-                            >
+                  {(selectedProduct.has_variants ||
+                    selectedProduct.variants?.length > 0) && (
+                    <section>
+                      <h3 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
+                        <svg
+                          className="w-5 h-5 text-orange-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                          />
+                        </svg>
+                        النماذج المتوفرة
+                        <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
+                          {selectedProduct.variants?.length || 0} نموذج
+                        </span>
+                      </h3>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {selectedProduct.variants?.map((variant) => (
+                          <div
+                            key={variant.id}
+                            className="group bg-white border-2 border-gray-200 hover:border-blue-300 rounded-xl p-4 space-y-3 transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+                          >
+                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
                               <img
                                 src={variant.primary_image_url}
                                 alt={variant.title}
-                                className="w-full h-40 object-cover rounded"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                               />
-                              <div>
-                                <h4 className="font-bold">{variant.title}</h4>
-                                <p className="text-sm text-gray-500">
-                                  الحجم: {variant.size} {variant.measure_unit}
+                            </div>
+                            <div className="space-y-2">
+                              <h4 className="font-bold text-gray-800 leading-tight">
+                                {variant.title}
+                              </h4>
+                              {variant.size && (
+                                <p className="text-sm text-gray-600 flex items-center gap-1">
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                                    />
+                                  </svg>
+                                  الحجم: {variant.size}
+                                  {variant.measure_unit &&
+                                    ` ${variant.measure_unit}`}
                                 </p>
-                              </div>
-                              <div>
-                                <p className="text-xl font-bold">
+                              )}
+                              {variant.allows_custom_quantity && (
+                                <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  يسمح بكمية مخصصة
+                                </p>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-baseline gap-2">
+                                <p className="text-lg font-bold text-green-600">
                                   {variant.price} دج
                                 </p>
-                                {variant.discount_price && (
-                                  <p className="text-red-600">
-                                    {variant.discount_price} دج (خصم)
-                                  </p>
+                                {variant.measure_unit && (
+                                  <span className="text-xs text-gray-500">
+                                    / {variant.measure_unit}
+                                  </span>
                                 )}
                               </div>
+                              {variant.discount_price && (
+                                <p className="text-red-600 font-semibold flex items-center gap-1">
+                                  <span className="bg-red-100 text-red-800 text-xs px-1.5 py-0.5 rounded">
+                                    خصم
+                                  </span>
+                                  {variant.discount_price} دج
+                                  {variant.measure_unit && (
+                                    <span className="text-xs text-red-400">
+                                      / {variant.measure_unit}
+                                    </span>
+                                  )}
+                                </p>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      </section>
-                    )}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-64">
-                  <p>جاري تحميل تفاصيل المنتج...</p>
+                <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                  <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-gray-600 font-medium">
+                    جاري تحميل تفاصيل المنتج...
+                  </p>
                 </div>
               )}
             </div>

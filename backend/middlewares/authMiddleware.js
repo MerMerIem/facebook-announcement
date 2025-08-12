@@ -20,7 +20,6 @@ export function verfyToken(allow_client = false) {
       const accessToken = req.cookies.accessToken;
 
       if (!accessToken) {
-        console.log("here")
         if (allow_client) {
           // Allow non-logged-in users to proceed as clients
           req.user = {
@@ -43,7 +42,6 @@ export function verfyToken(allow_client = false) {
         role: decoded.role === "admin" ? "admin" : "client",
       };
 
-      console.log("req.user",req.user)
       next();
     } catch (error) {
       if (allow_client) {

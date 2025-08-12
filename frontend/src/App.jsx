@@ -30,6 +30,9 @@ import AddProductPage from "@/pages/admin/AddProductPage";
 import AddProductVariant from "@/pages/admin/AddProductVarient";
 
 import ModifyProduct from "@/pages/admin/ModifyProduct";
+import EditProductVariant from "@/pages/admin/EditProductVariant";
+
+// Create a new QueryClient instance"
 const queryClient = new QueryClient();
 
 function App() {
@@ -110,6 +113,15 @@ function App() {
                     element={
                       <AdminLayout>
                         <AddProductVariant />
+                      </AdminLayout>
+                    }
+                  />
+
+                  <Route
+                    path="/admin/products/:productId/edit-variants"
+                    element={
+                      <AdminLayout>
+                        <EditProductVariant />
                       </AdminLayout>
                     }
                   />

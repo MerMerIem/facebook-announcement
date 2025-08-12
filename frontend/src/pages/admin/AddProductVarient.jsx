@@ -14,6 +14,8 @@ import {
   Ruler,
   Calendar,
   Image as ImageIcon,
+  TrendingUp,
+  Percent,
 } from "lucide-react";
 import { useApi } from "@/contexts/RestContext";
 import { toast } from "sonner";
@@ -68,7 +70,7 @@ const AddProductVariant = () => {
   const addVariant = (productData = product) => {
     if (!productData) return;
 
-    const basePrice = parseFloat(productData.price || 0);
+    const baseInitialPrice = parseFloat(productData.price || 0);
     const discountPrice = productData.discount_price
       ? parseFloat(productData.discount_price)
       : null;
@@ -76,7 +78,8 @@ const AddProductVariant = () => {
     const newVariant = {
       id: Date.now(),
       title: "",
-      price: basePrice,
+      initial_price: baseInitialPrice,
+      profit: 0,
       discount_price: discountPrice,
       discount_start: productData.discount_start || "",
       discount_end: productData.discount_end || "",
@@ -85,6 +88,7 @@ const AddProductVariant = () => {
       images: [],
       mainImageIndex: 0,
       is_active: true,
+      bulk_discount_percentage: 0,
     };
 
     setVariants((prev) => [...prev, newVariant]);
@@ -104,6 +108,18 @@ const AddProductVariant = () => {
         variant.id === variantId ? { ...variant, [field]: value } : variant
       )
     );
+  };
+
+  // حساب السعر النهائي
+  const calculateFinalPrice = (variant) => {
+    const initialPrice = parseFloat(variant.initial_price) || 0;
+    const profit = parseFloat(variant.profit) || 0;
+    return initialPrice + profit;
+  };
+
+  // حساب الربح (للعرض فقط)
+  const getProfit = (variant) => {
+    return parseFloat(variant.profit) || 0;
   };
 
   const handleVariantImageUpload = (variantId, e) => {
@@ -206,12 +222,17 @@ const AddProductVariant = () => {
       if (!variant.title.trim()) {
         newErrors[`variant_title_${index}`] = "عنوان المتغير مطلوب";
       }
-      if (!variant.price || variant.price <= 0) {
-        newErrors[`variant_price_${index}`] = "سعر المتغير مطلوب";
+      if (!variant.initial_price || variant.initial_price <= 0) {
+        newErrors[`variant_initial_price_${index}`] = "السعر الأولي مطلوب";
       }
-      if (variant.discount_price && variant.discount_price >= variant.price) {
+      if (variant.profit < 0) {
+        newErrors[`variant_profit_${index}`] = "الربح لا يمكن أن يكون سالباً";
+      }
+      
+      const finalPrice = calculateFinalPrice(variant);
+      if (variant.discount_price && variant.discount_price >= finalPrice) {
         newErrors[`variant_discount_${index}`] =
-          "سعر الخصم يجب أن يكون أقل من السعر الأساسي";
+          "سعر الخصم يجب أن يكون أقل من السعر النهائي";
       }
     });
 
@@ -246,9 +267,13 @@ const AddProductVariant = () => {
 
     try {
       const formDataToSend = new FormData();
+      console.log("formDataToSend before",formDataToSend)
 
       // Add product ID
       formDataToSend.append("product_id", productId);
+      console.log("formDataToSend with produvt_id",formDataToSend)
+      console.log("produvt_id",productId)
+
 
       // Add variants data
       formDataToSend.append(
@@ -256,7 +281,8 @@ const AddProductVariant = () => {
         JSON.stringify(
           variants.map((variant) => ({
             title: variant.title,
-            price: variant.price,
+            initial_price: variant.initial_price,
+            profit: variant.profit,
             discount_price: variant.discount_price,
             discount_start: variant.discount_start,
             discount_end: variant.discount_end,
@@ -264,6 +290,7 @@ const AddProductVariant = () => {
             size: variant.size,
             is_active: variant.is_active,
             main_image_index: variant.mainImageIndex,
+            bulk_discount_percentage: variant.bulk_discount_percentage,
           }))
         )
       );
@@ -274,7 +301,8 @@ const AddProductVariant = () => {
           formDataToSend.append(`variant_images_${variantIndex}`, image.file);
         });
       });
-      console.log("formDataToSend 4",formDataToSend)
+
+      console.log("formDataToSend after",formDataToSend)
 
       const [data, _, responseCode, error] = await api.post(
         "/product/add/variant",
@@ -298,15 +326,13 @@ const AddProductVariant = () => {
             textAlign: "right",
           },
         });
-
+        navigate(-1);
       } else {
         handleApiError(error, error.response?.data);
       }
     } catch (error) {
       toast.dismiss(loadingToast);
-
       console.error("Error adding variants:", error);
-
       toast.error("خطأ في الاتصال", {
         description:
           "تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.",
@@ -362,7 +388,7 @@ const AddProductVariant = () => {
         className="min-h-screen p-4 sm:p-6 lg:p-8 flex items-center justify-center bg-gray-50"
         dir="rtl"
       >
-        <div className="text-center bg-white p-8 rounded-xl shadow-sm">
+        <div className="text-center bg-white p-8 rounded-xl ">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-600 text-lg">جاري تحميل بيانات المنتج...</p>
         </div>
@@ -376,7 +402,7 @@ const AddProductVariant = () => {
         className="min-h-screen p-4 sm:p-6 lg:p-8 flex items-center justify-center bg-gray-50"
         dir="rtl"
       >
-        <div className="text-center bg-white p-8 rounded-xl shadow-sm">
+        <div className="text-center bg-white p-8 rounded-xl ">
           <Package size={64} className="text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             المنتج غير موجود
@@ -401,7 +427,7 @@ const AddProductVariant = () => {
           <div className="flex items-center gap-4 mb-6">
             <button
               onClick={() => navigate(-1)}
-              className="p-3 hover:bg-white rounded-xl transition-colors shadow-sm border border-gray-200"
+              className="p-3 hover:bg-white rounded-xl transition-colors  border border-gray-200"
             >
               <ArrowRight size={20} className="text-gray-600" />
             </button>
@@ -416,13 +442,13 @@ const AddProductVariant = () => {
           </div>
 
           {/* Product Info Card */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 ">
             <h3 className="font-bold text-blue-900 mb-4 text-lg flex items-center gap-2">
               <Package size={20} />
               معلومات المنتج الأساسية
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="bg-white p-4 rounded-lg ">
                 <div className="flex items-center gap-2 mb-2">
                   <DollarSign size={16} className="text-green-600" />
                   <span className="text-gray-700 font-medium">
@@ -434,7 +460,7 @@ const AddProductVariant = () => {
                 </span>
               </div>
               {product.discount_price && (
-                <div className="bg-white p-4 rounded-lg shadow-sm">
+                <div className="bg-white p-4 rounded-lg ">
                   <div className="flex items-center gap-2 mb-2">
                     <Tag size={16} className="text-red-600" />
                     <span className="text-gray-700 font-medium">سعر الخصم</span>
@@ -444,7 +470,7 @@ const AddProductVariant = () => {
                   </span>
                 </div>
               )}
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="bg-white p-4 rounded-lg ">
                 <div className="flex items-center gap-2 mb-2">
                   <Package size={16} className="text-blue-600" />
                   <span className="text-gray-700 font-medium">الفئة</span>
@@ -510,7 +536,16 @@ const AddProductVariant = () => {
                             {variant.discount_price &&
                             variant.discount_price > 0
                               ? `${variant.discount_price.toFixed(2)} د.ج`
-                              : `${variant.price.toFixed(2)} د.ج`}
+                              : `${calculateFinalPrice(variant).toFixed(2)} د.ج`}
+                          </span>
+                        </div>
+                        {/* Profit Display */}
+                        <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 px-4 py-2 rounded-full">
+                          <span className="text-sm font-medium text-yellow-800">
+                            الربح:{" "}
+                          </span>
+                          <span className="text-lg font-bold text-yellow-900">
+                            {getProfit(variant).toFixed(2)} د.ج
                           </span>
                         </div>
                       </div>
@@ -526,7 +561,7 @@ const AddProductVariant = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                       {/* Left Column - Images */}
                       <div className="lg:col-span-1">
-                        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div className="bg-white rounded-xl p-4 border border-gray-200 ">
                           <div className="flex items-center justify-between mb-4">
                             <h5 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                               <ImageIcon size={18} className="text-blue-600" />
@@ -553,9 +588,8 @@ const AddProductVariant = () => {
                               <div className="relative">
                                 <img
                                   src={
-                                    variant.images[
-                                      variant.mainImageIndex
-                                    ]?.preview
+                                    variant.images[variant.mainImageIndex]
+                                      ?.preview
                                   }
                                   alt={`متغير ${index + 1} - الصورة الرئيسية`}
                                   className="w-full h-48 object-cover rounded-lg border-4 border-blue-500 shadow-md"
@@ -569,63 +603,61 @@ const AddProductVariant = () => {
                               {/* Thumbnail Images */}
                               {variant.images.length > 1 && (
                                 <div className="grid grid-cols-3 gap-2">
-                                  {variant.images.map(
-                                    (image, imageIndex) => (
-                                      <div
-                                        key={imageIndex}
-                                        className={`relative group border-2 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
-                                          variant.mainImageIndex === imageIndex
-                                            ? "border-blue-500 ring-2 ring-blue-200"
-                                            : "border-gray-200 hover:border-blue-300"
+                                  {variant.images.map((image, imageIndex) => (
+                                    <div
+                                      key={imageIndex}
+                                      className={`relative group border-2 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
+                                        variant.mainImageIndex === imageIndex
+                                          ? "border-blue-500 ring-2 ring-blue-200"
+                                          : "border-gray-200 hover:border-blue-300"
+                                      }`}
+                                    >
+                                      <img
+                                        src={image.preview}
+                                        alt={`متغير ${index + 1} - صورة ${
+                                          imageIndex + 1
                                         }`}
-                                      >
-                                        <img
-                                          src={image.preview}
-                                          alt={`متغير ${index + 1} - صورة ${
-                                            imageIndex + 1
-                                          }`}
-                                          className="w-full h-16 object-cover"
-                                          onClick={() =>
-                                            setVariantMainImage(
-                                              variant.id,
-                                              imageIndex
-                                            )
-                                          }
-                                        />
-                                        <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                                          {variant.mainImageIndex !==
-                                            imageIndex && (
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                setVariantMainImage(
-                                                  variant.id,
-                                                  imageIndex
-                                                )
-                                              }
-                                              title="جعل رئيسية"
-                                              className="bg-blue-500 hover:bg-blue-600 text-white p-1.5 rounded transition-colors"
-                                            >
-                                              <Star size={12} />
-                                            </button>
-                                          )}
+                                        className="w-full h-16 object-cover"
+                                        onClick={() =>
+                                          setVariantMainImage(
+                                            variant.id,
+                                            imageIndex
+                                          )
+                                        }
+                                      />
+                                      <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                        {variant.mainImageIndex !==
+                                          imageIndex && (
                                           <button
                                             type="button"
                                             onClick={() =>
-                                              removeVariantImage(
+                                              setVariantMainImage(
                                                 variant.id,
                                                 imageIndex
                                               )
                                             }
-                                            title="حذف"
-                                            className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded transition-colors"
+                                            title="جعل رئيسية"
+                                            className="bg-blue-500 hover:bg-blue-600 text-white p-1.5 rounded transition-colors"
                                           >
-                                            <Trash2 size={12} />
+                                            <Star size={12} />
                                           </button>
-                                        </div>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            removeVariantImage(
+                                              variant.id,
+                                              imageIndex
+                                            )
+                                          }
+                                          title="حذف"
+                                          className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded transition-colors"
+                                        >
+                                          <Trash2 size={12} />
+                                        </button>
                                       </div>
-                                    )
-                                  )}
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -647,13 +679,13 @@ const AddProductVariant = () => {
                       {/* Right Column - Form Fields */}
                       <div className="lg:col-span-2 space-y-6">
                         {/* Basic Info */}
-                        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div className="bg-white rounded-xl p-4 border border-gray-200 ">
                           <h6 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <Tag size={18} className="text-green-600" />
                             المعلومات الأساسية
                           </h6>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
+                            <div className="md:col-span-2">
                               <label className="block text-sm font-bold text-gray-700 mb-2">
                                 عنوان المتغير *
                               </label>
@@ -683,7 +715,7 @@ const AddProductVariant = () => {
 
                             <div>
                               <label className="block text-sm font-bold text-gray-700 mb-2">
-                                السعر * (د.ج)
+                                السعر الأولي * (د.ج)
                               </label>
                               <div className="relative">
                                 <DollarSign
@@ -692,27 +724,63 @@ const AddProductVariant = () => {
                                 />
                                 <input
                                   type="number"
-                                  value={variant.price}
+                                  value={variant.initial_price}
                                   onChange={(e) =>
                                     updateVariant(
                                       variant.id,
-                                      "price",
+                                      "initial_price",
                                       parseFloat(e.target.value) || 0
                                     )
                                   }
                                   min="0"
                                   step="0.01"
                                   className={`w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
-                                    errors[`variant_price_${index}`]
+                                    errors[`variant_initial_price_${index}`]
                                       ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                                       : "border-gray-300"
                                   }`}
                                   placeholder="0.00"
                                 />
                               </div>
-                              {errors[`variant_price_${index}`] && (
+                              {errors[`variant_initial_price_${index}`] && (
                                 <p className="text-red-500 text-sm mt-1 font-medium">
-                                  {errors[`variant_price_${index}`]}
+                                  {errors[`variant_initial_price_${index}`]}
+                                </p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">
+                                الربح * (د.ج)
+                              </label>
+                              <div className="relative">
+                                <TrendingUp
+                                  size={20}
+                                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                                />
+                                <input
+                                  type="number"
+                                  value={variant.profit}
+                                  onChange={(e) =>
+                                    updateVariant(
+                                      variant.id,
+                                      "profit",
+                                      parseFloat(e.target.value) || 0
+                                    )
+                                  }
+                                  min="0"
+                                  step="0.01"
+                                  className={`w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                                    errors[`variant_profit_${index}`]
+                                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                                      : "border-gray-300"
+                                  }`}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                              {errors[`variant_profit_${index}`] && (
+                                <p className="text-red-500 text-sm mt-1 font-medium">
+                                  {errors[`variant_profit_${index}`]}
                                 </p>
                               )}
                             </div>
@@ -720,7 +788,7 @@ const AddProductVariant = () => {
                         </div>
 
                         {/* Size & Measurement */}
-                        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div className="bg-white rounded-xl p-4 border border-gray-200 ">
                           <h6 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <Ruler size={18} className="text-purple-600" />
                             القياسات والوحدات
@@ -741,45 +809,53 @@ const AddProductVariant = () => {
                                 }
                                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                               >
-                                <option value="">اختر الوحدة</option>
-
-                                <option value="piece">قطعة</option>
-                                <option value="kilogram">كيلوغرام</option>
-                                <option value="gram">غرام</option>
-                                <option value="milligram">ميليغرام</option>
-
-                                <option value="liter">لتر</option>
-                                <option value="milliliter">مليلتر</option>
-                                <option value="cubic_meter">متر مكعب</option>
-                                <option value="cubic_centimeter">
-                                  سم مكعب
+                                <option value="" disabled>
+                                  اختر الوحدة
                                 </option>
-
-                                <option value="meter">متر</option>
-                                <option value="centimeter">سم</option>
-                                <option value="millimeter">مم</option>
-
-                                <option value="celsius">درجة مئوية</option>
-
-                                <option value="ampere">أمبير</option>
-                                <option value="milliampere">ميلي أمبير</option>
-                                <option value="volt">فولت</option>
-                                <option value="watt">واط</option>
-                                <option value="kilowatt">كيلوواط</option>
-                                <option value="megawatt">ميغاواط</option>
-                                <option value="ohm">أوم</option>
-                                <option value="farad">فاراد</option>
-                                <option value="henry">هنري</option>
-                                <option value="hertz">هرتز</option>
-                                <option value="kilohertz">كيلوهرتز</option>
-                                <option value="megahertz">ميغاهرتز</option>
-
-                                <option value="box">علبة</option>
-                                <option value="bottle">زجاجة</option>
-                                <option value="bag">كيس</option>
-                                <option value="pack">عبوة</option>
-                                <option value="roll">لفة</option>
-                                <option value="dozen">دزينة</option>
+                                <optgroup label="وحدات الوزن">
+                                  <option value="piece">قطعة</option>
+                                  <option value="kilogram">كيلوغرام</option>
+                                  <option value="gram">غرام</option>
+                                  <option value="milligram">ميليغرام</option>
+                                </optgroup>
+                                <optgroup label="وحدات الحجم">
+                                  <option value="liter">لتر</option>
+                                  <option value="milliliter">مليلتر</option>
+                                  <option value="cubic_meter">متر مكعب</option>
+                                  <option value="cubic_centimeter">
+                                    سم مكعب
+                                  </option>
+                                </optgroup>
+                                <optgroup label="وحدات الطول">
+                                  <option value="meter">متر</option>
+                                  <option value="centimeter">سم</option>
+                                  <option value="millimeter">مم</option>
+                                </optgroup>
+                                <optgroup label="وحدات كهربائية">
+                                  <option value="celsius">درجة مئوية</option>
+                                  <option value="ampere">أمبير</option>
+                                  <option value="milliampere">
+                                    ميلي أمبير
+                                  </option>
+                                  <option value="volt">فولت</option>
+                                  <option value="watt">واط</option>
+                                  <option value="kilowatt">كيلوواط</option>
+                                  <option value="megawatt">ميغاواط</option>
+                                  <option value="ohm">أوم</option>
+                                  <option value="farad">فاراد</option>
+                                  <option value="henry">هنري</option>
+                                  <option value="hertz">هرتز</option>
+                                  <option value="kilohertz">كيلوهرتز</option>
+                                  <option value="megahertz">ميغاهرتز</option>
+                                </optgroup>
+                                <optgroup label="وحدات التعبئة والتغليف">
+                                  <option value="box">علبة</option>
+                                  <option value="bottle">زجاجة</option>
+                                  <option value="bag">كيس</option>
+                                  <option value="pack">عبوة</option>
+                                  <option value="roll">لفة</option>
+                                  <option value="dozen">دزينة</option>
+                                </optgroup>
                               </select>
                             </div>
 
@@ -805,10 +881,10 @@ const AddProductVariant = () => {
                         </div>
 
                         {/* Discount Section */}
-                        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div className="bg-white rounded-xl p-4 border border-gray-200 ">
                           <h6 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <Tag size={18} className="text-red-600" />
-                            إعدادات الخصم
+                            إعدادات الخصم (اختياري)
                           </h6>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
@@ -899,8 +975,39 @@ const AddProductVariant = () => {
                           </div>
                         </div>
 
+                        {/* Bulk Discount Section */}
+                        <div className="mt-4">
+                          <label className=" text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                            <Percent size={18} className="text-orange-500" />
+                            الخصم عند شراء اكثر من منتج %
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={variant.bulk_discount_percentage || 0}
+                              onChange={(e) =>
+                                updateVariant(
+                                  variant.id,
+                                  "bulk_discount_percentage",
+                                  Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))
+                              }
+                              min="0"
+                              max="100"
+                              className="w-full px-4 py-3 pl-12 border-2 bg-white border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                              placeholder="0"
+                            />
+                            <Percent
+                              size={20}
+                              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            أدخل النسبة المئوية للخصم عند شراء أكثر من وحدة من هذا المتغير
+                          </p>
+                        </div>
+
                         {/* Status Section */}
-                        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div className="bg-white rounded-xl p-4 border border-gray-200 ">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <Eye size={18} className="text-gray-600" />
@@ -930,7 +1037,9 @@ const AddProductVariant = () => {
                                     ? "text-green-600"
                                     : "text-gray-500"
                                 }`}
-                              ></span>
+                              >
+                                {variant.is_active ? "نشط" : "غير نشط"}
+                              </span>
                             </label>
                           </div>
                         </div>

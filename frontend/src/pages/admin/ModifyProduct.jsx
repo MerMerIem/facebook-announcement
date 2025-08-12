@@ -30,6 +30,8 @@ const ModifyProduct = () => {
     discount_start: "",
     discount_end: "",
     tags: "",
+    has_measure_unit: false,
+    measure_unit: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -38,7 +40,6 @@ const ModifyProduct = () => {
     fetchProduct();
     fetchCategories();
   }, [id]);
-  console.log("formdata before", formData);
 
   const fetchProduct = async () => {
     try {
@@ -62,7 +63,9 @@ const ModifyProduct = () => {
           discount_price: data.discount_price || "",
           discount_start: data.discount_start || "",
           discount_end: data.discount_end || "",
-          tags: data.tags || "", // You might need to fetch tags separately if available
+          tags: data.tags || "",
+          has_measure_unit: data.has_measure_unit || false,
+          measure_unit: data.measure_unit || "",
         });
 
         // Process images
@@ -100,7 +103,27 @@ const ModifyProduct = () => {
       setLoading(false);
     }
   };
-  console.log("formdata after", formData);
+
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const [data, _, responseCode, error] = await api.get(
+        "/category/getAll?page=1&limit=200"
+      );
+
+      if (responseCode === 200 && data?.categories) {
+        setCategories(data.categories);
+      } else {
+        console.error("Error fetching categories:", error);
+        toast.error("حدث خطأ أثناء تحميل الفئات");
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("حدث خطأ أثناء تحميل الفئات");
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -112,6 +135,22 @@ const ModifyProduct = () => {
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const handleMeasureUnitChange = (e) => {
+    const { checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      has_measure_unit: checked,
+      measure_unit: checked ? prev.measure_unit : "",
+    }));
+    if (errors.has_measure_unit || errors.measure_unit) {
+      setErrors((prev) => ({
+        ...prev,
+        has_measure_unit: "",
+        measure_unit: "",
+      }));
     }
   };
 
@@ -252,6 +291,8 @@ const ModifyProduct = () => {
       newErrors.profit = "الربح صالح مطلوب";
     if (!formData.category) newErrors.category = "الفئة مطلوبة";
     if (!formData.subcategory) newErrors.subcategory = "الفئة الفرعية مطلوبة";
+    if (formData.has_measure_unit && !formData.measure_unit)
+      newErrors.measure_unit = "وحدة القياس مطلوبة عند اختيار وحدة قياس";
 
     // Optional: Only validate discount_percentage if present and not 0
     if (
@@ -285,8 +326,6 @@ const ModifyProduct = () => {
     }
 
     setErrors(newErrors);
-
-    console.log(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
       toast.error("خطأ في التحقق من البيانات", {
@@ -328,6 +367,10 @@ const ModifyProduct = () => {
       formDataToSend.append("profit", parseFloat(formData.profit));
       formDataToSend.append("category", formData.category);
       formDataToSend.append("subcategory", formData.subcategory);
+      formDataToSend.append("has_measure_unit", formData.has_measure_unit);
+      if (formData.has_measure_unit && formData.measure_unit) {
+        formDataToSend.append("measure_unit", formData.measure_unit);
+      }
 
       // Calculate main_image_index based on current images array
       formDataToSend.append("main_image_index", mainImageIndex);
@@ -377,13 +420,6 @@ const ModifyProduct = () => {
         formDataToSend.append("deleted_images", JSON.stringify(deletedImages));
       }
 
-      console.log("FormData being sent:", {
-        newImagesCount: newImages.length,
-        deletedImagesCount: deletedImages.length,
-        mainImageIndex: mainImageIndex,
-        totalCurrentImages: images.length,
-      });
-
       const [data, _, responseCode, error] = await api.post(
         `/product/modify/${id}`,
         formDataToSend,
@@ -409,9 +445,6 @@ const ModifyProduct = () => {
 
         // Clear deleted images list after successful update
         setDeletedImages([]);
-
-        // Optionally navigate back or refresh data
-        // navigate("/admin/products");
       } else {
         handleApiError(error, error.response.data);
       }
@@ -491,27 +524,6 @@ const ModifyProduct = () => {
 
     if (data?.errors) {
       console.error("Validation errors:", data.errors);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      setLoadingCategories(true);
-      const [data, _, responseCode, error] = await api.get(
-        "/category/getAll?page=1&limit=200"
-      );
-
-      if (responseCode === 200 && data?.categories) {
-        setCategories(data.categories);
-      } else {
-        console.error("Error fetching categories:", error);
-        toast.error("حدث خطأ أثناء تحميل الفئات");
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      toast.error("حدث خطأ أثناء تحميل الفئات");
-    } finally {
-      setLoadingCategories(false);
     }
   };
 
@@ -718,6 +730,101 @@ const ModifyProduct = () => {
                   onUpdate={handleDescriptionChange}
                   error={errors.description}
                 />
+              </div>
+
+              {/* Measure Unit Section */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  وحدة القياس (اختياري)
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="has_measure_unit"
+                      name="has_measure_unit"
+                      checked={formData.has_measure_unit}
+                      onChange={handleMeasureUnitChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="has_measure_unit"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      هل هذا المنتج يحتوي على وحدة قياس؟
+                    </label>
+                  </div>
+                  {formData.has_measure_unit && (
+                    <div>
+                      <label
+                        htmlFor="measure_unit"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        وحدة القياس
+                      </label>
+                      <select
+                        id="measure_unit"
+                        name="measure_unit"
+                        value={formData.measure_unit}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-3 border rounded-lg ${
+                          errors.measure_unit
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <option value="" disabled>
+                          اختر الوحدة
+                        </option>
+                        <optgroup label="وحدات الوزن">
+                          <option value="piece">قطعة</option>
+                          <option value="kilogram">كيلوغرام</option>
+                          <option value="gram">غرام</option>
+                          <option value="milligram">ميليغرام</option>
+                        </optgroup>
+                        <optgroup label="وحدات الحجم">
+                          <option value="liter">لتر</option>
+                          <option value="milliliter">مليلتر</option>
+                          <option value="cubic_meter">متر مكعب</option>
+                          <option value="cubic_centimeter">سم مكعب</option>
+                        </optgroup>
+                        <optgroup label="وحدات الطول">
+                          <option value="meter">متر</option>
+                          <option value="centimeter">سم</option>
+                          <option value="millimeter">مم</option>
+                        </optgroup>
+                        <optgroup label="وحدات كهربائية">
+                          <option value="celsius">درجة مئوية</option>
+                          <option value="ampere">أمبير</option>
+                          <option value="milliampere">ميلي أمبير</option>
+                          <option value="volt">فولت</option>
+                          <option value="watt">واط</option>
+                          <option value="kilowatt">كيلوواط</option>
+                          <option value="megawatt">ميغاواط</option>
+                          <option value="ohm">أوم</option>
+                          <option value="farad">فاراد</option>
+                          <option value="henry">هنري</option>
+                          <option value="hertz">هرتز</option>
+                          <option value="kilohertz">كيلوهرتز</option>
+                          <option value="megahertz">ميغاهرتز</option>
+                        </optgroup>
+                        <optgroup label="وحدات التعبئة والتغليف">
+                          <option value="box">علبة</option>
+                          <option value="bottle">زجاجة</option>
+                          <option value="bag">كيس</option>
+                          <option value="pack">عبوة</option>
+                          <option value="roll">لفة</option>
+                          <option value="dozen">دزينة</option>
+                        </optgroup>
+                      </select>
+                      {errors.measure_unit && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.measure_unit}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Discount Section */}

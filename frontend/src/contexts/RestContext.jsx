@@ -30,7 +30,7 @@ const ApiProvider = ({ children }) => {
 
     setIsRefreshing(true);
     try {
-      const response = await axiosInstance.get("/me");
+      const response = await axiosInstance.get("/auth/me");
       setIsRefreshing(false);
       return response.status === 200 || response.status === 201;
     } catch (error) {

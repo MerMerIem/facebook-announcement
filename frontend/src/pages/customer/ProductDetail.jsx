@@ -17,6 +17,7 @@ import {
   Info,
   Package,
   Zap,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,6 +35,7 @@ const ProductDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const [customQuantity, setCustomQuantity] = useState(""); // For measure unit input
   const [isLoading, setIsLoading] = useState(true);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const { addItem, getItemQuantity } = useCart();
@@ -79,6 +81,8 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id, api, toast]);
 
+  console.log("setProduct",product)
+
   useEffect(() => {
     setSelectedImageIndex(0);
   }, [selectedVariant]);
@@ -112,29 +116,54 @@ const ProductDetail = () => {
       </div>
     );
   }
+  console.log("product",product)
+  console.log("selectedVariant",selectedVariant)
 
-  const currentData = selectedVariant || product;
-  const currentImages = selectedVariant?.images || product.images || [];
-  const mainImageUrl =
-    selectedVariant?.primary_image_url || product.main_image_url;
-
-  const getCurrentPricing = () => {
-    const data = selectedVariant || product;
-    const hasDiscount =
-      data.has_discount && new Date(data.has_discount) > new Date();
-    const originalPrice = parseFloat(data.price || "0");
-    const discountPrice = parseFloat(data.discount_price || "0");
-    const currentPrice =
-      hasDiscount && discountPrice > 0 ? discountPrice : originalPrice;
-
-    return {
-      hasDiscount,
-      originalPrice,
-      discountPrice,
-      currentPrice,
-      discountEnd: data.has_discount,
-    };
+  const getDisplayData = () => {
+    if (product.has_variants && selectedVariant) {
+      return {
+        currentData: selectedVariant,
+        currentImages: selectedVariant.images || [],
+        mainImageUrl: selectedVariant.primary_image_url,
+        cartProductId: selectedVariant.id,
+        isVariant: true,
+      };
+    } else {
+      return {
+        currentData: product,
+        currentImages: product.images || [],
+        mainImageUrl: product.main_image_url,
+        cartProductId: product.id,
+        isVariant: false,
+      };
+    }
   };
+
+  const { currentData, currentImages, mainImageUrl, cartProductId, isVariant } =
+    getDisplayData();
+
+    const getCurrentPricing = () => {
+      const data = currentData;
+      const hasDiscount = data.has_discount && new Date(data.has_discount) > new Date();
+      const originalPrice = parseFloat(data.price || "0");
+      const discountPrice = parseFloat(data.discount_price || "0");
+      
+      // Show discount price if it exists and discount is active, otherwise show original price
+      const currentPrice = hasDiscount && discountPrice > 0 ? discountPrice : originalPrice;
+      
+      console.log("hasDiscount", hasDiscount);
+      console.log("originalPrice", originalPrice);
+      console.log("discountPrice", discountPrice);
+      console.log("currentPrice", currentPrice);
+    
+      return {
+        hasDiscount,
+        originalPrice,
+        discountPrice,
+        currentPrice,
+        discountEnd: data.has_discount,
+      };
+    };
 
   const {
     hasDiscount,
@@ -144,10 +173,12 @@ const ProductDetail = () => {
     discountEnd,
   } = getCurrentPricing();
 
-  const cartItemId = selectedVariant
-    ? `${product.id}_variant_${selectedVariant.id}`
-    : product.id;
-  const cartQuantity = getItemQuantity(cartItemId);
+  const cartQuantity = getItemQuantity(cartProductId);
+
+  // Check if the current product/variant has measure unit
+  const hasMeasureUnit =
+    currentData.has_measure_unit === 1 || currentData.has_measure_unit === true;
+  const measureUnit = currentData.measure_unit || product.measure_unit;
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat("ar-DZ", {
@@ -175,42 +206,124 @@ const ProductDetail = () => {
     return `${hours} ساعة متبقية`;
   };
 
-  const handleAddToCart = () => {
-    const itemToAdd = selectedVariant
-      ? {
-          ...product,
-          selectedVariant,
-          cartItemId,
-          price: currentPrice,
-          variant_info: {
-            id: selectedVariant.id,
-            title: selectedVariant.title,
-            size: selectedVariant.size,
-            measure_unit: selectedVariant.measure_unit,
-          },
-        }
-      : {
-          ...product,
-          cartItemId,
-          price: currentPrice,
-        };
+  // Get the effective quantity based on whether the product has measure unit
+  const getEffectiveQuantity = () => {
+    if (hasMeasureUnit) {
+      const customQty = parseFloat(customQuantity);
+      return isNaN(customQty) || customQty <= 0 ? 0 : customQty;
+    }
+    return quantity;
+  };
 
-    for (let i = 0; i < quantity; i++) {
-      addItem(itemToAdd);
+  // Calculate total price based on effective quantity
+  const calculateTotalPrice = () => {
+    const effectiveQty = getEffectiveQuantity();
+    return currentPrice * effectiveQty;
+  };
+
+  const handleAddToCart = () => {
+    const effectiveQty = getEffectiveQuantity();
+
+    if (effectiveQty <= 0) {
+      toast({
+        title: "خطأ",
+        description: hasMeasureUnit
+          ? `يرجى إدخال كمية صحيحة بال${measureUnit}`
+          : "يرجى اختيار كمية صحيحة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let itemToAdd;
+
+    if (product.has_variants && selectedVariant) {
+      itemToAdd = {
+        id: selectedVariant.id,
+        name: `${product.name} - ${selectedVariant.title}`,
+        price: currentPrice,
+        discount_price: selectedVariant.discount_price,
+        has_discount: selectedVariant.has_discount,
+        used_discount: selectedVariant.has_discount, // Ensure consistency
+        main_image_url:
+          selectedVariant.primary_image_url || product.main_image_url,
+        description: selectedVariant.description || product.description,
+        category: product.category,
+        subcategory: product.subcategory,
+        parent_product_id: product.id,
+        variant_title: selectedVariant.title,
+        size: selectedVariant.size,
+        measure_unit: selectedVariant.measure_unit,
+        is_variant: true,
+        has_variants: false, // Variants themselves don't have variants
+        has_measure_unit: selectedVariant.has_measure_unit,
+      };
+    } else {
+      itemToAdd = {
+        id: product.id,
+        name: product.name,
+        price: currentPrice,
+        discount_price: product.discount_price,
+        has_discount: product.has_discount,
+        used_discount: product.has_discount, // Ensure consistency
+        main_image_url: product.main_image_url,
+        description: product.description,
+        category: product.category,
+        subcategory: product.subcategory,
+        is_variant: false,
+        has_variants: product.has_variants,
+        has_measure_unit: product.has_measure_unit,
+        measure_unit: product.measure_unit,
+      };
+    }
+
+    if (hasMeasureUnit) {
+      // For measure unit products: add as a single item with the specified quantity
+      addItem(itemToAdd, effectiveQty);
+    } else {
+      // For regular products, add multiple times (each addition is quantity 1)
+      for (let i = 0; i < effectiveQty; i++) {
+        addItem(itemToAdd);
+      }
     }
 
     setAdded(true);
     setTimeout(() => setAdded(false), 3000);
+
+    const quantityText = hasMeasureUnit
+      ? `${effectiveQty} ${measureUnit}`
+      : `${effectiveQty}`;
+
+    toast({
+      title: "تمت الإضافة",
+      description: `تم إضافة ${quantityText} من ${itemToAdd.name} إلى السلة`,
+      variant: "success",
+    });
   };
 
   const handleVariantSelect = (variant) => {
     setSelectedVariant(variant);
     setQuantity(1);
+    setCustomQuantity("");
   };
 
   const handleBackToMain = () => {
     setSelectedVariant(null);
     setQuantity(1);
+    setCustomQuantity("");
+  };
+
+  const handleCustomQuantityChange = (value) => {
+    // Allow only numbers and decimal point
+    const sanitizedValue = value.replace(/[^\d.]/g, "");
+
+    // Prevent multiple decimal points
+    const parts = sanitizedValue.split(".");
+    if (parts.length > 2) {
+      return;
+    }
+
+    setCustomQuantity(sanitizedValue);
   };
 
   const timeRemaining = getTimeRemaining();
@@ -250,6 +363,7 @@ const ProductDetail = () => {
           <span className="text-primary font-medium">{product.name}</span>
         </nav>
 
+        {/* Back to main product button */}
         {selectedVariant && (
           <div className="mb-4">
             <Button
@@ -311,7 +425,6 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="space-y-6">
             {/* Header */}
-
             <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
               {product.name}
               {selectedVariant && (
@@ -338,6 +451,12 @@ const ProductDetail = () => {
                     {selectedVariant.size} {selectedVariant.measure_unit}
                   </Badge>
                 )}
+                {hasMeasureUnit && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Calculator className="h-3 w-3" />
+                    يُباع بال{measureUnit}
+                  </Badge>
+                )}
               </div>
 
               {product.tags && product.tags.length > 0 && (
@@ -355,90 +474,20 @@ const ProductDetail = () => {
               )}
             </div>
 
-            {/* Main Product Price and Add to Cart - Show when no variants OR when variants exist but none selected */}
-            <div>
-              <div className="flex items-center gap-4 mb-4">
-                <span className="text-4xl font-bold ">
-                  {formatPrice(currentPrice)}
-                </span>
-                {hasDiscount && originalPrice !== currentPrice && (
-                  <div className="flex flex-col">
-                    <span className="text-xl text-gray-500 line-through">
-                      {formatPrice(originalPrice)}
-                    </span>
-                    <span className="text-green-600 font-medium text-sm">
-                      وفر {formatPrice(originalPrice - currentPrice)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {hasDiscount && timeRemaining && (
-                <div className="flex items-center gap-2 text-red-600 font-medium bg-red-50 px-4 py-2 rounded-lg mb-4">
-                  <Timer className="h-5 w-5 animate-pulse" />
-                  <span>العرض ينتهي خلال: {timeRemaining}</span>
-                </div>
-              )}
-
-              {/* Quantity and Add to Cart */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <span className="font-medium text-gray-900">الكمية:</span>
-                  <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
-                      className="p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <Minus className="h-5 w-5" />
-                    </button>
-                    <span className="px-6 py-3 bg-gray-50 font-semibold min-w-[80px] text-center">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="p-3 hover:bg-gray-100 transition-colors"
-                    >
-                      <Plus className="h-5 w-5" />
-                    </button>
-                  </div>
-                  {cartQuantity > 0 && (
-                    <span className="text-sm text-muted-foreground">
-                      ({cartQuantity} في السلة)
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleAddToCart}
-                    className="flex-1 bg-gradient-to-r from-accent to-primary text-white px-8 py-4 rounded-xl font-semibold text-lg hover:scale-105 transition-all duration-300 hover:shadow-xl flex items-center justify-center gap-3"
-                  >
-                    <ShoppingCart className="h-6 w-6" />
-                    أضف إلى السلة
-                  </button>
-
-                  {added && (
-                    <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-xl border border-green-200 animate-pulse">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium">تم الإضافة!</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Variants */}
+            {/* Variants Selection */}
             {!selectedVariant &&
               product.has_variants &&
               product.variants &&
               product.variants.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    اختر النوع:
+                <div className="bg-accent/10 p-6 rounded-2xl border border-border/70 mb-6">
+                  <h3 className="font-bold text-xl text-black flex items-center gap-3 mb-4">
+                    <Package className="h-6 w-6 text-black" />
+                    اختر النوع والحجم:
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <p className="text-foreground text-sm mb-4">
+                    يرجى اختيار نوع وحجم الخزان المناسب لاحتياجاتك
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {product.variants.map((variant) => {
                       const variantHasDiscount =
                         variant.has_discount &&
@@ -453,52 +502,83 @@ const ProductDetail = () => {
                         variantHasDiscount && variantDiscountPrice > 0
                           ? variantDiscountPrice
                           : variantOriginalPrice;
+                          console.log("variantOriginalPrice",variantOriginalPrice)
+                          console.log("variantHasDiscount",variantHasDiscount)
+                          console.log("variantDiscountPrice",variantDiscountPrice)
+                          console.log("variantCurrentPrice",variantCurrentPrice)
 
                       return (
                         <button
                           key={variant.id}
                           onClick={() => handleVariantSelect(variant)}
-                          className="p-4 border-2 border-gray-200 rounded-xl transition-all duration-300 text-right hover:border-primary "
+                          className="p-4 border-2 border-border/70 bg-white rounded-xl transition-all duration-300 text-right hover:border-primary hover:shadow-lg hover:scale-105"
                         >
-                          {variant.primary_image_url && (
-                            <div className="aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 mb-2">
-                              <img
-                                src={variant.primary_image_url}
-                                alt={variant.title}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="font-medium text-sm">
-                            {variant.size} {variant.measure_unit}
-                          </div>
-                          <div className="text-xs text-gray-600 mb-1">
-                            {variant.title}
-                          </div>
-                          <div className="font-bold text-sm text-primary ">
-                            {formatPrice(variantCurrentPrice)}
-                          </div>
-                          {variantHasDiscount &&
-                            variantOriginalPrice !== variantCurrentPrice && (
-                              <div className="text-xs line-through text-gray-500">
-                                {formatPrice(variantOriginalPrice)}
+                          <div className="flex gap-3">
+                            {variant.primary_image_url && (
+                              <div className="w-16 h-16 bg-white rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                <img
+                                  src={variant.primary_image_url}
+                                  alt={variant.title}
+                                  className="w-full h-full object-cover"
+                                />
                               </div>
                             )}
+                            <div className="flex-1">
+                              <div className="font-bold text-foreground text-base mb-1">
+                                {variant.size} {variant.measure_unit}
+                              </div>
+                              <div className="text-sm text-gray-600 mb-2">
+                                {variant.title}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-bold text-lg text-primary">
+                                  {formatPrice(variantCurrentPrice)}
+                                  {variant.has_measure_unit && variant.measure_unit && (
+                                    <span className="text-xs text-muted-foreground">
+                                      /{variant.measure_unit}
+                                    </span>
+                                  )}
+                                </div>
+                                {variantHasDiscount && variantDiscountPrice > 0 && variantOriginalPrice !== variantCurrentPrice && (
+                                  <div className="text-sm line-through text-muted-foreground">
+                                    {formatPrice(variantOriginalPrice)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </button>
                       );
                     })}
                   </div>
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-lg">
+                    <p className="text-amber-700 text-sm flex items-center gap-2">
+                      <Info className="h-4 w-4" />
+                      يجب اختيار نوع معين لإضافة المنتج إلى السلة
+                    </p>
+                  </div>
                 </div>
               )}
 
-            {/* Selected Variant Price and Add to Cart */}
-            {selectedVariant && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
+            {/* Price and Add to Cart Section */}
+            {(selectedVariant || !product.has_variants) && (
+              <div
+                className={
+                  selectedVariant
+                    ? "bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100"
+                    : ""
+                }
+              >
                 <div className="flex items-center gap-4 mb-4">
-                  <span className="text-4xl font-bold text-blue-600">
+                  <span className={`text-4xl font-bold ${selectedVariant ? "text-blue-600" : ""}`}>
                     {formatPrice(currentPrice)}
+                    {hasMeasureUnit && measureUnit && (
+                      <span className="text-lg text-muted-foreground">
+                        /{measureUnit}
+                      </span>
+                    )}
                   </span>
-                  {hasDiscount && originalPrice !== currentPrice && (
+                  {hasDiscount && discountPrice > 0 && originalPrice !== currentPrice && (
                     <div className="flex flex-col">
                       <span className="text-xl text-gray-500 line-through">
                         {formatPrice(originalPrice)}
@@ -517,27 +597,49 @@ const ProductDetail = () => {
                   </div>
                 )}
 
+                {/* Quantity Section */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <span className="font-medium text-gray-900">الكمية:</span>
-                    <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
-                      <button
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={quantity <= 1}
-                        className="p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Minus className="h-5 w-5" />
-                      </button>
-                      <span className="px-6 py-3 bg-gray-50 font-semibold min-w-[80px] text-center">
-                        {quantity}
-                      </span>
-                      <button
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="p-3 hover:bg-gray-100 transition-colors"
-                      >
-                        <Plus className="h-5 w-5" />
-                      </button>
-                    </div>
+                    <span className="font-medium text-gray-900">
+                      {hasMeasureUnit ? `الكمية (${measureUnit}):` : "الكمية:"}
+                    </span>
+
+                    {hasMeasureUnit ? (
+                      // Custom input for measure unit products
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={customQuantity}
+                            onChange={(e) =>
+                              handleCustomQuantityChange(e.target.value)
+                            }
+                            className="w-32 px-4 py-2 border-2 border-gray-200 rounded-xl text-center font-semibold focus:border-primary focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      // Regular quantity selector for discrete products
+                      <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          disabled={quantity <= 1}
+                          className="p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Minus className="h-5 w-5" />
+                        </button>
+                        <span className="px-6 py-3 bg-gray-50 font-semibold min-w-[80px] text-center">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => setQuantity(quantity + 1)}
+                          className="p-3 hover:bg-gray-100 transition-colors"
+                        >
+                          <Plus className="h-5 w-5" />
+                        </button>
+                      </div>
+                    )}
+
                     {cartQuantity > 0 && (
                       <span className="text-sm text-muted-foreground">
                         ({cartQuantity} في السلة)
@@ -545,13 +647,38 @@ const ProductDetail = () => {
                     )}
                   </div>
 
+                  {hasMeasureUnit && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-blue-700 text-sm flex items-center gap-2">
+                        <Calculator className="h-4 w-4" />
+                        أدخل الكمية المطلوبة بال{measureUnit}. مثال: 50 للحصول
+                        على 50 {measureUnit}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex gap-3">
                     <button
                       onClick={handleAddToCart}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
+                      disabled={
+                        hasMeasureUnit &&
+                        (!customQuantity || parseFloat(customQuantity) <= 0)
+                      }
+                      className={`flex-1 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        selectedVariant
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                          : "bg-gradient-to-r from-accent to-primary hover:scale-105"
+                      }`}
                     >
                       <ShoppingCart className="h-6 w-6" />
                       أضف إلى السلة
+                      {hasMeasureUnit &&
+                        customQuantity &&
+                        parseFloat(customQuantity) > 0 && (
+                          <span className="text-sm">
+                            ({parseFloat(customQuantity)} {measureUnit})
+                          </span>
+                        )}
                     </button>
 
                     {added && (
@@ -568,7 +695,7 @@ const ProductDetail = () => {
         </div>
 
         {/* Description */}
-        <div className="bg-white rounded-lg  border border-gray-300 overflow-hidden mb-8">
+        <div className="bg-white rounded-lg border border-gray-300 overflow-hidden mb-8">
           <div className="bg-accent/10 px-6 py-4 border-b border-gray-100">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
               <Info className="h-6 w-6 text-primary" />
@@ -577,9 +704,10 @@ const ProductDetail = () => {
           </div>
           <div className="p-6">
             <div
-              className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: product.description }}
-              style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+              className="prose prose-lg max-w-none text-gray-700 leading-relaxed font-admin!"
+              dangerouslySetInnerHTML={{
+                __html: currentData.description || product.description,
+              }}
             />
           </div>
         </div>

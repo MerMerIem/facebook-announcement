@@ -3,8 +3,10 @@ import { Upload, Trash2, Star, ArrowRight } from "lucide-react";
 import DescriptionEditor from "@/components/admin/DescriptionEditor";
 import { useApi } from "@/contexts/RestContext";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const ProductPage = () => {
+  const navigate = useNavigate();
   const { api } = useApi();
   const [images, setImages] = useState([]);
   const [mainImageIndex, setMainImageIndex] = useState(0);
@@ -24,6 +26,9 @@ const ProductPage = () => {
     discount_start: "",
     discount_end: "",
     tags: "",
+    // NEW: Add new fields here
+    has_measure_unit: false,
+    measure_unit: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -52,6 +57,19 @@ const ProductPage = () => {
     }));
     if (errors.description && html !== "<p></p>") {
       setErrors((prev) => ({ ...prev, description: "" }));
+    }
+  };
+
+  const handleMeasureUnitChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: checked,
+      // Reset measure_unit if checkbox is unchecked
+      ...(!checked && { measure_unit: "" }),
+    }));
+    if (errors.has_measure_unit) {
+      setErrors((prev) => ({ ...prev, has_measure_unit: "" }));
     }
   };
 
@@ -146,7 +164,10 @@ const ProductPage = () => {
     if (!formData.profit || formData.profit < 0)
       newErrors.profit = "الربح صالح مطلوب";
     if (!formData.category) newErrors.category = "الفئة مطلوبة";
-    if (!formData.subcategory) newErrors.subcategory = "الفئة الفرعية مطلوبة";
+    // NEW: Add validation for measure_unit
+    if (formData.has_measure_unit && !formData.measure_unit.trim()) {
+      newErrors.measure_unit = "وحدة القياس مطلوبة";
+    }
 
     // ✅ Validate discount_percentage ONLY if it's defined (not null or undefined)
     if (
@@ -191,6 +212,7 @@ const ProductPage = () => {
     }
 
     setErrors(newErrors);
+    console.log("formData",formData)
 
     // Show validation error toast if there are errors
     if (Object.keys(newErrors).length > 0) {
@@ -235,6 +257,11 @@ const ProductPage = () => {
       formDataToSend.append("category", formData.category);
       formDataToSend.append("subcategory", formData.subcategory);
       formDataToSend.append("main_image_index", mainImageIndex);
+      // NEW: Add new fields here
+      formDataToSend.append("has_measure_unit", formData.has_measure_unit);
+      if (formData.has_measure_unit) {
+        formDataToSend.append("measure_unit", formData.measure_unit);
+      }
 
       // Optional discount
       if (formData.discount_percentage) {
@@ -402,6 +429,9 @@ const ProductPage = () => {
       discount_start: "",
       discount_end: "",
       tags: "",
+      // NEW: Reset new fields
+      has_measure_unit: false,
+      measure_unit: "",
     });
     setImages([]);
     setMainImageIndex(0);
@@ -434,12 +464,52 @@ const ProductPage = () => {
     (cat) => cat.name === formData.category
   );
 
+  const getMeasureUnitLabel = (unit) => {
+    const unitLabels = {
+      piece: "قطعة",
+      kilogram: "كيلوغرام",
+      gram: "غرام",
+      milligram: "ميليغرام",
+      liter: "لتر",
+      milliliter: "مليلتر",
+      cubic_meter: "متر مكعب",
+      cubic_centimeter: "سم مكعب",
+      meter: "متر",
+      centimeter: "سم",
+      millimeter: "مم",
+      celsius: "درجة مئوية",
+      ampere: "أمبير",
+      milliampere: "ميلي أمبير",
+      volt: "فولت",
+      watt: "واط",
+      kilowatt: "كيلوواط",
+      megawatt: "ميغاواط",
+      ohm: "أوم",
+      farad: "فاراد",
+      henry: "هنري",
+      hertz: "هرتز",
+      kilohertz: "كيلوهرتز",
+      megahertz: "ميغاهرتز",
+      box: "علبة",
+      bottle: "زجاجة",
+      bag: "كيس",
+      pack: "عبوة",
+      roll: "لفة",
+      dozen: "دزينة",
+    };
+
+    return unitLabels[unit] || unit;
+  };
+
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8" dir="rtl">
       <div className="">
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <button className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
+            <button 
+              className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              onClick={() => navigate("/admin/products")}
+            >
               <ArrowRight size={20} className="text-gray-600" />
             </button>
             <h1 className="text-3xl font-bold text-gray-900">
@@ -509,11 +579,14 @@ const ProductPage = () => {
                       </p>
                     )}
                   </div>
-
                   {/* الربح */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      الربح * (د.ج)
+                      {formData.has_measure_unit && formData.measure_unit
+                        ? `الربح * (د.ج لكل ${getMeasureUnitLabel(
+                            formData.measure_unit
+                          )})`
+                        : "الربح * (د.ج)"}
                     </label>
                     <input
                       type="number"
@@ -527,6 +600,12 @@ const ProductPage = () => {
                       }`}
                       placeholder="0.00"
                     />
+                    {formData.has_measure_unit && formData.measure_unit && (
+                      <p className="text-blue-600 text-xs mt-1">
+                        💡 سيتم إضافة هذا المبلغ لكل{" "}
+                        {getMeasureUnitLabel(formData.measure_unit)} من المنتج
+                      </p>
+                    )}
                     {errors.profit && (
                       <p className="text-red-500 text-sm mt-1">
                         {errors.profit}
@@ -537,13 +616,17 @@ const ProductPage = () => {
                   {/* سعر البيع (readonly calculated field) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      سعر البيع (د.ج)
+                      {formData.has_measure_unit && formData.measure_unit
+                        ? `سعر البيع (د.ج لكل ${getMeasureUnitLabel(
+                            formData.measure_unit
+                          )})`
+                        : "سعر البيع (د.ج)"}
                     </label>
                     <input
                       type="text"
                       readOnly
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 
-               focus:outline-none focus:ring-0 focus:border-gray-200 cursor-default"
+              focus:outline-none focus:ring-0 focus:border-gray-200 cursor-default"
                       value={
                         formData.discount_price &&
                         parseFloat(formData.discount_price) > 0
@@ -554,6 +637,12 @@ const ProductPage = () => {
                             ).toFixed(2)
                       }
                     />
+                    {formData.has_measure_unit && formData.measure_unit && (
+                      <p className="text-gray-500 text-xs mt-1">
+                        هذا السعر لكل{" "}
+                        {getMeasureUnitLabel(formData.measure_unit)} من المنتج
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -722,6 +811,100 @@ const ProductPage = () => {
                 </div>
               </div>
 
+              {/* NEW: Measure Unit Section */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  وحدة القياس (اختياري)
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="has_measure_unit"
+                      name="has_measure_unit"
+                      checked={formData.has_measure_unit}
+                      onChange={handleMeasureUnitChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="has_measure_unit"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
+                      هل هذا المنتج يحتوي على وحدة قياس؟
+                    </label>
+                  </div>
+                  {formData.has_measure_unit && (
+                    <div>
+                      <label
+                        htmlFor="measure_unit"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        وحدة القياس
+                      </label>
+                      <select
+                        id="measure_unit"
+                        name="measure_unit"
+                        value={formData.measure_unit}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-3 border rounded-lg ${
+                          errors.measure_unit
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <option value="" disabled>
+                          اختر الوحدة
+                        </option>
+                        <optgroup label="وحدات الوزن">
+                          <option value="piece">قطعة</option>
+                          <option value="kilogram">كيلوغرام</option>
+                          <option value="gram">غرام</option>
+                          <option value="milligram">ميليغرام</option>
+                        </optgroup>
+                        <optgroup label="وحدات الحجم">
+                          <option value="liter">لتر</option>
+                          <option value="milliliter">مليلتر</option>
+                          <option value="cubic_meter">متر مكعب</option>
+                          <option value="cubic_centimeter">سم مكعب</option>
+                        </optgroup>
+                        <optgroup label="وحدات الطول">
+                          <option value="meter">متر</option>
+                          <option value="centimeter">سم</option>
+                          <option value="millimeter">مم</option>
+                        </optgroup>
+                        <optgroup label="وحدات كهربائية">
+                          <option value="celsius">درجة مئوية</option>
+                          <option value="ampere">أمبير</option>
+                          <option value="milliampere">ميلي أمبير</option>
+                          <option value="volt">فولت</option>
+                          <option value="watt">واط</option>
+                          <option value="kilowatt">كيلوواط</option>
+                          <option value="megawatt">ميغاواط</option>
+                          <option value="ohm">أوم</option>
+                          <option value="farad">فاراد</option>
+                          <option value="henry">هنري</option>
+                          <option value="hertz">هرتز</option>
+                          <option value="kilohertz">كيلوهرتز</option>
+                          <option value="megahertz">ميغاهرتز</option>
+                        </optgroup>
+                        <optgroup label="وحدات التعبئة والتغليف">
+                          <option value="box">علبة</option>
+                          <option value="bottle">زجاجة</option>
+                          <option value="bag">كيس</option>
+                          <option value="pack">عبوة</option>
+                          <option value="roll">لفة</option>
+                          <option value="dozen">دزينة</option>
+                        </optgroup>
+                      </select>
+                      {errors.measure_unit && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.measure_unit}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">
                   الخصم (اختياري)
@@ -823,7 +1006,6 @@ const ProductPage = () => {
                   </div>
                 </div>
               </div>
-              
             </div>
           </div>
 

@@ -8,7 +8,18 @@ const link = process.env.BACKEND_URL;
 
 // only for a client
 export async function addOrder(req, res) {
-  const { full_name, email, phone, wilaya, address, notes, items } = req.body;
+  const {
+    full_name,
+    email,
+    phone,
+    wilaya,
+    address,
+    notes,
+    items,
+    pricing_verification,
+  } = req.body;
+
+  console.log(req.body);
 
   if (
     !full_name ||
@@ -46,27 +57,92 @@ export async function addOrder(req, res) {
     }
   }
 
-
   try {
     await db.query("START TRANSACTION");
 
+    // Get delivery fee for wilaya
     const [wilayaFound] = await db.execute(
       "SELECT delivery_fee FROM wilayas WHERE name = ?",
       [wilaya]
     );
-    const deliveryFee = Number(wilayaFound[0].delivery_fee) || 0;
+    const deliveryFee = Number(wilayaFound[0]?.delivery_fee) || 0;
     console.log("Delivery fee for wilaya", wilaya, ":", deliveryFee);
 
     let subtotal = 0;
     const orderItemsData = [];
     const notFoundProducts = [];
+    const processedItems = new Map(); // To merge duplicate items
 
+    // First, merge duplicate items
     for (const item of items) {
-      console.log(`Fetching product with ID ${item.product_id}`);
-      const [productResult] = await db.execute(
-        "SELECT id, name, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit FROM products WHERE id = ?",
-        [item.product_id]
+      const key = `${item.product_id}_${item.parent_product_id || "null"}`;
+      if (processedItems.has(key)) {
+        processedItems.get(key).quantity += item.quantity;
+      } else {
+        processedItems.set(key, { ...item });
+      }
+    }
+
+    // Process each unique item
+    for (const item of processedItems.values()) {
+      console.log(
+        `Processing product with ID ${item.product_id}, parent: ${item.parent_product_id}, quantity: ${item.quantity}`
       );
+
+      let productQuery;
+      let productParams;
+      let isVariant = false;
+
+      // Check if it's a variant (has parent_product_id)
+      if (item.parent_product_id) {
+        // This is a variant
+        productQuery = `
+          SELECT 
+            v.id as variant_id,
+            v.product_id,
+            v.title as variant_title,
+            v.price,
+            v.discount_price,
+            v.discount_start,
+            v.discount_end,
+            v.discount_percentage,
+            v.initial_price,
+            v.profit,
+            v.measure_unit as variant_measure_unit,
+            v.allows_custom_quantity as variant_allows_custom_quantity,
+            p.name as product_name,
+            p.has_measure_unit,
+            p.measure_unit as product_measure_unit,
+            p.allows_custom_quantity as product_allows_custom_quantity
+          FROM product_variants v
+          JOIN products p ON v.product_id = p.id
+          WHERE v.id = ? AND v.product_id = ? AND v.is_active = 1
+        `;
+        productParams = [item.product_id, item.parent_product_id];
+        isVariant = true;
+      } else {
+        // This is a regular product
+        productQuery = `
+          SELECT 
+            id,
+            name,
+            price,
+            discount_price,
+            discount_start,
+            discount_end,
+            discount_percentage,
+            initial_price,
+            profit,
+            has_measure_unit,
+            measure_unit,
+            allows_custom_quantity
+          FROM products 
+          WHERE id = ?
+        `;
+        productParams = [item.product_id];
+      }
+
+      const [productResult] = await db.execute(productQuery, productParams);
 
       if (productResult.length === 0) {
         console.warn(`Product with ID ${item.product_id} not found`);
@@ -75,11 +151,25 @@ export async function addOrder(req, res) {
       }
 
       const product = productResult[0];
-      console.log("Fetched product:", product.name);
+      console.log(
+        "Fetched product:",
+        isVariant ? product.variant_title : product.name
+      );
+
+      // Determine the product name for the order
+      const productName = isVariant
+        ? `${product.product_name} - ${product.variant_title}`
+        : product.name;
+
+      // Check if product has measure unit (either variant or product level)
+      const hasMeasureUnit = isVariant
+        ? product.variant_measure_unit !== null
+        : product.has_measure_unit;
 
       let unitPrice = Number(product.price);
       let usedDiscount = false;
 
+      // Check for active discount
       if (product.discount_price) {
         const discountStart = new Date(product.discount_start);
         const discountEnd = new Date(product.discount_end);
@@ -89,45 +179,64 @@ export async function addOrder(req, res) {
           unitPrice = Number(product.discount_price);
           usedDiscount = true;
           console.log(
-            `Discount applied on ${product.name}: using discount price ${unitPrice}`
+            `Discount applied on ${productName}: using discount price ${unitPrice}`
           );
         }
       }
 
-      if (item.quantity === 1) {
-        subtotal += unitPrice * item.quantity;
+      // Apply pricing logic based on quantity and measure unit
+      if (hasMeasureUnit) {
+        // For products with measure unit, use simple pricing (no profit calculation)
         console.log(
-          `Item: ${product.name}, Quantity: ${item.quantity}, Unit Price: ${unitPrice}, Subtotal now: ${subtotal}`
+          `Product ${productName} has measure unit - using simple pricing`
         );
+        subtotal += unitPrice * item.quantity;
       } else {
-        const productOriginalPrice = product.discount_price
-          ? Number(product.discount_price)
-          : Number(product.price);
+        // For products without measure unit, apply quantity-based pricing
+        if (item.quantity === 1) {
+          // Single quantity - use regular price
+          subtotal += unitPrice * item.quantity;
+          console.log(`Single quantity for ${productName}: ${unitPrice}`);
+        } else {
+          // Multiple quantity - apply profit reduction
+          const basePrice = product.discount_price
+            ? Number(product.discount_price)
+            : Number(product.price);
 
-        console.log(productOriginalPrice);
+          const profitReduction =
+            Number(product.profit || 0) *
+            (Number(product.discount_percentage || 0) / 100);
+          unitPrice = basePrice - profitReduction;
 
-        const remove = Number(
-          product.profit * (product.discount_percentage / 100)
-        );
+          console.log(`Multiple quantity pricing for ${productName}:`);
+          console.log(`- Base price: ${basePrice}`);
+          console.log(`- Profit reduction: ${profitReduction}`);
+          console.log(`- Final unit price: ${unitPrice}`);
 
-        unitPrice = productOriginalPrice - remove;
-
-        console.log(
-          `Custom calculated price for ${product.name} (Qty: ${item.quantity}): ${unitPrice}`
-        );
-
-        subtotal += unitPrice * item.quantity;
-        console.log(`Subtotal updated after ${product.name}: ${subtotal}`);
+          subtotal += unitPrice * item.quantity;
+        }
       }
 
-      orderItemsData.push({
-        product_id: item.product_id,
-        product_name: product.name,
+      console.log(
+        `Item subtotal for ${productName} (Qty: ${item.quantity}): ${
+          unitPrice * item.quantity
+        }`
+      );
+      console.log(`Running subtotal: ${subtotal}`);
+
+      // Prepare order item data
+      const orderItem = {
+        product_id: isVariant ? product.product_id : item.product_id,
+        variant_id: isVariant ? product.variant_id : null,
+        product_name: productName,
         quantity: item.quantity,
         unit_price: unitPrice,
-      });
+      };
+
+      orderItemsData.push(orderItem);
     }
 
+    // Check if any products were not found
     if (notFoundProducts.length > 0) {
       await db.query("ROLLBACK");
       return res.status(400).json({
@@ -147,6 +256,27 @@ export async function addOrder(req, res) {
       `Final subtotal: ${subtotal}, Delivery fee: ${deliveryFee}, Total price: ${totalPrice}`
     );
 
+    // Verify pricing if provided
+    if (pricing_verification) {
+      const tolerance = 0.01; // Allow small rounding differences
+
+      if (Math.abs(subtotal - pricing_verification.subtotal) > tolerance) {
+        console.warn(
+          `Price mismatch - Calculated: ${subtotal}, Expected: ${pricing_verification.subtotal}`
+        );
+      }
+
+      if (
+        Math.abs(totalPrice - pricing_verification.total_with_delivery) >
+        tolerance
+      ) {
+        console.warn(
+          `Total price mismatch - Calculated: ${totalPrice}, Expected: ${pricing_verification.total_with_delivery}`
+        );
+      }
+    }
+
+    // Insert order
     const [orderResult] = await db.execute(
       `INSERT INTO orders (total_price, status, full_name, email, phone, wilaya, address, notes) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -164,23 +294,32 @@ export async function addOrder(req, res) {
 
     const orderId = orderResult.insertId;
 
+    // Insert order items
     for (const item of orderItemsData) {
       console.log(`Inserting item to DB:`, item);
       await db.execute(
-        "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
-        [orderId, item.product_id, item.quantity, item.unit_price]
+        "INSERT INTO order_items (order_id, product_id, variant_id, quantity, unit_price) VALUES (?, ?, ?, ?, ?)",
+        [
+          orderId,
+          item.product_id,
+          item.variant_id,
+          item.quantity,
+          item.unit_price,
+        ]
       );
     }
 
+    // Create notification for admin
     const adminUserId = 4;
     await db.execute(
       `INSERT INTO notification (user_id, content, notification_status, time)
-     VALUES (?, ?, ?, NOW())`,
+       VALUES (?, ?, ?, NOW())`,
       [adminUserId, `طلب جديد #${orderId} من ${full_name}`, "unread"]
     );
 
     await db.query("COMMIT");
 
+    // Send push notification
     await sendPushNotification(4);
 
     res.status(201).json({
@@ -190,6 +329,12 @@ export async function addOrder(req, res) {
       deliveryFee,
       totalPrice,
       itemsCount: orderItemsData.length,
+      processedItems: orderItemsData.map((item) => ({
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total: item.unit_price * item.quantity,
+      })),
       message: "Commande créée avec succès",
     });
   } catch (err) {
@@ -225,6 +370,7 @@ export async function addOrder(req, res) {
 
 export async function calculatePricing(req, res) {
   const { items } = req.body;
+  console.log("items", items);
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({
@@ -264,19 +410,56 @@ export async function calculatePricing(req, res) {
 
     for (const item of items) {
       console.log(`Fetching product with ID ${item.product_id}`);
-      const [productResult] = await db.execute(
-        "SELECT id, name, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit FROM products WHERE id = ?",
+
+      let product = null;
+      let isVariant = false;
+      let parentProductId = null;
+
+      // FIXED: First try to find in product_variants table
+      const [variantResult] = await db.execute(
+        "SELECT id, title, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit, product_id FROM product_variants WHERE id = ?",
         [item.product_id]
       );
 
-      if (productResult.length === 0) {
-        console.warn(`Product with ID ${item.product_id} not found`);
+      if (variantResult.length > 0) {
+        product = variantResult[0];
+        isVariant = true;
+        parentProductId = product.product_id;
+        console.log(`Found variant: ${product.title} (ID: ${product.id})`);
+
+        // Get the main product info for profit calculations
+        const [mainProductResult] = await db.execute(
+          "SELECT name, category_id, subcategory_id FROM products WHERE id = ?",
+          [product.product_id]
+        );
+
+        if (mainProductResult.length > 0) {
+          product.name = `${mainProductResult[0].name} - ${product.title}`;
+          product.category_id = mainProductResult[0].category_id;
+          product.subcategory_id = mainProductResult[0].subcategory_id;
+        }
+      } else {
+        // If not found in variants, try main products table
+        const [productResult] = await db.execute(
+          "SELECT id, name, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit FROM products WHERE id = ?",
+          [item.product_id]
+        );
+
+        if (productResult.length > 0) {
+          product = productResult[0];
+          isVariant = false;
+          console.log(
+            `Found main product: ${product.name} (ID: ${product.id})`
+          );
+        }
+      }
+
+      // If product not found in either table
+      if (!product) {
+        console.warn(`Product/Variant with ID ${item.product_id} not found`);
         notFoundProducts.push(item.product_id);
         continue;
       }
-
-      const product = productResult[0];
-      console.log("Fetched product:", product.name);
 
       let unitPrice = Number(product.price);
       let usedDiscount = false;
@@ -311,6 +494,7 @@ export async function calculatePricing(req, res) {
 
         console.log("Original price:", productOriginalPrice);
 
+        // Use profit from the product (main or variant)
         const profitReduction = Number(
           product.profit * (product.discount_percentage / 100)
         );
@@ -340,6 +524,9 @@ export async function calculatePricing(req, res) {
         item_total: itemTotal,
         used_discount: usedDiscount,
         special_pricing: specialPricing,
+        is_variant: isVariant, // ← Add this to identify variants
+        is_variant: isVariant,
+        parent_product_id: parentProductId,
         savings: specialPricing
           ? Number(product.price) * item.quantity - itemTotal
           : usedDiscount
@@ -354,7 +541,7 @@ export async function calculatePricing(req, res) {
         message: `Product(s) not found`,
         details: {
           notFoundProductIds: notFoundProducts,
-          message: `Products with the following IDs do not exist: ${notFoundProducts.join(
+          message: `Products with the following IDs do not exist in either products or product_variants tables: ${notFoundProducts.join(
             ", "
           )}`,
         },
@@ -383,7 +570,6 @@ export async function calculatePricing(req, res) {
         total_savings: totalSavings,
         items_count: pricingDetails.length,
         pricing_details: pricingDetails,
-        delivery_options: pricingWithDelivery, // Already sorted by wilaya_id
         wilayas: wilayas, // Already sorted by id
       },
       message: "Pricing calculated successfully with delivery options",
