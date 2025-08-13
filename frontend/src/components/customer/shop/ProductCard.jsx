@@ -117,71 +117,89 @@ const ProductCard = ({ product }) => {
 
   return (
     <Card
-      dir=""
-      className="group hover-lift animate-fade-in relative overflow-hidden h-full! border-none p-0"
+      dir="rtl"
+      className="group hover-lift animate-fade-in relative overflow-hidden h-full border-none p-0 flex flex-col"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="grid grid-rows-[1fr_auto]">
-        <Link to={`/product/${product.id}`}>
-          <div className="relative aspect-square overflow-hidden">
-            <img
-              src={product.main_image_url || "/placeholder.svg"}
-              alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
+      {/* Image Section - Fixed aspect ratio */}
+      <Link to={`/product/${product.id}`} className="block flex-shrink-0">
+        <div className="relative aspect-square overflow-hidden">
+          <img
+            src={product.main_image_url || "/placeholder.svg"}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
 
-            {/* Badges Container */}
-            <div className="absolute top-2 right-2 flex flex-col gap-1">
-              {/* Discount Badge */}
-              {hasDiscount && (
-                <Badge className="gradient-discount text-white">خصم</Badge>
-              )}
+          {/* Badges Container */}
+          <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
+            {/* Discount Badge */}
+            {hasDiscount && (
+              <Badge className="gradient-discount text-white text-xs">خصم</Badge>
+            )}
 
-              {/* Special Pricing Badge */}
-              {specialPricing && (
-                <Badge className="bg-green-500 text-white">
-                  <Tag className="h-3 w-3 ml-1" />
-                  عرض الكمية
-                </Badge>
-              )}
-            </div>
-
-            {/* Quick Actions */}
-            <div
-              className={`absolute inset-0 bg-black/20 flex items-center justify-center gap-2 transition-opacity duration-300 ${
-                isHovered ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <Button size="sm" variant="secondary" className="rounded-full">
-                <Eye className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Quantity Badge */}
-            {itemQuantity > 0 && (
-              <Badge variant="destructive" className="absolute top-2 left-2">
-                {itemQuantity}
+            {/* Special Pricing Badge */}
+            {specialPricing && (
+              <Badge className="bg-green-500 text-white text-xs">
+                <Tag className="h-3 w-3 ml-1" />
+                عرض الكمية
               </Badge>
             )}
           </div>
 
-          <CardContent className="p-4">
+          {/* Quick Actions */}
+          <div
+            className={`absolute inset-0 bg-black/20 flex items-center justify-center gap-2 transition-opacity duration-300 ${
+              isHovered ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <Button size="sm" variant="secondary" className="rounded-full">
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Quantity Badge */}
+          {itemQuantity > 0 && (
+            <Badge variant="destructive" className="absolute top-2 left-2 text-xs z-10">
+              {itemQuantity}
+            </Badge>
+          )}
+        </div>
+      </Link>
+
+      {/* Content Section - Flexible grow */}
+      <div className="flex flex-col flex-grow">
+        <Link to={`/product/${product.id}`} className="block flex-grow">
+          <CardContent className="p-3 sm:p-4 flex-grow">
             <div className="space-y-2">
-              <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
+              <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem]">
                 {product.name}
               </h3>
 
               {/* Category and Subcategory */}
               <div className="flex flex-wrap gap-1">
                 {product.category?.name && (
-                  <Badge variant="outline" className="text-xs">
-                    {product.category.name}
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs max-w-full truncate"
+                    title={product.category.name}
+                  >
+                    {product.category.name.length > 15 
+                      ? `${product.category.name.substring(0, 15)}...` 
+                      : product.category.name
+                    }
                   </Badge>
                 )}
                 {product.subcategory?.name && (
-                  <Badge variant="outline" className="text-xs">
-                    {product.subcategory.name}
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs max-w-full truncate"
+                    title={product.subcategory.name}
+                  >
+                    {product.subcategory.name.length > 15 
+                      ? `${product.subcategory.name.substring(0, 15)}...` 
+                      : product.subcategory.name
+                    }
                   </Badge>
                 )}
               </div>
@@ -221,8 +239,8 @@ const ProductCard = ({ product }) => {
                 {/* Regular Price */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold price-color">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-base sm:text-lg font-bold price-color">
                         {formatPrice(currentPrice)}
                       </span>
                       {hasDiscount && originalPrice !== currentPrice && (
@@ -264,11 +282,17 @@ const ProductCard = ({ product }) => {
           </CardContent>
         </Link>
 
-        {/* Action Buttons */}
-        <div className="p-4 pt-0 space-y-2 self-end">
-          <Button onClick={handleAddToCart} className="w-full" size="sm">
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            {itemQuantity > 0 ? `في السلة (${itemQuantity})` : "إضافة للسلة"}
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="p-3 sm:p-4 pt-0 space-y-2 mt-auto">
+          <Button 
+            onClick={handleAddToCart} 
+            className="w-full text-xs sm:text-sm" 
+            size="sm"
+          >
+            <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="truncate">
+              {itemQuantity > 0 ? `في السلة (${itemQuantity})` : "إضافة للسلة"}
+            </span>
           </Button>
 
           {/* Additional Add Button for Special Pricing */}
@@ -276,11 +300,11 @@ const ProductCard = ({ product }) => {
             <Button
               onClick={handleAddToCart}
               variant="outline"
-              className="w-full border-green-500 text-green-600 hover:bg-green-50"
+              className="w-full border-green-500 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
               size="sm"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              أضف المزيد واستفد من العرض
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="truncate">أضف المزيد واستفد من العرض</span>
             </Button>
           )}
         </div>

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { verfyToken, isAuthorized } from "../middlewares/authMiddleware.js";
 import {
   verifyId,
-  verifyName,
+  validateOrderFields,
   verifyWilaya,
 } from "../middlewares/validateInputsMiddleware.js";
 import {
@@ -20,7 +20,7 @@ import {
 const router = Router();
 
 // Client routes (no authentication needed)
-router.post("/add", verifyWilaya, addOrder); // Create new order
+router.post("/add", validateOrderFields, verifyWilaya, addOrder); // Create new order
 
 // Admin routes (authentication required)
 router.get("/getAll", verfyToken(), isAuthorized, getAllOrders); // Get all orders with pagination

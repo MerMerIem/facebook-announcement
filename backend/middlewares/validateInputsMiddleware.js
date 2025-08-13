@@ -232,14 +232,6 @@ export function validateOrderFields(req, res, next) {
     });
   }
 
-  // Delivery location validation
-  const validLocations = ["home", "office"];
-  if (!validLocations.includes(delivery_location.toLowerCase())) {
-    return res.status(400).json({
-      error: 'Invalid delivery location. Must be either "home" or "office".',
-    });
-  }
-
   // If all validations pass, proceed to the next middleware/route handler
   next();
 }

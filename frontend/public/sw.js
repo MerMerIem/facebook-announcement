@@ -19,8 +19,8 @@ self.addEventListener("push", (event) => {
 
   const options = {
     body: data.body,
-    icon: "/vite.svg", // Use your app icon
-    badge: "/vite.svg",
+    icon: "/icons/logo.jpg", // Use your app icon
+    badge: "/icons/logo.jpg",
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -41,5 +41,5 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   // Optional: Open a specific URL when notification is clicked
-  event.waitUntil(clients.openWindow("/"));
+  event.waitUntil(clients.openWindow("/admin/dashboard"));
 });

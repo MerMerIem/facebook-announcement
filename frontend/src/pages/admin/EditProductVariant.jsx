@@ -22,8 +22,6 @@ import {
 import { useApi } from "@/contexts/RestContext";
 import { toast } from "sonner";
 
-// TODO: adding discount_percentage in the edit page
-
 const EditProductVariant = () => {
   const { productId } = useParams();
   const navigate = useNavigate();

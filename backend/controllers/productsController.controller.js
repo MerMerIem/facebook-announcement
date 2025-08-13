@@ -342,6 +342,40 @@ export async function getProductById(req, res) {
       };
     });
 
+    // Get related products (moved outside of admin check)
+    const relatedProductsQuery = `
+      SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.has_measure_unit,
+        p.measure_unit,
+        (SELECT pi.url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) AS main_image_url
+      FROM products p
+      WHERE p.id != ? 
+      AND (p.category_id = ? OR p.subcategory_id = ?)
+      ORDER BY 
+        CASE WHEN p.subcategory_id = ? THEN 1 ELSE 2 END,
+        RAND()
+      LIMIT 8
+    `;
+
+    const [relatedRows] = await db.execute(relatedProductsQuery, [
+      id,
+      product.category_id,
+      product.subcategory_id,
+      product.subcategory_id,
+    ]);
+
+    const relatedProducts = relatedRows.map((related) => ({
+      ...related,
+      unit_info: {
+        has_measure_unit: related.has_measure_unit,
+        measure_unit: related.measure_unit,
+      },
+    }));
+
     const response = {
       id: product.id,
       name: product.name,
@@ -374,6 +408,7 @@ export async function getProductById(req, res) {
       total_images: Array.isArray(product.images)
         ? product.images.filter((img) => img !== null).length
         : 0,
+      related_products: relatedProducts,
     };
 
     // Admin-only fields
@@ -384,40 +419,6 @@ export async function getProductById(req, res) {
         discount_percentage: product.discount_percentage,
         calculated_price: product.price,
       };
-    } else {
-      // Related products
-      const relatedProductsQuery = `
-        SELECT 
-          p.id,
-          p.name,
-          p.description,
-          p.price,
-          p.has_measure_unit,
-          p.measure_unit,
-          (SELECT pi.url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) AS main_image_url
-        FROM products p
-        WHERE p.id != ? 
-        AND (p.category_id = ? OR p.subcategory_id = ?)
-        ORDER BY 
-          CASE WHEN p.subcategory_id = ? THEN 1 ELSE 2 END,
-          RAND()
-        LIMIT 8
-      `;
-
-      const [relatedRows] = await db.execute(relatedProductsQuery, [
-        id,
-        product.category_id,
-        product.subcategory_id,
-        product.subcategory_id,
-      ]);
-
-      response.related_products = relatedRows.map((related) => ({
-        ...related,
-        unit_info: {
-          has_measure_unit: related.has_measure_unit,
-          measure_unit: related.measure_unit,
-        },
-      }));
     }
 
     return res.status(200).json(response);
@@ -438,7 +439,7 @@ export async function searchProduct(req, res) {
     page = 1,
   } = req.query;
 
-  console.log("request body",req.query)
+  console.log("request body", req.query);
 
   // Check if user is admin
   const isAdmin = req.user && req.user.role === "admin";
@@ -452,18 +453,22 @@ export async function searchProduct(req, res) {
 
   try {
     if (searchQuery) {
-      // Use hybrid approach: full-text search OR LIKE for short words
-      if (searchQuery.trim().length >= 4) {
-        // Use full-text search for longer queries
-        whereClauses.push(
-          "MATCH(p.name, p.description) AGAINST(? IN BOOLEAN MODE)"
-        );
-        queryParams.push(`*${searchQuery}*`);
-      } else {
-        // Fall back to LIKE search for shorter queries
-        whereClauses.push("(p.name LIKE ? OR p.description LIKE ?)");
-        queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
-      }
+      // Use LIKE search for all queries until FULLTEXT indexes are created
+      whereClauses.push(`(
+        p.name LIKE ? OR 
+        p.description LIKE ? OR 
+        c.name LIKE ? OR 
+        sc.name LIKE ? OR
+        EXISTS (
+          SELECT 1 FROM product_tags pt2 
+          JOIN tags t2 ON pt2.tag_id = t2.id 
+          WHERE pt2.product_id = p.id 
+          AND t2.name LIKE ?
+        )
+      )`);
+      // Add the search term 5 times for each LIKE clause
+      const likePattern = `%${searchQuery}%`;
+      queryParams.push(likePattern, likePattern, likePattern, likePattern, likePattern);
     }
 
     if (category) {
@@ -543,7 +548,8 @@ export async function searchProduct(req, res) {
         p.has_measure_unit, p.measure_unit, p.allows_custom_quantity,
         c.name AS category_name,
         sc.name AS subcategory_name,
-        GROUP_CONCAT(DISTINCT t.name) AS tags
+        COUNT(DISTINCT t.id) AS total_tags,
+        COUNT(DISTINCT pv.id) AS total_variants
     `;
 
     // Add admin-only fields
@@ -555,9 +561,9 @@ export async function searchProduct(req, res) {
       `;
     }
 
-    // Add relevance score when searching with full-text
-    if (searchQuery && searchQuery.trim().length >= 4) {
-      query += `, MATCH(p.name, p.description) AGAINST(? IN BOOLEAN MODE) AS relevance`;
+    // Simple relevance for LIKE search (optional)
+    if (searchQuery) {
+      query += `, 1 AS relevance`; // Simple relevance score
     }
 
     query += `
@@ -566,6 +572,7 @@ export async function searchProduct(req, res) {
       LEFT JOIN subcategories sc ON p.subcategory_id = sc.id
       LEFT JOIN product_tags pt ON p.id = pt.product_id
       LEFT JOIN tags t ON pt.tag_id = t.id
+      LEFT JOIN product_variants pv ON p.id = pv.product_id AND pv.is_active = 1
     `;
 
     if (whereClauses.length > 0) {
@@ -582,16 +589,14 @@ export async function searchProduct(req, res) {
       query += `, p.initial_price, p.profit, p.discount_percentage`;
     }
 
-    // Add relevance to GROUP BY if using full-text search
-    if (searchQuery && searchQuery.trim().length >= 4) {
+    // Add relevance to GROUP BY if searching
+    if (searchQuery) {
       query += `, relevance`;
-      // Add relevance parameter for the SELECT clause
-      queryParams.push(`*${searchQuery}*`);
     }
 
-    // Order by relevance when using full-text search, otherwise by ID
-    if (searchQuery && searchQuery.trim().length >= 4) {
-      query += ` ORDER BY relevance DESC`;
+    // Order by relevance when searching, otherwise by ID
+    if (searchQuery) {
+      query += ` ORDER BY relevance DESC, p.id DESC`;
     } else {
       query += ` ORDER BY p.id DESC`;
     }
@@ -600,7 +605,7 @@ export async function searchProduct(req, res) {
 
     const [products] = await db.execute(query, queryParams);
 
-    // Get total count (reuse the same where clauses and params for count query)
+    // Get total count with enhanced search conditions
     let countQuery = `SELECT COUNT(DISTINCT p.id) as total FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN subcategories sc ON p.subcategory_id = sc.id
@@ -611,11 +616,9 @@ export async function searchProduct(req, res) {
       countQuery += ` WHERE ${whereClauses.join(" AND ")}`;
     }
 
-    // Use original queryParams for count (without the extra relevance parameter if using full-text)
-    const countParams =
-      searchQuery && searchQuery.trim().length >= 4
-        ? queryParams.slice(0, -1)
-        : queryParams;
+    // Calculate count parameters (no relevance calculation parameters to exclude)
+    const countParams = queryParams;
+    
     const [totalCount] = await db.execute(countQuery, countParams);
 
     if (products.length === 0) {
@@ -694,7 +697,8 @@ export async function searchProduct(req, res) {
         subcategory: {
           name: product.subcategory_name,
         },
-        tags: product.tags ? product.tags.split(",") : [],
+        total_tags: parseInt(product.total_tags) || 0,
+        total_variants: parseInt(product.total_variants) || 0,
         images,
         main_image_url: mainImage?.url || null,
         has_discount: hasValidDiscount,
@@ -711,12 +715,8 @@ export async function searchProduct(req, res) {
         };
       }
 
-      // Add relevance score for debugging (only when using full-text search)
-      if (
-        searchQuery &&
-        searchQuery.trim().length >= 4 &&
-        product.relevance !== undefined
-      ) {
+      // Add simple relevance score for debugging
+      if (searchQuery && product.relevance !== undefined) {
         productData.relevance = product.relevance;
       }
 
