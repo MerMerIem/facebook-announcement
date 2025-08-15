@@ -108,6 +108,7 @@ export async function addOrder(req, res) {
             v.discount_percentage,
             v.initial_price,
             v.profit,
+            v.discount_threshold,
             v.measure_unit as variant_measure_unit,
             v.allows_custom_quantity as variant_allows_custom_quantity,
             p.name as product_name,
@@ -133,6 +134,7 @@ export async function addOrder(req, res) {
             discount_percentage,
             initial_price,
             profit,
+            discount_threshold,
             has_measure_unit,
             measure_unit,
             allows_custom_quantity
@@ -193,12 +195,8 @@ export async function addOrder(req, res) {
         subtotal += unitPrice * item.quantity;
       } else {
         // For products without measure unit, apply quantity-based pricing
-        if (item.quantity === 1) {
-          // Single quantity - use regular price
-          subtotal += unitPrice * item.quantity;
-          console.log(`Single quantity for ${productName}: ${unitPrice}`);
-        } else {
-          // Multiple quantity - apply profit reduction
+        if (product.discount_threshold && item.quantity >= product.discount_threshold) {
+          // Apply custom pricing when quantity meets threshold
           const basePrice = product.discount_price
             ? Number(product.discount_price)
             : Number(product.price);
@@ -208,12 +206,16 @@ export async function addOrder(req, res) {
             (Number(product.discount_percentage || 0) / 100);
           unitPrice = basePrice - profitReduction;
 
-          console.log(`Multiple quantity pricing for ${productName}:`);
+          console.log(`Threshold pricing for ${productName} (Qty: ${item.quantity}, Threshold: ${product.discount_threshold}):`);
           console.log(`- Base price: ${basePrice}`);
           console.log(`- Profit reduction: ${profitReduction}`);
           console.log(`- Final unit price: ${unitPrice}`);
 
           subtotal += unitPrice * item.quantity;
+        } else {
+          // Normal pricing - use regular price
+          subtotal += unitPrice * item.quantity;
+          console.log(`Normal pricing for ${productName}: ${unitPrice}`);
         }
       }
 
@@ -415,9 +417,9 @@ export async function calculatePricing(req, res) {
       let isVariant = false;
       let parentProductId = null;
 
-      // FIXED: First try to find in product_variants table
+      // First try to find in product_variants table
       const [variantResult] = await db.execute(
-        "SELECT id, title, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit, product_id FROM product_variants WHERE id = ?",
+        "SELECT id, title, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit, discount_threshold, product_id FROM product_variants WHERE id = ?",
         [item.product_id]
       );
 
@@ -441,7 +443,7 @@ export async function calculatePricing(req, res) {
       } else {
         // If not found in variants, try main products table
         const [productResult] = await db.execute(
-          "SELECT id, name, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit FROM products WHERE id = ?",
+          "SELECT id, name, price, discount_price, discount_start, discount_end, discount_percentage, initial_price, profit, discount_threshold FROM products WHERE id = ?",
           [item.product_id]
         );
 
@@ -461,11 +463,14 @@ export async function calculatePricing(req, res) {
         continue;
       }
 
-      let unitPrice = Number(product.price);
+      // Store original price for calculations
+      const originalPrice = Number(product.price);
+      let unitPrice = originalPrice;
       let usedDiscount = false;
       let specialPricing = false;
+      let basePrice = originalPrice; // Price before any special pricing calculations
 
-      // Check if discount is active
+      // Check if discount is active first
       if (product.discount_price) {
         const discountStart = new Date(product.discount_start);
         const discountEnd = new Date(product.discount_end);
@@ -473,6 +478,7 @@ export async function calculatePricing(req, res) {
 
         if (now >= discountStart && now <= discountEnd) {
           unitPrice = Number(product.discount_price);
+          basePrice = unitPrice; // Use discount price as base for further calculations
           usedDiscount = true;
           console.log(
             `Discount applied on ${product.name}: using discount price ${unitPrice}`
@@ -480,58 +486,61 @@ export async function calculatePricing(req, res) {
         }
       }
 
-      // Apply special pricing logic for quantity > 1
-      if (item.quantity === 1) {
-        subtotal += unitPrice * item.quantity;
-        console.log(
-          `Item: ${product.name}, Quantity: ${item.quantity}, Unit Price: ${unitPrice}, Subtotal now: ${subtotal}`
-        );
-      } else {
-        // Special pricing for multiple quantities
-        const productOriginalPrice = product.discount_price
-          ? Number(product.discount_price)
-          : Number(product.price);
+      // Apply special pricing based on discount_threshold
+      if (product.discount_threshold && item.quantity >= product.discount_threshold) {
+        // Apply special pricing when quantity meets threshold
+        console.log("Base price before special pricing:", basePrice);
+        console.log("Product profit:", product.profit);
+        console.log("Discount percentage:", product.discount_percentage);
 
-        console.log("Original price:", productOriginalPrice);
-
-        // Use profit from the product (main or variant)
-        const profitReduction = Number(
-          product.profit * (product.discount_percentage / 100)
-        );
-
-        unitPrice = productOriginalPrice - profitReduction;
+        // Calculate profit reduction based on discount percentage
+        const profitReduction = Number(product.profit) * (Number(product.discount_percentage) / 100);
+        
+        // Apply the profit reduction to get the special price
+        unitPrice = basePrice - profitReduction;
         specialPricing = true;
 
         console.log(
-          `Special pricing for ${product.name} (Qty: ${item.quantity}): ${unitPrice}`
+          `Special pricing applied for ${product.name} (Qty: ${item.quantity}, Threshold: ${product.discount_threshold})`
         );
-
-        subtotal += unitPrice * item.quantity;
-        console.log(`Subtotal updated after ${product.name}: ${subtotal}`);
+        console.log(`Profit reduction: ${profitReduction}`);
+        console.log(`Final unit price: ${unitPrice}`);
       }
 
       const itemTotal = unitPrice * item.quantity;
+      subtotal += itemTotal;
+
+      console.log(
+        `Product: ${product.name}, Quantity: ${item.quantity}, Unit Price: ${unitPrice}, Item Total: ${itemTotal}, Subtotal: ${subtotal}`
+      );
+
+      // Calculate savings properly
+      let savings = 0;
+      if (specialPricing && usedDiscount) {
+        // Both discount and special pricing applied
+        savings = (originalPrice - unitPrice) * item.quantity;
+      } else if (specialPricing) {
+        // Only special pricing applied
+        savings = (originalPrice - unitPrice) * item.quantity;
+      } else if (usedDiscount) {
+        // Only discount applied
+        savings = (originalPrice - unitPrice) * item.quantity;
+      }
 
       pricingDetails.push({
         product_id: item.product_id,
         product_name: product.name,
         quantity: item.quantity,
-        original_price: Number(product.price),
-        discount_price: product.discount_price
-          ? Number(product.discount_price)
-          : null,
+        original_price: originalPrice,
+        discount_price: product.discount_price ? Number(product.discount_price) : null,
         unit_price: unitPrice,
         item_total: itemTotal,
         used_discount: usedDiscount,
         special_pricing: specialPricing,
-        is_variant: isVariant, // ← Add this to identify variants
         is_variant: isVariant,
         parent_product_id: parentProductId,
-        savings: specialPricing
-          ? Number(product.price) * item.quantity - itemTotal
-          : usedDiscount
-          ? (Number(product.price) - unitPrice) * item.quantity
-          : 0,
+        discount_threshold: product.discount_threshold,
+        savings: savings,
       });
     }
 

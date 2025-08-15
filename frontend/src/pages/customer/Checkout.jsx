@@ -210,6 +210,10 @@ const Checkout = () => {
         "/order/add",
         orderData
       );
+      console.log("orderResponse",orderResponse)
+      console.log("response",response)
+      console.log("responseCode",responseCode)
+      console.log("error",error)
 
       if (responseCode === 201 && orderResponse?.success) {
         clearCart();
@@ -235,19 +239,40 @@ const Checkout = () => {
         });
       } else {
         console.error("Order creation error:", error);
+        console.log("Order response:", orderResponse);
+        console.log("Response code:", responseCode);
 
-        // Extract error message safely
+        // Extract error message safely - UPDATED LOGIC
         let errorMessage = "حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى";
 
-        if (error) {
+        // Check different possible error sources
+        if (orderResponse && orderResponse.error) {
+          // Error returned in orderResponse (from your API wrapper)
+          errorMessage = orderResponse.error;
+          console.log("Error from orderResponse:", errorMessage);
+        } else if (response && response.data && response.data.error) {
+          // Error in response.data.error (your backend format)
+          errorMessage = response.data.error;
+          console.log("Error from response.data.error:", errorMessage);
+        } else if (error) {
           if (typeof error === "string") {
             errorMessage = error;
+            console.log("Error as string:", errorMessage);
+          } else if (error.response?.data?.error) {
+            // Standard axios error with your backend format
+            errorMessage = error.response.data.error;
+            console.log("Error from error.response.data.error:", errorMessage);
           } else if (error.response?.data?.message) {
+            // Fallback to message field
             errorMessage = error.response.data.message;
+            console.log("Error from error.response.data.message:", errorMessage);
           } else if (error.message) {
             errorMessage = error.message;
+            console.log("Error from error.message:", errorMessage);
           }
         }
+
+        console.log("Final errorMessage:", errorMessage);
 
         toast.error("خطأ في إرسال الطلب", {
           description: errorMessage,

@@ -19,6 +19,7 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Layers,
   Settings,
 } from "lucide-react";
@@ -30,6 +31,7 @@ export default function Products() {
   const navigate = useNavigate();
   const { api } = useApi();
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -46,8 +48,7 @@ export default function Products() {
     hasNextPage: false,
     hasPrevPage: false,
   });
-
-  const itemsPerPage = 4;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchProducts = async (page = 1) => {
     setIsLoading(true);
@@ -148,21 +149,32 @@ export default function Products() {
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: itemsPerPage.toString(),
-        searchQuery: searchTerm,
+        ...(searchTerm.trim() && { searchQuery: searchTerm }),
       });
 
+      const endpoint = searchTerm.trim()
+        ? "/product/search"
+        : "/product/getAll";
       const [data, _, responseCode, error] = await api.get(
-        `/product/search?${queryParams.toString()}`
+        `${endpoint}?${queryParams.toString()}`
       );
 
-      if (!error && responseCode === 200 && data && Array.isArray(data.data)) {
-        setProducts(data.data || []);
-        setPagination({
-          totalPages: Math.ceil(data.pagination.total / itemsPerPage),
-          totalItems: data.pagination.total || 0,
-          hasNextPage: page < Math.ceil(data.pagination.total / itemsPerPage),
-          hasPrevPage: page > 1,
-        });
+      if (!error && responseCode === 200 && data) {
+        const products = searchTerm.trim() ? data.data : data.products;
+        if (Array.isArray(products)) {
+          setProducts(products || []);
+          setPagination({
+            totalPages:
+              data.pagination?.totalPages ||
+              Math.ceil(data.pagination?.total / itemsPerPage) ||
+              1,
+            totalItems: data.pagination?.total || 0,
+            hasNextPage:
+              data.pagination?.hasNextPage ||
+              page < Math.ceil(data.pagination?.total / itemsPerPage),
+            hasPrevPage: data.pagination?.hasPrevPage || page > 1,
+          });
+        }
       } else {
         console.error("Error searching products:", error || "No data returned");
         setProducts([]);
@@ -191,8 +203,24 @@ export default function Products() {
   };
 
   useEffect(() => {
-    fetchProducts(currentPage);
-  }, [currentPage]);
+    const searchTimeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(searchTimeout);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (debouncedSearchTerm.trim()) {
+      setIsSearchMode(true);
+      searchProducts(currentPage);
+    } else if (isSearchMode && !debouncedSearchTerm.trim()) {
+      setIsSearchMode(false);
+      fetchProducts(currentPage);
+    } else if (!isSearchMode) {
+      fetchProducts(currentPage);
+    }
+  }, [currentPage, itemsPerPage, debouncedSearchTerm]);
 
   const deleteProduct = async (productId) => {
     try {
@@ -331,7 +359,7 @@ export default function Products() {
     if (page < 1 || page > pagination.totalPages) return;
     setCurrentPage(page);
 
-    if (isSearchMode && searchTerm.trim()) {
+    if (isSearchMode) {
       searchProducts(page);
     } else {
       fetchProducts(page);
@@ -377,18 +405,61 @@ export default function Products() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pr-10 bg-white!"
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && searchTerm.trim()) {
-                  setCurrentPage(1);
-                  setIsSearchMode(true);
-                  searchProducts(1);
-                }
-              }}
+
             />
+          </div>
+
+          <div className="relative">
+            <select
+              id="items-per-page"
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="
+              appearance-none
+              w-full
+              px-4 py-2
+              pr-10
+              bg-white
+              border-2 border-gray-200
+              rounded-lg
+              text-gray-900
+              text-sm
+              font-medium
+              cursor-pointer
+              transition-all
+              duration-200
+              ease-in-out
+              hover:border-primary
+              hover:shadow-sm
+              focus:outline-none
+              focus:ring-2
+              focus:ring-ring
+              focus:ring-opacity-20
+              focus:border-ring
+              focus:shadow-md
+            "
+            >
+              <option value={10}>10 items</option>
+              <option value={20}>20 items</option>
+              <option value={30}>30 items</option>
+              <option value={40}>40 items</option>
+              <option value={50}>50 items</option>
+            </select>
+
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <ChevronDown
+                className="h-5 w-5 text-gray-400 transition-colors duration-200"
+                aria-hidden="true"
+              />
+            </div>
           </div>
 
           <Button
             variant="outline"
+            className={"bg-white! hover:bg-primary! hover:text-white!"}
             onClick={() => {
               if (searchTerm.trim()) {
                 setCurrentPage(1);
@@ -396,7 +467,6 @@ export default function Products() {
                 searchProducts(1);
               }
             }}
-            disabled={!searchTerm.trim()}
           >
             بحث
           </Button>
@@ -406,6 +476,7 @@ export default function Products() {
               variant="outline"
               onClick={() => {
                 setSearchTerm("");
+                setDebouncedSearchTerm("");
                 setIsSearchMode(false);
                 setCurrentPage(1);
                 fetchProducts(1);
@@ -859,7 +930,7 @@ export default function Products() {
                         <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-100">
                           <div className="flex items-baseline gap-3">
                             <p className="text-2xl font-bold text-green-700">
-                              {selectedProduct.price} 
+                              {selectedProduct.price}
                               {selectedProduct.has_measure_unit &&
                                 selectedProduct.measure_unit && (
                                   <span className="text-sm font-normal text-gray-600 mr-2">
@@ -872,7 +943,7 @@ export default function Products() {
                                 <span className="bg-red-100 px-2 py-1 rounded-lg">
                                   خصم
                                 </span>
-                                {selectedProduct.discount_price} 
+                                {selectedProduct.discount_price}
                                 {selectedProduct.has_measure_unit &&
                                   selectedProduct.measure_unit && (
                                     <span className="text-sm font-normal text-red-500 mr-2">

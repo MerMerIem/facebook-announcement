@@ -109,13 +109,15 @@ const ProductDetail = () => {
   }
 
   const calculateLiveTotal = () => {
-    if (!hasMeasureUnit) return null;
-    
-    const qty = parseFloat(customQuantity);
-    if (isNaN(qty) || qty <= 0) return null;
-    
-    return currentPrice * qty;
-  };
+    if (hasMeasureUnit) {
+      const qty = parseFloat(customQuantity);
+      if (isNaN(qty) || qty <= 0) return null;
+      return currentPrice * qty;
+    } else {
+      // For regular products, use the quantity state
+      return currentPrice * quantity;
+    }
+  };  
 
   const getDisplayData = () => {
     if (product.has_variants && selectedVariant) {
@@ -213,6 +215,10 @@ const ProductDetail = () => {
     return quantity;
   };
 
+  const calculateRegularProductTotal = () => {
+    return currentPrice * quantity;
+  };
+
   // Calculate total price based on effective quantity
   const calculateTotalPrice = () => {
     const effectiveQty = getEffectiveQuantity();
@@ -255,6 +261,7 @@ const ProductDetail = () => {
         is_variant: true,
         has_variants: false, // Variants themselves don't have variants
         has_measure_unit: selectedVariant.has_measure_unit,
+        discount_threshold: selectedVariant.discount_threshold,
       };
     } else {
       itemToAdd = {
@@ -272,6 +279,7 @@ const ProductDetail = () => {
         has_variants: product.has_variants,
         has_measure_unit: product.has_measure_unit,
         measure_unit: product.measure_unit,
+        discount_threshold: product.discount_threshold,
       };
     }
 
@@ -454,6 +462,12 @@ const ProductDetail = () => {
                     <Calculator className="h-3 w-3" />
                     يُباع بال{measureUnit}
                   </Badge>
+                )}
+                {currentData.discount_threshold && currentData.discount_threshold > 0 && (
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <Zap className="h-4 w-4" />
+                    يوجد خصم خاص عند شراء أكثر من {currentData.discount_threshold} من هذا المنتج
+                  </div>
                 )}
               </div>
 
@@ -642,24 +656,43 @@ const ProductDetail = () => {
                         )}
                       </div>
                     ) : (
-                      // Regular quantity selector for discrete products
-                      <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
-                        <button
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          disabled={quantity <= 1}
-                          className="p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <Minus className="h-5 w-5" />
-                        </button>
-                        <span className="px-6 py-3 bg-gray-50 font-semibold min-w-[80px] text-center">
-                          {quantity}
-                        </span>
-                        <button
-                          onClick={() => setQuantity(quantity + 1)}
-                          className="p-3 hover:bg-gray-100 transition-colors"
-                        >
-                          <Plus className="h-5 w-5" />
-                        </button>
+                      // Modified regular quantity selector with live price display
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
+                          <button
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            disabled={quantity <= 1}
+                            className="p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <Minus className="h-5 w-5" />
+                          </button>
+                          <span className="px-6 py-3 bg-gray-50 font-semibold min-w-[80px] text-center">
+                            {quantity}
+                          </span>
+                          <button
+                            onClick={() => setQuantity(quantity + 1)}
+                            className="p-3 hover:bg-gray-100 transition-colors"
+                          >
+                            <Plus className="h-5 w-5" />
+                          </button>
+                        </div>
+                        
+                        {/* ADD THIS: Live Price Display for Regular Products */}
+                        <div className="flex-1 min-w-0">
+                          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-4">
+                            <div className="text-center">
+                              <div className="text-sm text-blue-600 font-medium mb-1">
+                                إجمالي السعر
+                              </div>
+                              <div className="text-2xl font-bold text-blue-700">
+                                {formatPrice(calculateLiveTotal())}
+                              </div>
+                              <div className="text-xs text-blue-600 mt-1">
+                                {quantity} × {formatPrice(currentPrice)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -714,34 +747,45 @@ const ProductDetail = () => {
                     </div>
                   </div>
                 )}
+                
               </div>
             )}
 
             {/* Add to cart button */}
             <div className="flex gap-3">
-              <button
-                onClick={handleAddToCart}
-                disabled={
-                  hasMeasureUnit &&
-                  (!customQuantity || parseFloat(customQuantity) <= 0)
-                }
-                className={`flex-1 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  selectedVariant
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                    : "bg-gradient-to-r from-accent to-primary hover:scale-105"
-                }`}
-              >
-                <ShoppingCart className="h-6 w-6" />
-                أضف إلى السلة
-                {hasMeasureUnit &&
-                  customQuantity &&
-                  parseFloat(customQuantity) > 0 && (
+            <button
+              onClick={handleAddToCart}
+              disabled={
+                hasMeasureUnit &&
+                (!customQuantity || parseFloat(customQuantity) <= 0)
+              }
+              className={`flex-1 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
+                selectedVariant
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  : "bg-gradient-to-r from-accent to-primary hover:scale-105"
+              }`}
+            >
+              <ShoppingCart className="h-6 w-6" />
+              أضف إلى السلة
+              
+              {/* Show live total for both measure unit and regular products */}
+              {(() => {
+                const effectiveQty = getEffectiveQuantity();
+                const liveTotal = calculateLiveTotal();
+                
+                if (effectiveQty > 0 && liveTotal) {
+                  return (
                     <div className="flex flex-col items-start text-sm opacity-90">
-                      <span>({parseFloat(customQuantity)} {measureUnit})</span>
-                      <span className="text-xs">{formatPrice(calculateLiveTotal())}</span>
+                      <span>
+                        ({hasMeasureUnit ? `${effectiveQty} ${measureUnit}` : `${effectiveQty} قطعة`})
+                      </span>
+                      <span className="text-xs">{formatPrice(liveTotal)}</span>
                     </div>
-                  )}
-              </button>
+                  );
+                }
+                return null;
+              })()}
+            </button>
 
               {added && (
                 <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-xl border border-green-200 animate-pulse">

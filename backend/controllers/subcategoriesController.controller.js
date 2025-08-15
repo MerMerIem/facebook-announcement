@@ -6,23 +6,40 @@ export async function getAllSubCategories(req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
     const categoryId = req.query.categoryId; // Optional filter by category ID
+    const search = req.query.search;
   
     try {
       let query = `
-        SELECT s.*, c.name as category_name
+        SELECT s.*, c.name as category_name,
+               (SELECT COUNT(*) FROM products p WHERE p.subcategory_id = s.id) AS product_count
         FROM subcategories s
         LEFT JOIN categories c ON s.category_id = c.id
       `;
-      let countQuery = "SELECT COUNT(*) as total FROM subcategories";
+      let countQuery = "SELECT COUNT(*) as total FROM subcategories s";
       let params = [];
       let countParams = [];
+      let whereConditions = [];
   
       // Add category filter if provided
       if (categoryId) {
-        query += " WHERE s.category_id = ?";
-        countQuery += " WHERE category_id = ?";
+        whereConditions.push("s.category_id = ?");
         params.push(categoryId);
         countParams.push(categoryId);
+      }
+
+      // Add search filter if provided
+      if (search) {
+        whereConditions.push("s.name LIKE ?");
+        const searchParam = `%${search}%`;
+        params.push(searchParam);
+        countParams.push(searchParam);
+      }
+
+      // Add WHERE clause if there are conditions
+      if (whereConditions.length > 0) {
+        const whereClause = " WHERE " + whereConditions.join(" AND ");
+        query += whereClause;
+        countQuery += whereClause;
       }
   
       // Add pagination to main query

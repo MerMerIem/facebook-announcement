@@ -66,6 +66,8 @@ const ModifyProduct = () => {
           tags: data.tags || "",
           has_measure_unit: data.has_measure_unit || false,
           measure_unit: data.measure_unit || "",
+          prod_ref: data.prod_ref || "",
+          discount_threshold: data.discount_threshold || "",
         });
 
         // Process images
@@ -716,6 +718,38 @@ const ModifyProduct = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                       placeholder="علامة 1, علامة 2, علامة 3"
                     />
+                  </div>
+
+                  {/* Admin Fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        رقم المرجع
+                      </label>
+                      <input
+                        type="text"
+                        name="prod_ref"
+                        value={formData.prod_ref}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        placeholder="أدخل رقم المرجع"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        حد الخصم (الكمية)
+                      </label>
+                      <input
+                        type="number"
+                        name="discount_threshold"
+                        value={formData.discount_threshold}
+                        onChange={handleInputChange}
+                        min="1"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        placeholder="أدخل الحد الأدنى للكمية"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

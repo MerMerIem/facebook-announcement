@@ -19,7 +19,7 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, ChevronDown, Search, Tag, Package } from "lucide-react";
 import { toast } from "sonner"; // Changed from useToast to sonner
 import { useApi } from "@/contexts/RestContext";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
@@ -42,10 +42,11 @@ export default function Categories() {
     category: null,
     isLoading: false
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const itemsPerPage = 10;
-
-  const fetchData = async (page = 1) => {
+  const fetchData = async (page = 1, search = "") => {
     setIsLoading(true);
 
     try {
@@ -53,6 +54,10 @@ export default function Categories() {
         page: page.toString(),
         limit: itemsPerPage.toString(),
       });
+
+      if (search.trim()) {
+        queryParams.append("search", search);
+      }
 
       const [data, _, responseCode, error] = await api.get(
         `/category/getAll?${queryParams.toString()}`
@@ -99,8 +104,16 @@ export default function Categories() {
   };
 
   useEffect(() => {
-    fetchData(currentPage);
-  }, [currentPage]);
+    const searchTimeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(searchTimeout);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchData(currentPage, debouncedSearchTerm);
+  }, [currentPage, itemsPerPage, debouncedSearchTerm]);
 
   const handlePageChange = (page) => {
     if (page < 1 || page > (pagination?.totalPages || 1)) return;
@@ -288,6 +301,108 @@ export default function Categories() {
         </Dialog>
       </div>
 
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="البحث في الفئات..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+            }}
+            className="pr-10 text-right"
+            dir="rtl"
+          />
+        </div>
+
+        <div className="relative">
+          <select
+            id="items-per-page"
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="
+            appearance-none
+            w-full
+            px-4 py-2
+            pr-10
+            bg-white
+            border-2 border-gray-200
+            rounded-lg
+            text-gray-900
+            text-sm
+            font-medium
+            cursor-pointer
+            transition-all
+            duration-200
+            ease-in-out
+            hover:border-primary
+            hover:shadow-sm
+            focus:outline-none
+            focus:ring-2
+            focus:ring-ring
+            focus:ring-opacity-20
+            focus:border-ring
+            focus:shadow-md
+          "
+          >
+            <option value={10}>10 items</option>
+            <option value={20}>20 items</option>
+            <option value={30}>30 items</option>
+            <option value={40}>40 items</option>
+            <option value={50}>50 items</option>
+          </select>
+
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <ChevronDown
+              className="h-5 w-5 text-gray-400 transition-colors duration-200"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Simple Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-blue-100">
+              <Package className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">إجمالي الفئات</p>
+              <p className="text-xl font-bold">{pagination.totalItems || 0}</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-green-100">
+              <Tag className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">إجمالي الفئات الفرعية</p>
+              <p className="text-xl font-bold">{categories.reduce((sum, cat) => sum + (cat.subcategory_count || 0), 0)}</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-purple-100">
+              <Package className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">إجمالي المنتجات</p>
+              <p className="text-xl font-bold">{categories.reduce((sum, cat) => sum + (cat.product_count || 0), 0)}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>قائمة الفئات ({pagination.totalItems || 0})</CardTitle>
@@ -299,15 +414,16 @@ export default function Categories() {
                 <TableHead className="text-right">الرقم</TableHead>
                 <TableHead className="text-right">اسم الفئة</TableHead>
                 <TableHead className="text-right">عدد الفئات الفرعية</TableHead>
+                <TableHead className="text-right">عدد المنتجات</TableHead>
                 <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {categories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="text-muted-foreground">
-                      لا توجد فئات
+                      {searchTerm ? "لا توجد فئات تطابق البحث" : "لا توجد فئات"}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -319,6 +435,11 @@ export default function Categories() {
                     <TableCell>
                       <Badge variant="secondary">
                         {category.subcategory_count}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {category.product_count || 0}
                       </Badge>
                     </TableCell>
                     <TableCell>

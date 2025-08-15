@@ -67,7 +67,7 @@ const EditProductVariant = () => {
           profit: variant.pricing.profit,
           discount_price: variant.discount?.discountPrice || null,
           discount_start: variant.discount?.discountStart?.split("T")[0] || "",
-          discountPercentage: variant.discount?.discountPercentage || 0,
+          discountPercentage: variant.discount?.discountPercentage ?? null,
           discount_end: variant.discount?.discountEnd?.split("T")[0] || "",
           measure_unit: variant.specifications.measureUnit || "",
           size: variant.specifications.size || "",
@@ -83,6 +83,8 @@ const EditProductVariant = () => {
             Math.max(0, variant.images.all.findIndex((img) => img.isPrimary)),
           is_active: variant.status.isActive,
           hasChanges: false, // Track if this variant has been modified
+          prod_ref: variant.specifications?.prodRef || "",
+          discount_threshold: variant.specifications?.discountThreshold || "",
           orders: {
             totalOrders: variant.orders?.totalOrders || 0,
             totalQuantityOrdered: variant.orders?.totalQuantityOrdered || 0,
@@ -380,15 +382,18 @@ const EditProductVariant = () => {
               initial_price: variant.initial_price,
               profit: variant.profit,
               discount_price: variant.discount_price,
-              discountPercentage: variant.discountPercentage,
+              // FIX: Make sure discountPercentage is included and not null/undefined
+              discountPercentage: variant.discountPercentage ?? null,
               discount_start: variant.discount_start,
               discount_end: variant.discount_end,
               measure_unit: variant.measure_unit,
               size: variant.size,
               is_active: variant.is_active,
               main_image_index: variant.mainImageIndex,
+              prod_ref: variant.prod_ref || "",
+              discount_threshold: variant.discount_threshold || null,
               deletedImages: deletedImages,
-              deletedImagesPublicIds:deletedImagesPublicIds
+              deletedImagesPublicIds: deletedImagesPublicIds
             }))
           )
         );
@@ -988,6 +993,45 @@ const EditProductVariant = () => {
                                   {errors[`variant_profit_${index}`]}
                                 </p>
                               )}
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">
+                                رقم المرجع
+                              </label>
+                              <input
+                                type="text"
+                                value={variant.prod_ref || ""}
+                                onChange={(e) =>
+                                  updateVariant(
+                                    variant.id,
+                                    "prod_ref",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="أدخل رقم المرجع"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">
+                                حد الخصم (الكمية)
+                              </label>
+                              <input
+                                type="number"
+                                value={variant.discount_threshold || ""}
+                                onChange={(e) =>
+                                  updateVariant(
+                                    variant.id,
+                                    "discount_threshold",
+                                    parseInt(e.target.value) || null
+                                  )
+                                }
+                                min="1"
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="أدخل الحد الأدنى للكمية"
+                              />
                             </div>
 
                             <div>

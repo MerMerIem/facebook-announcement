@@ -32,6 +32,8 @@ export async function getAllProducts(req, res) {
         p.has_measure_unit,
         p.measure_unit,
         p.allows_custom_quantity,
+        p.prod_ref,
+        p.discount_threshold,
         c.name AS category_name,
         s.name AS subcategory_name
       FROM products p
@@ -148,6 +150,8 @@ export async function getAllProducts(req, res) {
         has_measure_unit: product.has_measure_unit,
         measure_unit: product.measure_unit,
         allows_custom_quantity: product.allows_custom_quantity,
+        prod_ref: product.prod_ref,
+        discount_threshold: product.discount_threshold,
         category: {
           id: product.category_id,
           name: product.category_name,
@@ -215,6 +219,8 @@ export async function getProductById(req, res) {
         p.has_measure_unit,
         p.measure_unit,
         p.allows_custom_quantity,
+        p.prod_ref,
+        p.discount_threshold,
         c.name AS category_name,
         s.name AS subcategory_name,
         JSON_ARRAYAGG(
@@ -387,6 +393,8 @@ export async function getProductById(req, res) {
       has_measure_unit: product.has_measure_unit,
       measure_unit: product.measure_unit,
       allows_custom_quantity: product.allows_custom_quantity,
+      prod_ref: product.prod_ref,
+      discount_threshold: product.discount_threshold,
       category: {
         id: product.category_id,
         name: product.category_name,
@@ -546,6 +554,7 @@ export async function searchProduct(req, res) {
         p.id, p.name, p.description, p.price,
         p.discount_price, p.discount_start, p.discount_end,
         p.has_measure_unit, p.measure_unit, p.allows_custom_quantity,
+        p.prod_ref, p.discount_threshold,
         c.name AS category_name,
         sc.name AS subcategory_name,
         COUNT(DISTINCT t.id) AS total_tags,
@@ -688,6 +697,8 @@ export async function searchProduct(req, res) {
         has_measure_unit: product.has_measure_unit,
         measure_unit: product.measure_unit,
         allows_custom_quantity: product.allows_custom_quantity,
+        prod_ref: product.prod_ref,
+        discount_threshold: product.discount_threshold,
         current_price: hasValidDiscount
           ? product.discount_price
           : product.price, // Actual price to display
@@ -763,6 +774,8 @@ export async function modifyProduct(req, res) {
       main_image_index,
       has_measure_unit,
       measure_unit,
+      prod_ref,
+      discount_threshold,
     } = req.body || {};
 
     console.log("req", req.body);
@@ -861,13 +874,13 @@ export async function modifyProduct(req, res) {
       subcategory_id = subcatRows[0].id;
     }
 
-    // Update query WITHOUT allows_custom_quantity
+    // Update query with new fields
     await connection.execute(
       `UPDATE products SET 
         name = ?, description = ?, initial_price = ?, profit = ?, price = ?, 
         discount_percentage = ?, discount_price = ?, discount_start = ?, 
         discount_end = ?, category_id = ?, subcategory_id = ?,
-        has_measure_unit = ?, measure_unit = ?
+        has_measure_unit = ?, measure_unit = ?, prod_ref = ?, discount_threshold = ?
       WHERE id = ?`,
       [
         name,
@@ -883,6 +896,8 @@ export async function modifyProduct(req, res) {
         subcategory_id,
         has_measure_unit,
         measure_unit || null,
+        prod_ref || null,
+        discount_threshold || null,
         id,
       ]
     );
@@ -1004,6 +1019,8 @@ export async function addProduct(req, res) {
     has_measure_unit = false,
     measure_unit = null,
     allows_custom_quantity = false,
+    prod_ref = null,
+    discount_threshold = null,
   } = req.body;
 
   console.log("req body of adding", req.body);
@@ -1211,6 +1228,8 @@ export async function addProduct(req, res) {
       "has_measure_unit",
       "measure_unit",
       "allows_custom_quantity",
+      "prod_ref",
+      "discount_threshold",
     ];
     const baseValues = [
       name,
@@ -1224,6 +1243,8 @@ export async function addProduct(req, res) {
       parsed_has_measure_unit,
       parsed_has_measure_unit ? measure_unit : null,
       parsed_allows_custom_quantity,
+      prod_ref || null,
+      discount_threshold ? parseInt(discount_threshold) : null,
     ];
 
     if (hasAllDiscountFields) {
@@ -1690,6 +1711,8 @@ export async function addProductVariants(req, res) {
         "measure_unit",
         "size",
         "is_active",
+        "prod_ref",
+        "discount_threshold",
       ];
 
       const vals = [
@@ -1701,6 +1724,8 @@ export async function addProductVariants(req, res) {
         variant.measure_unit || null,
         variant.size || null,
         variant.is_active ? 1 : 0,
+        variant.prod_ref || null,
+        variant.discount_threshold ? parseInt(variant.discount_threshold) : null,
       ];
 
       // Add discount fields if applicable
@@ -2029,6 +2054,8 @@ export async function editVariants(req, res) {
         "measure_unit = ?",
         "size = ?",
         "is_active = ?",
+        "prod_ref = ?",
+        "discount_threshold = ?",
         "updated_at = NOW()",
       ];
 
@@ -2040,6 +2067,8 @@ export async function editVariants(req, res) {
         variant.measure_unit || null,
         variant.size || null,
         variant.is_active ? 1 : 0,
+        variant.prod_ref || null,
+        variant.discount_threshold ? parseInt(variant.discount_threshold) : null,
       ];
 
       // Handle discount fields
@@ -2057,13 +2086,18 @@ export async function editVariants(req, res) {
           discountPercentage
         );
       } else {
-        // Clear discount fields if no discount
+        // Clear discount fields if no discount but preserve bulk discount
         updateCols.push(
           "discount_price = NULL",
           "discount_start = NULL",
-          "discount_end = NULL",
-          "discount_percentage = NULL"
+          "discount_end = NULL"
         );
+        
+        // Only set bulk discount percentage if no regular discount
+        if (bulkDiscountPercentage !== null && bulkDiscountPercentage !== undefined) {
+          updateCols.push("discount_percentage = ?");
+          updateVals.push(bulkDiscountPercentage);
+        }
       }
 
       // Handle bulk discount percentage
@@ -2396,6 +2430,8 @@ export async function getVariants(req, res) {
         pv.measure_unit,
         pv.size,
         pv.is_active,
+        pv.prod_ref,
+        pv.discount_threshold,
         pv.created_at,
         pv.updated_at,
         COALESCE(order_counts.total_orders, 0) as total_orders,
@@ -2467,7 +2503,7 @@ export async function getVariants(req, res) {
       const primaryImage =
         variantImages.find((img) => img.isPrimary) || variantImages[0] || null;
 
-      // Calculate discount info if applicable
+      // Calculate discount info - always include discountPercentage even if no active discount
       let discountInfo = null;
       const now = new Date();
 
@@ -2489,6 +2525,16 @@ export async function getVariants(req, res) {
           savings:
             parseFloat(variant.price) - parseFloat(variant.discount_price),
         };
+      } else {
+        // Even if no active discount, include discountPercentage if it exists
+        discountInfo = {
+          discountPrice: null,
+          discountPercentage: parseFloat(variant.discount_percentage || 0),
+          discountStart: null,
+          discountEnd: null,
+          isActive: false,
+          savings: 0,
+        };
       }
 
       return {
@@ -2507,6 +2553,8 @@ export async function getVariants(req, res) {
         specifications: {
           measureUnit: variant.measure_unit,
           size: variant.size,
+          prodRef: variant.prod_ref,
+          discountThreshold: variant.discount_threshold,
         },
         images: {
           primary: primaryImage,

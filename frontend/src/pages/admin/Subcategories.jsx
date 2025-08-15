@@ -25,8 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, Tag } from "lucide-react";
-import { toast } from "sonner"; // Changed from useToast to sonner
+import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, ChevronDown, Tag, Search, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge"; // CORRECT IMPORT
+import { toast } from "sonner";
 import { useApi } from "@/contexts/RestContext";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 
@@ -49,10 +50,11 @@ export default function Subcategories() {
     subcategory: null,
     isLoading: false
   });
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  const itemsPerPage = 10;
-
-  const fetchData = async (page = 1) => {
+  const fetchData = async (page = 1, search = "") => {
     setIsLoading(true);
 
     try {
@@ -60,6 +62,10 @@ export default function Subcategories() {
         page: page.toString(),
         limit: itemsPerPage.toString(),
       });
+
+      if (search.trim()) {
+        subcatsQuery.append("search", search);
+      }
 
       const [subcatsData, _, subcatsCode, subcatsError] = await api.get(
         `/subcategory/getAll?${subcatsQuery.toString()}`
@@ -97,8 +103,16 @@ export default function Subcategories() {
   };
 
   useEffect(() => {
-    fetchData(currentPage);
-  }, [currentPage]);
+    const searchTimeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(searchTimeout);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchData(currentPage, debouncedSearchTerm);
+  }, [currentPage, itemsPerPage, debouncedSearchTerm]);
 
   const handlePageChange = (page) => {
     if (page < 1 || page > (pagination?.totalPages || 1)) return;
@@ -259,13 +273,75 @@ export default function Subcategories() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">إدارة الفئات الفرعية</h1>
         
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              إضافة فئة فرعية
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="البحث في الفئات الفرعية..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+              }}
+              className="pr-10 text-right"
+              dir="rtl"
+            />
+          </div>
+
+          <div className="relative">
+            <select
+              id="items-per-page"
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="
+              appearance-none
+              w-full
+              px-4 py-2
+              pr-10
+              bg-white
+              border-2 border-gray-200
+              rounded-lg
+              text-gray-900
+              text-sm
+              font-medium
+              cursor-pointer
+              transition-all
+              duration-200
+              ease-in-out
+              hover:border-primary
+              hover:shadow-sm
+              focus:outline-none
+              focus:ring-2
+              focus:ring-ring
+              focus:ring-opacity-20
+              focus:border-ring
+              focus:shadow-md
+            "
+            >
+              <option value={10}>10 items</option>
+              <option value={20}>20 items</option>
+              <option value={30}>30 items</option>
+              <option value={40}>40 items</option>
+              <option value={50}>50 items</option>
+            </select>
+
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <ChevronDown
+                className="h-5 w-5 text-gray-400 transition-colors duration-200"
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                إضافة فئة فرعية
+              </Button>
+            </DialogTrigger>
           <DialogContent dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-right">إضافة فئة فرعية جديدة</DialogTitle>
@@ -306,6 +382,46 @@ export default function Subcategories() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
+      </div>
+
+      {/* Simple Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-blue-100">
+              <Tag className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">إجمالي الفئات الفرعية</p>
+              <p className="text-xl font-bold">{pagination.total || 0}</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-green-100">
+              <Package className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">عدد الفئات الرئيسية</p>
+              <p className="text-xl font-bold">{new Set(subcategories.map(sub => sub.category_id)).size}</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-purple-100">
+              <Package className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">إجمالي المنتجات</p>
+              <p className="text-xl font-bold">{subcategories.reduce((sum, sub) => sum + (sub.product_count || 0), 0)}</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <Card>
@@ -319,15 +435,16 @@ export default function Subcategories() {
                 <TableHead className="text-right">الرقم</TableHead>
                 <TableHead className="text-right">اسم الفئة الفرعية</TableHead>
                 <TableHead className="text-right">الفئة الرئيسية</TableHead>
+                <TableHead className="text-right">عدد المنتجات</TableHead>
                 <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {subcategories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="text-muted-foreground">
-                      لا توجد فئات فرعية
+                      {searchTerm ? "لا توجد فئات فرعية تطابق البحث" : "لا توجد فئات فرعية"}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -337,6 +454,11 @@ export default function Subcategories() {
                     <TableCell>{subcategory.id}</TableCell>
                     <TableCell className="font-medium">{subcategory.name}</TableCell>
                     <TableCell>{subcategory.category_name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {subcategory.product_count || 0}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Dialog open={editingSubcategory?.id === subcategory.id} onOpenChange={(open) => {

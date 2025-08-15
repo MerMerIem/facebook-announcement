@@ -5,13 +5,27 @@ export async function getAllTags(req, res) {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const search = req.query.search;
     
     try {
-        // Get paginated tags
-        const [rows] = await db.query("SELECT * FROM tags LIMIT ? OFFSET ?", [limit, offset]);
+        let query = "SELECT * FROM tags";
+        let countQuery = "SELECT COUNT(*) as total FROM tags";
+        let params = [];
+        let countParams = [];
+
+        if (search) {
+            query += " WHERE name LIKE ?";
+            countQuery += " WHERE name LIKE ?";
+            const searchParam = `%${search}%`;
+            params.push(searchParam);
+            countParams.push(searchParam);
+        }
+
+        query += " ORDER BY id LIMIT ? OFFSET ?";
+        params.push(limit, offset);
         
-        // Get total count for pagination info
-        const [totalResult] = await db.query("SELECT COUNT(*) as total FROM tags");
+        const [rows] = await db.query(query, params);
+        const [totalResult] = await db.query(countQuery, countParams);
         const total = totalResult[0].total;
         const totalPages = Math.ceil(total / limit);
         
@@ -81,3 +95,4 @@ export async function deleteTag(req,res){
         res.status(500).json({ message: "Internal server error" });
     }
 }
+

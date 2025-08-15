@@ -18,7 +18,7 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronLeft, ChevronRight, ChevronDown, Tag, Search } from "lucide-react";
 import { toast } from "sonner"; // Changed to sonner
 import { useApi } from "@/contexts/RestContext";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
@@ -41,8 +41,9 @@ export default function Tags() {
     tag: null,
     isLoading: false
   });
-
-  const itemsPerPage = 8;
+  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   // Fetch data function with query parameters (page, limit, search)
   const fetchData = async (page = 1, search = "") => {
@@ -103,8 +104,16 @@ export default function Tags() {
 
   // Main useEffect hook to fetch data
   useEffect(() => {
-    fetchData(currentPage);
-  }, [currentPage]);
+    const searchTimeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(searchTimeout);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchData(currentPage, debouncedSearchTerm);
+  }, [currentPage, itemsPerPage, debouncedSearchTerm]);
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -269,13 +278,75 @@ export default function Tags() {
           </div>
         </div>
         
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              إضافة علامة جديدة
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="البحث في العلامات..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+              }}
+              className="pr-10 text-right"
+              dir="rtl"
+            />
+          </div>
+
+          <div className="relative">
+            <select
+              id="items-per-page"
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="
+              appearance-none
+              w-full
+              px-4 py-2
+              pr-10
+              bg-white
+              border-2 border-gray-200
+              rounded-lg
+              text-gray-900
+              text-sm
+              font-medium
+              cursor-pointer
+              transition-all
+              duration-200
+              ease-in-out
+              hover:border-primary
+              hover:shadow-sm
+              focus:outline-none
+              focus:ring-2
+              focus:ring-ring
+              focus:ring-opacity-20
+              focus:border-ring
+              focus:shadow-md
+            "
+            >
+              <option value={10}>10 items</option>
+              <option value={20}>20 items</option>
+              <option value={30}>30 items</option>
+              <option value={40}>40 items</option>
+              <option value={50}>50 items</option>
+            </select>
+
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <ChevronDown
+                className="h-5 w-5 text-gray-400 transition-colors duration-200"
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                إضافة علامة جديدة
+              </Button>
+            </DialogTrigger>
           <DialogContent dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-right">إضافة علامة جديدة</DialogTitle>
@@ -296,6 +367,7 @@ export default function Tags() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -318,7 +390,7 @@ export default function Tags() {
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-8">
                     <div className="text-muted-foreground">
-                      لا توجد علامات
+                      {searchTerm ? "لا توجد علامات تطابق البحث" : "لا توجد علامات"}
                     </div>
                   </TableCell>
                 </TableRow>

@@ -89,6 +89,8 @@ const AddProductVariant = () => {
       mainImageIndex: 0,
       is_active: true,
       bulk_discount_percentage: 0,
+      prod_ref: "",
+      discount_threshold: null,
     };
 
     setVariants((prev) => [...prev, newVariant]);
@@ -103,9 +105,12 @@ const AddProductVariant = () => {
   };
 
   const updateVariant = (variantId, field, value) => {
+    console.log(`Updating ${field} for variant ${variantId}:`, value); // DEBUG LINE
     setVariants((prev) =>
       prev.map((variant) =>
-        variant.id === variantId ? { ...variant, [field]: value } : variant
+        variant.id === variantId
+          ? { ...variant, [field]: value, hasChanges: true }
+          : variant
       )
     );
   };
@@ -291,6 +296,9 @@ const AddProductVariant = () => {
             is_active: variant.is_active,
             main_image_index: variant.mainImageIndex,
             bulk_discount_percentage: variant.bulk_discount_percentage,
+            // ADD THESE TWO LINES:
+            prod_ref: variant.prod_ref || null,
+            discount_threshold: variant.discount_threshold || null,
           }))
         )
       );
@@ -784,6 +792,45 @@ const AddProductVariant = () => {
                                 </p>
                               )}
                             </div>
+
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">
+                                رقم المرجع
+                              </label>
+                              <input
+                                type="text"
+                                value={variant.prod_ref || ""}
+                                onChange={(e) =>
+                                  updateVariant(
+                                    variant.id,
+                                    "prod_ref",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="أدخل رقم المرجع"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">
+                                حد الخصم (الكمية)
+                              </label>
+                              <input
+                                type="number"
+                                value={variant.discount_threshold || ""}
+                                onChange={(e) =>
+                                  updateVariant(
+                                    variant.id,
+                                    "discount_threshold",
+                                    parseInt(e.target.value) || null
+                                  )
+                                }
+                                min="1"
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="أدخل الحد الأدنى للكمية"
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -982,20 +1029,22 @@ const AddProductVariant = () => {
                             الخصم عند شراء اكثر من منتج %
                           </label>
                           <div className="relative">
-                            <input
-                              type="number"
-                              value={variant.bulk_discount_percentage || 0}
-                              onChange={(e) =>
-                                updateVariant(
-                                  variant.id,
-                                  "bulk_discount_percentage",
-                                  Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))
-                              }
-                              min="0"
-                              max="100"
-                              className="w-full px-4 py-3 pl-12 border-2 bg-white border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                              placeholder="0"
-                            />
+                          <input
+                            type="number"
+                            value={variant.discountPercentage || ""} // FIX: Handle null/undefined values
+                            onChange={(e) =>
+                              updateVariant(
+                                variant.id,
+                                "discountPercentage",
+                                e.target.value ? parseFloat(e.target.value) : 0 // FIX: Default to 0 instead of null
+                              )
+                            }
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            className="w-full px-4 py-3 pl-12 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            placeholder="0.00"
+                          />
                             <Percent
                               size={20}
                               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"

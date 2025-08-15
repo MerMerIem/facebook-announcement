@@ -5,24 +5,35 @@ export async function getAllCategories(req, res) {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const search = req.query.search;
+    console.log("search in categories",search)
 
     try {
+        let whereClause = "";
+        let params = [];
+        
+        if (search) {
+            whereClause = "WHERE c.name LIKE ?";
+            params.push(`%${search}%`);
+        }
+
         // 1. Get total number of categories first
-        const [totalRows] = await db.execute("SELECT COUNT(*) AS total FROM categories");
+        const [totalRows] = await db.execute(`SELECT COUNT(*) AS total FROM categories c ${whereClause}`, params);
         const total = totalRows[0].total;
         const totalPages = Math.ceil(total / limit);
 
-        // 2. Get paginated categories with subcategory count
-        // Using template literals for LIMIT/OFFSET to avoid parameter binding issues
+        // 2. Get paginated categories with subcategory and product counts
         const [categories] = await db.execute(`
             SELECT 
                 c.id,
                 c.name,
-                (SELECT COUNT(*) FROM subcategories sc WHERE sc.category_id = c.id) AS subcategory_count
+                (SELECT COUNT(*) FROM subcategories sc WHERE sc.category_id = c.id) AS subcategory_count,
+                (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count
             FROM categories c
+            ${whereClause}
             ORDER BY c.id
             LIMIT ${limit} OFFSET ${offset}
-        `);
+        `, params);
 
         // 3. Get all subcategories for the fetched categories
         const categoryIds = categories.map(c => c.id);

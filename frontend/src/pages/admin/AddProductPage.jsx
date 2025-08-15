@@ -29,6 +29,8 @@ const ProductPage = () => {
     // NEW: Add new fields here
     has_measure_unit: false,
     measure_unit: "",
+    prod_ref: "",
+    discount_threshold: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -262,6 +264,8 @@ const ProductPage = () => {
       if (formData.has_measure_unit) {
         formDataToSend.append("measure_unit", formData.measure_unit);
       }
+      formDataToSend.append("prod_ref", formData.prod_ref || "");
+      formDataToSend.append("discount_threshold", formData.discount_threshold || "");
 
       // Optional discount
       if (formData.discount_percentage) {
@@ -432,6 +436,8 @@ const ProductPage = () => {
       // NEW: Reset new fields
       has_measure_unit: false,
       measure_unit: "",
+      prod_ref: "",
+      discount_threshold: "",
     });
     setImages([]);
     setMainImageIndex(0);
@@ -643,6 +649,36 @@ const ProductPage = () => {
                         {getMeasureUnitLabel(formData.measure_unit)} من المنتج
                       </p>
                     )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      رقم المرجع
+                    </label>
+                    <input
+                      type="text"
+                      name="prod_ref"
+                      value={formData.prod_ref}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                      placeholder="أدخل رقم المرجع"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      حد الخصم (الكمية)
+                    </label>
+                    <input
+                      type="number"
+                      name="discount_threshold"
+                      value={formData.discount_threshold}
+                      onChange={handleInputChange}
+                      min="1"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                      placeholder="أدخل الحد الأدنى للكمية"
+                    />
                   </div>
                 </div>
               </div>

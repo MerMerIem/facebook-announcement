@@ -99,7 +99,8 @@ export function Sidebar({ collapsed }) {
                   onClick={() => !collapsed && toggleExpanded(item.title)}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
-                    hasActiveChild && "bg-sidebar-accent text-sidebar-primary"
+                    // Better contrast for active parent items
+                    hasActiveChild && "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100"
                   )}
                 >
                   <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -122,8 +123,9 @@ export function Sidebar({ collapsed }) {
                         to={child.href}
                         className={cn(
                           "block px-3 py-2 mr-6 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors text-right",
+                          // Much better contrast for active child items
                           isActive(child.href) &&
-                            "bg-sidebar-primary text-sidebar-primary-foreground"
+                            "bg-blue-600 text-white font-medium shadow-sm"
                         )}
                       >
                         {child.title}
@@ -141,8 +143,9 @@ export function Sidebar({ collapsed }) {
               to={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
+                // Better contrast for active main items
                 isActive(item.href) &&
-                  "bg-sidebar-primary text-sidebar-primary-foreground"
+                  "bg-blue-600 text-white font-medium shadow-sm"
               )}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />

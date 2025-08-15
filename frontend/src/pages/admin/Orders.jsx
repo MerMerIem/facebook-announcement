@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, Trash2, Package, Filter } from "lucide-react";
+import { Search, Eye, Trash2, Package, Filter, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useApi } from "@/contexts/RestContext";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
@@ -45,7 +45,7 @@ export default function Orders() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -135,7 +135,7 @@ export default function Orders() {
 
   useEffect(() => {
     fetchData(currentPage, debouncedStatusFilter, debouncedSearchTerm);
-  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm]);
+  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm, itemsPerPage]);
 
   const handlePageChange = (page) => {
     if (page < 1 || page > (pagination?.totalPages || 1)) return;
@@ -325,8 +325,62 @@ export default function Orders() {
             placeholder="البحث بالاسم، البريد الإلكتروني، الهاتف، أو رقم الطلب..."
             value={searchTerm}
             onChange={handleSearchChange}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setCurrentPage(1);
+                fetchData(1, statusFilter, searchTerm);
+              }
+            }}
             className="pr-10 bg-white!"
           />
+        </div>
+
+        <div className="relative">
+          <select
+            id="items-per-page"
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="
+            appearance-none
+            w-full
+            px-4 py-2
+            pr-10
+            bg-white
+            border-2 border-gray-200
+            rounded-lg
+            text-gray-900
+            text-sm
+            font-medium
+            cursor-pointer
+            transition-all
+            duration-200
+            ease-in-out
+            hover:border-primary
+            hover:shadow-sm
+            focus:outline-none
+            focus:ring-2
+            focus:ring-ring
+            focus:ring-opacity-20
+            focus:border-ring
+            focus:shadow-md
+          "
+          >
+            <option value={10}>10 items</option>
+            <option value={20}>20 items</option>
+            <option value={30}>30 items</option>
+            <option value={40}>40 items</option>
+            <option value={50}>50 items</option>
+          </select>
+
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <ChevronDown
+              className="h-5 w-5 text-gray-400 transition-colors duration-200"
+              aria-hidden="true"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

@@ -39,7 +39,7 @@ const Cart = () => {
   const [editingQuantity, setEditingQuantity] = useState({});
   const [itemsLoadingPricing, setItemsLoadingPricing] = useState(new Set());
   const navigate = useNavigate();
-  console.log("pricingData",pricingData)
+  console.log("pricingData", pricingData);
 
   const formatPrice = (price) => {
     const numericPrice = parseFloat(price);
@@ -295,12 +295,11 @@ const Cart = () => {
         imageUrl: item.product.main_image_url,
         category: item.product.category?.name || item.product.category,
         subcategory: item.product.subcategory?.name || item.product.subcategory,
-        parent_product_id : item.product?.parent_product_id || null,
-      
+        parent_product_id: item.product?.parent_product_id || null,
       };
     });
 
-    console.log(selectedWilayaInfo)
+    console.log(selectedWilayaInfo);
 
     const checkoutData = {
       items: checkoutItems,
@@ -412,8 +411,9 @@ const Cart = () => {
                   parseFloat(item.product.price || "0");
 
                 const savings = serverItemDetails?.savings || 0;
-                const itemTotal = serverItemDetails?.item_total || itemPrice * item.quantity;
-                console.log("serverItemDetails",itemTotal)
+                const itemTotal =
+                  serverItemDetails?.item_total || itemPrice * item.quantity;
+                console.log("serverItemDetails", itemTotal);
 
                 // Check if we're using estimated pricing
                 const isEstimated = serverItemDetails?._isEstimated;
@@ -456,9 +456,7 @@ const Cart = () => {
                           {/* Header Row */}
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
-                              <p
-                                className="text-lg font-semibold text-gray-900 hover:text-primary transition-colors line-clamp-2"
-                              >
+                              <p className="text-lg font-semibold text-gray-900 hover:text-primary transition-colors line-clamp-2">
                                 {productName}
                               </p>
                               <p className="text-sm text-gray-500 mt-1">
@@ -506,7 +504,7 @@ const Cart = () => {
                               </div>
                             )}
                             {isLoadingPrice && (
-                              <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block flex items-center gap-1">
+                              <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center gap-1">
                                 <Loader2 className="h-3 w-3 animate-spin" />
                                 جاري تحديث السعر...
                               </div>
@@ -652,12 +650,11 @@ const Cart = () => {
                 <CardTitle className="text-right text-xl">ملخص الطلب</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-right">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2 justify-end">
-                    <span>اختر الولاية للتوصيل</span>
+                <div className="space-y-2" dir="rtl">
+                  <label className="text-sm font-medium flex items-center gap-2 justify-start">
                     <MapPin className="h-4 w-4" />
+                    <span>اختر الولاية للتوصيل</span>
                   </label>
-
                   {loadingPricing ? (
                     <div className="text-center py-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
@@ -679,32 +676,47 @@ const Cart = () => {
                         setSelectedWilayaId(value);
                       }}
                     >
-                      <SelectTrigger className="text-right w-full">
+                      <SelectTrigger className="text-right w-full " dir="rtl">
                         <SelectValue placeholder="اختر الولاية" />
                       </SelectTrigger>
                       <SelectContent
                         position="popper"
-                        className="max-h-60 overflow-y-auto z-50"
+                        className="max-h-100 w-[300px] overflow-y-auto z-50 scroll-smooth"
+                        style={{
+                          scrollBehavior: "smooth",
+                          scrollbarWidth: "thin",
+                        }}
                         sideOffset={4}
+                        dir="rtl"
                       >
-                        {pricingData.wilayas.map((wilaya) => (
-                          <SelectItem
-                            key={`wilaya-${wilaya.id}`}
-                            value={wilaya.id.toString()}
-                            className="text-right cursor-pointer"
-                          >
-                            {`${wilaya.name} - ${
-                              wilaya.delivery_fee === 0
-                                ? "مجاني"
-                                : formatPrice(wilaya.delivery_fee)
-                            }`}
-                          </SelectItem>
-                        ))}
+                        <div className="py-1">
+                          {pricingData.wilayas.map((wilaya) => (
+                            <SelectItem
+                              key={`wilaya-${wilaya.id}`}
+                              value={wilaya.id.toString()}
+                              className="text-right cursor-pointer hover:bg-accent/20! rounded-none! transition-colors duration-200"
+                              dir="rtl"
+                            >
+                              <div className="flex justify-between items-center w-full p-1">
+                                <span className="font-medium text-gray-700 w-[100px]">
+                                  {wilaya.name}
+                                </span>
+                                <span
+                                  className={`text-sm font-semibold px-2 py-0.5 rounded 
+      ${wilaya.delivery_fee === 0 ? " text-green-700" : " text-primary"}`}
+                                >
+                                  {wilaya.delivery_fee === 0
+                                    ? "مجاني"
+                                    : formatPrice(wilaya.delivery_fee)}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </div>
                       </SelectContent>
                     </Select>
                   )}
                 </div>
-
                 {!selectedWilayaId && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                     <p className="text-sm text-yellow-800 text-right">
