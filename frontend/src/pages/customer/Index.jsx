@@ -107,23 +107,23 @@ const Index = () => {
       </div>
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4">
+      <section className="relative py-12 sm:py-16 lg:py-20 px-4">
         <div className="container mx-auto text-center">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6 text-shadow">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary mb-4 sm:mb-6 text-shadow">
               متجر الأدوات المتخصص
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground mb-8">
+            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-6 sm:mb-8">
               أحدث الأدوات الكهربائية وأدوات البناء بأفضل الأسعار
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/shop">
                 <Button
                   size="lg"
-                  className="gradient-primary text-white border-0 hover:opacity-90 text-lg px-8 py-4"
+                  className="gradient-primary text-white border-0 hover:opacity-90 text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 w-full sm:w-auto"
                 >
                   تسوق الآن
-                  <ArrowRight className="mr-2 h-5 w-5" />
+                  <ArrowRight className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
             </div>
@@ -132,12 +132,12 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4">
+      <section className="py-12 sm:py-16 px-4">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-primary">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-primary">
             لماذا تختار متجرنا؟
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {features.map((feature, index) => (
               <Card key={index} className="hover-lift gradient-card border-0">
                 <CardContent className="p-6 text-center">
@@ -156,9 +156,9 @@ const Index = () => {
       </section>
 
       {/* Categories Preview */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-12 sm:py-16 px-4 bg-white">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-primary">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-primary">
             فئات المنتجات
           </h2>
 
@@ -224,17 +224,17 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-primary">
+      <section className="py-12 sm:py-16 px-4 bg-primary">
         <div className="container mx-auto text-center">
           <div className="max-w-2xl mx-auto text-white">
-            <h2 className="text-3xl font-bold mb-4">ابدأ التسوق الآن</h2>
-            <p className="text-xl mb-8 opacity-90">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">ابدأ التسوق الآن</h2>
+            <p className="text-lg sm:text-xl mb-6 sm:mb-8 opacity-90">
               اكتشف أفضل العروض والمنتجات الجديدة
             </p>
             <Link to="/shop">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-4">
+              <Button size="lg" variant="outline" className="text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 w-full sm:w-auto">
                 تصفح المتجر
-                <ArrowRight className="mr-2 h-5 w-5" />
+                <ArrowRight className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </Link>
           </div>

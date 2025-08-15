@@ -528,7 +528,7 @@ const ProductPage = () => {
         </div>
 
         <form onSubmit={handleSubmit} autoComplete="off" className="space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-6">
                 معلومات المنتج
@@ -559,7 +559,7 @@ const ProductPage = () => {
                   error={errors.description}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* السعر الأولي */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -652,7 +652,7 @@ const ProductPage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       رقم المرجع
@@ -711,7 +711,7 @@ const ProductPage = () => {
                 </div>
 
                 {images.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 gap-4">
                     {images.map((image, index) => (
                       <div
                         key={index}
@@ -1045,7 +1045,7 @@ const ProductPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-4 pt-6 mt-8 border-t-2 border-accent">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-4 pt-6 mt-8 border-t-2 border-accent">
             <button
               type="button"
               onClick={resetForm}

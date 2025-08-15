@@ -301,8 +301,8 @@ export default function Categories() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="relative w-full sm:flex-1 sm:max-w-sm">
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             placeholder="البحث في الفئات..."
@@ -365,7 +365,7 @@ export default function Categories() {
       </div>
 
       {/* Simple Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="p-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-blue-100">
@@ -407,8 +407,9 @@ export default function Categories() {
         <CardHeader>
           <CardTitle>قائمة الفئات ({pagination.totalItems || 0})</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table className="min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right">الرقم</TableHead>
@@ -443,7 +444,7 @@ export default function Categories() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                       <Dialog open={editingCategory?.id === category.id} onOpenChange={(open) => {
                           if (!open) {
                             setEditingCategory(null);
@@ -498,14 +499,15 @@ export default function Categories() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 p-4">
+              <p className="text-sm text-muted-foreground text-center sm:text-left">
                 عرض {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, pagination.totalItems)} من {pagination.totalItems}
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 <Button
                   variant="outline"
                   size="sm"

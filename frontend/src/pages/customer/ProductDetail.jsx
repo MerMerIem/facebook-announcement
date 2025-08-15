@@ -383,7 +383,7 @@ const ProductDetail = () => {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-12 mb-12">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 mb-8 sm:mb-12">
           {/* Product Images */}
           <div className="space-y-4">
             <div className="relative group">
@@ -429,12 +429,12 @@ const ProductDetail = () => {
           </div>
 
           {/* Product Info */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <h1 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight">
               {product.name}
               {selectedVariant && (
-                <span className="text-lg font-normal text-muted-foreground ml-2">
+                <span className="text-base sm:text-lg font-normal text-muted-foreground ml-2 block sm:inline">
                   - {selectedVariant.title}
                 </span>
               )}
@@ -499,7 +499,7 @@ const ProductDetail = () => {
                   <p className="text-foreground text-sm mb-4">
                     يرجى اختيار نوع وحجم الخزان المناسب لاحتياجاتك
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
                     {product.variants.map((variant) => {
                       const variantHasDiscount =
                         variant.has_discount &&
@@ -581,11 +581,11 @@ const ProductDetail = () => {
                     : ""
                 }
               >
-                <div className="flex items-center gap-4 mb-4">
-                  <span className={`text-4xl font-bold ${selectedVariant ? "text-blue-600" : ""}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
+                  <span className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${selectedVariant ? "text-blue-600" : ""}`}>
                     {formatPrice(currentPrice)}
                     {hasMeasureUnit && measureUnit && (
-                      <span className="text-lg text-muted-foreground">
+                      <span className="text-sm sm:text-base lg:text-lg text-muted-foreground">
                         /{measureUnit}
                       </span>
                     )}
@@ -657,23 +657,23 @@ const ProductDetail = () => {
                       </div>
                     ) : (
                       // Modified regular quantity selector with live price display
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                        <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden w-full sm:w-auto">
                           <button
                             onClick={() => setQuantity(Math.max(1, quantity - 1))}
                             disabled={quantity <= 1}
-                            className="p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="p-2 sm:p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                           >
-                            <Minus className="h-5 w-5" />
+                            <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
                           </button>
-                          <span className="px-6 py-3 bg-gray-50 font-semibold min-w-[80px] text-center">
+                          <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-50 font-semibold min-w-[60px] sm:min-w-[80px] text-center flex-1 sm:flex-none">
                             {quantity}
                           </span>
                           <button
                             onClick={() => setQuantity(quantity + 1)}
-                            className="p-3 hover:bg-gray-100 transition-colors"
+                            className="p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
                           >
-                            <Plus className="h-5 w-5" />
+                            <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                           </button>
                         </div>
                         
@@ -759,14 +759,15 @@ const ProductDetail = () => {
                 hasMeasureUnit &&
                 (!customQuantity || parseFloat(customQuantity) <= 0)
               }
-              className={`flex-1 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`w-full text-white px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 sm:gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
                 selectedVariant
                   ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   : "bg-gradient-to-r from-accent to-primary hover:scale-105"
               }`}
             >
-              <ShoppingCart className="h-6 w-6" />
-              أضف إلى السلة
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="hidden sm:inline">أضف إلى السلة</span>
+              <span className="sm:hidden">إضافة</span>
               
               {/* Show live total for both measure unit and regular products */}
               {(() => {
@@ -801,16 +802,16 @@ const ProductDetail = () => {
         </div>
 
         {/* Description */}
-        <div className="bg-white rounded-lg border border-gray-300 overflow-hidden mb-8">
-          <div className="bg-accent/10 px-6 py-4 border-b border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <Info className="h-6 w-6 text-primary" />
+        <div className="bg-white rounded-lg border border-gray-300 overflow-hidden mb-6 sm:mb-8">
+          <div className="bg-accent/10 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+              <Info className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               وصف المنتج
             </h2>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div
-              className="prose prose-lg max-w-none text-gray-700 leading-relaxed font-admin!"
+              className="prose prose-sm sm:prose-lg max-w-none text-gray-700 leading-relaxed font-admin!"
               dangerouslySetInnerHTML={{
                 __html: currentData.description || product.description,
               }}
@@ -833,7 +834,7 @@ const ProductDetail = () => {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {relatedProducts.map((relatedProduct) => (
                 <ProductCard key={relatedProduct.id} product={relatedProduct} />
               ))}

@@ -423,17 +423,17 @@ const Shop = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Category breadcrumb/title */}
         {getCurrentCategoryName() && (
-          <div className="mb-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h1 className="text-3xl font-bold text-gray-900 mb-3 font-admin">
+          <div className="mb-6 sm:mb-8 bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3 font-admin">
               {getCurrentCategoryName()}
             </h1>
-            <p className="text-gray-600 font-admin text-lg">
+            <p className="text-gray-600 font-admin text-base sm:text-lg">
               تصفح منتجات فئة {getCurrentCategoryName()}
             </p>
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
           {/* Filters Sidebar */}
           <div
             className={`lg:w-80 ${isFiltersOpen ? "block" : "hidden lg:block"}`}
@@ -452,8 +452,8 @@ const Shop = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-4 w-full sm:w-auto">
                 <div className="lg:hidden">
                   <button
                     onClick={() => setIsFiltersOpen(!isFiltersOpen)}
@@ -462,6 +462,11 @@ const Shop = () => {
                     <SlidersHorizontal className="h-5 w-5 text-gray-600" />
                     <span className="font-admin text-gray-700">الفلاتر</span>
                   </button>
+                </div>
+                <div className="text-sm text-gray-600 flex-1 lg:flex-none">
+                  {products.length > 0 && (
+                    <span>عرض {products.length} من {pagination.total || 0} منتج</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -488,7 +493,7 @@ const Shop = () => {
             ) : products.length > 0 ? (
               <>
                 {/* Products Grid */}
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {products.map((product) => (
                     <div key={product.id} className="group">
                       <div className="bg-white h-full rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-1">
@@ -512,22 +517,22 @@ const Shop = () => {
                 )}
               </>
             ) : (
-              <div className="text-center py-20">
-                <div className="bg-white rounded-3xl p-12 shadow-sm border border-gray-100 max-w-md mx-auto">
-                  <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <SlidersHorizontal className="h-10 w-10 text-gray-400" />
+              <div className="text-center py-12 sm:py-20">
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-12 shadow-sm border border-gray-100 max-w-md mx-auto">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                    <SlidersHorizontal className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-4 font-admin text-gray-900">
+                  <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 font-admin text-gray-900">
                     لا توجد منتجات
                   </h3>
-                  <p className="text-gray-600 font-admin text-lg leading-relaxed">
+                  <p className="text-gray-600 font-admin text-base sm:text-lg leading-relaxed">
                     {getCurrentCategoryName()
                       ? `لم نجد أي منتجات في فئة ${getCurrentCategoryName()}`
                       : "لم نجد أي منتجات تطابق معايير البحث الحالية"}
                   </p>
-                  <div className="mt-8">
+                  <div className="mt-6 sm:mt-8">
                     <button 
-                      className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors duration-200 font-admin"
+                      className="px-4 sm:px-6 py-2 sm:py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors duration-200 font-admin w-full sm:w-auto"
                       onClick={handleClearAllFilters}
                       >
                       تصفح جميع المنتجات

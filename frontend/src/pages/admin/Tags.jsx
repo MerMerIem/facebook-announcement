@@ -269,17 +269,17 @@ export default function Tags() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div className="flex items-center gap-3">
           <Tag className="w-8 h-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">إدارة العلامات</h1>
-            <p className="text-muted-foreground">إدارة علامات المنتجات والتصنيفات</p>
+            <h1 className="text-2xl lg:text-3xl font-bold">إدارة العلامات</h1>
+            <p className="text-muted-foreground text-sm lg:text-base">إدارة علامات المنتجات والتصنيفات</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <div className="relative flex-1 sm:max-w-sm">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="البحث في العلامات..."
@@ -292,7 +292,7 @@ export default function Tags() {
             />
           </div>
 
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <select
               id="items-per-page"
               value={itemsPerPage}
@@ -325,10 +325,10 @@ export default function Tags() {
               focus:shadow-md
             "
             >
-              <option value={10}>10 items</option>
-              <option value={20}>20 items</option>
-              <option value={30}>30 items</option>
-              <option value={40}>40 items</option>
+              <option value={8}>8 items</option>
+              <option value={16}>16 items</option>
+              <option value={24}>24 items</option>
+              <option value={32}>32 items</option>
               <option value={50}>50 items</option>
             </select>
 
@@ -342,7 +342,7 @@ export default function Tags() {
 
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 w-full sm:w-auto">
                 <Plus className="w-4 h-4" />
                 إضافة علامة جديدة
               </Button>
@@ -373,11 +373,12 @@ export default function Tags() {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>قائمة العلامات ({pagination.total || 0})</CardTitle>
+            <CardTitle>قائمة العلامات ({pagination.totalItems || 0})</CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table className="min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right">الرقم</TableHead>
@@ -405,7 +406,7 @@ export default function Tags() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Dialog open={editingTag?.id === tag.id} onOpenChange={(open) => {
                           if (!open) {
                             setEditingTag(null);
@@ -458,19 +459,20 @@ export default function Tags() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 p-4">
+              <p className="text-sm text-muted-foreground text-center sm:text-left">
                 صفحة {currentPage} من {pagination.totalPages}
                 {pagination && (
-                  <span className="mr-2">
+                  <span className="block sm:inline sm:mr-2">
                     • المجموع: {pagination.totalItems} علامة
                   </span>
                 )}
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 <Button
                   variant="outline"
                   size="sm"

@@ -387,19 +387,19 @@ const Checkout = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Checkout Form */}
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">معلومات التوصيل</CardTitle>
+                <CardTitle className="text-xl sm:text-2xl">معلومات التوصيل</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Personal Information */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <User className="h-5 w-5" />
+                    <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                      <User className="h-4 w-4 sm:h-5 sm:w-5" />
                       المعلومات الشخصية
                     </h3>
 
@@ -467,8 +467,8 @@ const Checkout = () => {
 
                   {/* Delivery Information */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <MapPin className="h-5 w-5" />
+                    <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
                       معلومات التوصيل
                     </h3>
 
@@ -633,9 +633,9 @@ const Checkout = () => {
                     return (
                       <div
                         key={`item-${itemData.id}-${index}`}
-                        className="flex gap-3"
+                        className="flex gap-2 sm:gap-3"
                       >
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                           {itemData.imageUrl ? (
                             <img
                               src={itemData.imageUrl}
@@ -648,19 +648,19 @@ const Checkout = () => {
                             </div>
                           )}
                         </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm line-clamp-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-xs sm:text-sm line-clamp-2">
                             {itemData.name}
                           </h4>
-                          <div className="flex justify-between items-center mt-1">
-                            <span className="text-sm text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-1 gap-1">
+                            <span className="text-xs sm:text-sm text-muted-foreground">
                               الكمية: {itemData.quantity}
                               {itemData.hasMeasureUnit && itemData.measureUnit
                                 ? ` ${itemData.measureUnit}`
                                 : ""}
                             </span>
                             <div className="text-right">
-                              <span className="font-medium">
+                              <span className="font-medium text-sm">
                                 {formatPrice(itemData.itemTotal)}
                               </span>
                               {itemData.hasDiscount &&

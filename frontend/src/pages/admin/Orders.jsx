@@ -318,7 +318,7 @@ export default function Orders() {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-4 h-8">
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -383,7 +383,7 @@ export default function Orders() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select
             value={statusFilter || "all"}
@@ -414,7 +414,7 @@ export default function Orders() {
       </div>
 
       {(statusFilter || searchTerm) && (
-        <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+        <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
           <span className="text-sm text-muted-foreground">الفلاتر النشطة:</span>
           {statusFilter && (
             <Badge variant="secondary" className="gap-1">
@@ -444,7 +444,7 @@ export default function Orders() {
       <Card className={"p-0 border-0"}>
         <CardContent className="p-0 m-0">
           <div className="overflow-x-auto">
-            <Table className="min-w-[800px]">
+            <Table className="min-w-[1000px]">
               <TableHeader className={"p-0"}>
                 <TableRow className="text-right hover:bg-white">
                   <TableHead className="text-right font-medium"></TableHead>
@@ -604,14 +604,14 @@ export default function Orders() {
       </Card>
 
       {pagination.totalPages > 1 && (
-        <div className="flex justify-between items-center mt-10">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-10">
           <div className="text-sm text-muted-foreground">
             صفحة {currentPage} من {pagination.totalPages}
             {pagination && (
               <span className="mr-2"> • المجموع: {pagination.total} طلب</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 justify-center">
             <Button
               variant="outline"
               size="sm"

@@ -396,8 +396,8 @@ export default function Products() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 justify-between">
-        <div className="relative w-full flex gap-2">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 justify-between">
+        <div className="relative w-full flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400 bg-white!" />
             <Input
@@ -493,7 +493,7 @@ export default function Products() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card className="border-0 p-3 shadow-admin">
           <CardContent className="p-0">
             <div className="flex items-center space-x-3">
@@ -540,7 +540,7 @@ export default function Products() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[800px]">
                 <thead className="border-b">
                   <tr className="text-right">
                     <th className="p-4 font-medium">صورة</th>
@@ -718,14 +718,14 @@ export default function Products() {
       </Card>
 
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-600">
             صفحة {currentPage} من {pagination.totalPages}
             <span className="mr-2">
               • المجموع: {pagination.totalItems} منتج
             </span>
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-center">
             <Button
               variant="outline"
               size="sm"

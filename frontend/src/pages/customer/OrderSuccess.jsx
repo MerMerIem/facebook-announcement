@@ -9,36 +9,36 @@ const OrderSuccess = () => {
     <div className="min-h-screen bg-shop-bg">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto">
           <Card className="text-center">
             <CardHeader className="pb-4">
-              <div className="w-20 h-20 bg-success rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-12 w-12 text-white" />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-success rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
               </div>
-              <CardTitle className="text-2xl text-success">
+              <CardTitle className="text-xl sm:text-2xl text-success">
                 تم إرسال طلبك بنجاح!
               </CardTitle>
             </CardHeader>
             
-            <CardContent className="space-y-6">
-              <p className="text-muted-foreground">
+            <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 شكراً لك على ثقتك بمتجرنا. تم استلام طلبك وسيتم الاتصال بك قريباً لتأكيد التفاصيل وترتيب موعد التوصيل.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
                 <div className="space-y-2">
-                  <Package className="h-8 w-8 text-primary mx-auto" />
-                  <h3 className="font-semibold">تأكيد الطلب</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto" />
+                  <h3 className="font-semibold text-sm sm:text-base">تأكيد الطلب</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     سيتم الاتصال بك خلال 24 ساعة
                   </p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Clock className="h-8 w-8 text-primary mx-auto" />
-                  <h3 className="font-semibold">التوصيل</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto" />
+                  <h3 className="font-semibold text-sm sm:text-base">التوصيل</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     2-5 أيام عمل حسب الولاية
                   </p>
                 </div>
@@ -59,7 +59,7 @@ const OrderSuccess = () => {
                 </Link>
               </div>
 
-              <div className="text-sm text-muted-foreground space-y-1 border-t pt-4">
+              <div className="text-xs sm:text-sm text-muted-foreground space-y-1 border-t pt-4">
                 <p>إذا كان لديك أي استفسار، يمكنك التواصل معنا:</p>
                 <p>الهاتف: 0123456789</p>
                 <p>البريد الإلكتروني: info@shop.com</p>
