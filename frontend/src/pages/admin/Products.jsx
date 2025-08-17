@@ -142,6 +142,19 @@ export default function Products() {
     }
   };
 
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat("ar-DZ", {
+      style: "currency",
+      currency: "DZD",
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "غير محدد";
+    return new Date(dateString).toLocaleDateString("ar-DZ");
+  };
+
   const searchProducts = async (page = 1) => {
     setIsLoading(true);
 
@@ -927,18 +940,8 @@ export default function Products() {
                       {/* Pricing */}
                       <section>
                         <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
-                          <svg
-                            className="w-5 h-5 text-yellow-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                            />
+                          <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                           </svg>
                           التسعير
                         </h3>
@@ -947,42 +950,29 @@ export default function Products() {
                             {isDiscountActive(selectedProduct) ? (
                               <>
                                 <p className="text-2xl font-bold text-green-700">
-                                  {selectedProduct.discount_price}
-                                  {selectedProduct.has_measure_unit &&
-                                    selectedProduct.measure_unit && (
-                                      <span className="text-sm font-normal text-gray-600 mr-2">
-                                        / {selectedProduct.measure_unit}
-                                      </span>
-                                    )}
+                                  {formatPrice(selectedProduct.discount_price)}
+                                  {selectedProduct.has_measure_unit && selectedProduct.measure_unit && (
+                                    <span className="text-sm font-normal text-gray-600 mr-2">/ {selectedProduct.measure_unit}</span>
+                                  )}
                                 </p>
                                 <p className="text-xl text-gray-500 line-through">
-                                  {selectedProduct.price}
-                                  {selectedProduct.has_measure_unit &&
-                                    selectedProduct.measure_unit && (
-                                      <span className="text-sm font-normal text-gray-400 mr-2">
-                                        / {selectedProduct.measure_unit}
-                                      </span>
-                                    )}
+                                  {formatPrice(selectedProduct.price)}
+                                  {selectedProduct.has_measure_unit && selectedProduct.measure_unit && (
+                                    <span className="text-sm font-normal text-gray-400 mr-2">/ {selectedProduct.measure_unit}</span>
+                                  )}
                                 </p>
-                                <span className="bg-red-100 text-red-600 px-2 py-1 rounded-lg text-sm font-medium">
-                                  خصم نشط
-                                </span>
+                                <span className="bg-red-100 text-red-600 px-2 py-1 rounded-lg text-sm font-medium">خصم نشط</span>
                               </>
                             ) : (
                               <>
                                 <p className="text-2xl font-bold text-green-700">
-                                  {selectedProduct.price}
-                                  {selectedProduct.has_measure_unit &&
-                                    selectedProduct.measure_unit && (
-                                      <span className="text-sm font-normal text-gray-600 mr-2">
-                                        / {selectedProduct.measure_unit}
-                                      </span>
-                                    )}
+                                  {formatPrice(selectedProduct.price)}
+                                  {selectedProduct.has_measure_unit && selectedProduct.measure_unit && (
+                                    <span className="text-sm font-normal text-gray-600 mr-2">/ {selectedProduct.measure_unit}</span>
+                                  )}
                                 </p>
                                 {selectedProduct.discount_price && (
-                                  <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg text-sm">
-                                    خصم منتهي
-                                  </span>
+                                  <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg text-sm">خصم منتهي</span>
                                 )}
                               </>
                             )}
@@ -1158,107 +1148,157 @@ export default function Products() {
                     </section>
                   </div>
 
+                  {/* Additional Product Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Admin Pricing */}
+                    {selectedProduct.admin_pricing && (
+                      <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                          </svg>
+                          تسعير الإدارة
+                        </h3>
+                        <div className="bg-green-50 p-4 rounded-xl space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">السعر الأولي:</span>
+                            <span className="font-semibold">{formatPrice(selectedProduct.admin_pricing.initial_price)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">الربح:</span>
+                            <span className="font-semibold text-green-600">{formatPrice(selectedProduct.admin_pricing.profit)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">نسبة الخصم:</span>
+                            <span className="font-semibold">{selectedProduct.admin_pricing.discount_percentage}%</span>
+                          </div>
+                          <div className="flex justify-between border-t pt-2">
+                            <span className="text-sm text-gray-600">السعر المحسوب:</span>
+                            <span className="font-bold text-lg">{formatPrice(selectedProduct.admin_pricing.calculated_price)}</span>
+                          </div>
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Discount Details */}
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        تفاصيل الخصم
+                      </h3>
+                      <div className="bg-red-50 p-4 rounded-xl space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">عتبة الخصم:</span>
+                          <span className="font-semibold">{selectedProduct.discount_threshold || "غير محدد"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">بداية الخصم:</span>
+                          <span className="font-semibold">{formatDate(selectedProduct.discount_start)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">نهاية الخصم:</span>
+                          <span className="font-semibold">{formatDate(selectedProduct.discount_end)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">رقم المرجع:</span>
+                          <span className="font-semibold">{selectedProduct.prod_ref || "غير محدد"}</span>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Statistics */}
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        إحصائيات
+                      </h3>
+                      <div className="bg-blue-50 p-4 rounded-xl space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">إجمالي الصور:</span>
+                          <span className="font-semibold">{selectedProduct.total_images || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">إجمالي المتغيرات:</span>
+                          <span className="font-semibold">{selectedProduct.total_variants || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">المنتجات ذات الصلة:</span>
+                          <span className="font-semibold">{selectedProduct.related_products?.length || 0}</span>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+
                   {/* Variants */}
-                  {(selectedProduct.has_variants ||
-                    selectedProduct.variants?.length > 0) && (
+                  {selectedProduct.variants?.length > 0 && (
                     <section>
                       <h3 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
-                        <svg
-                          className="w-5 h-5 text-orange-500"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                          />
+                        <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
                         النماذج المتوفرة
                         <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
-                          {selectedProduct.variants?.length || 0} نموذج
+                          {selectedProduct.variants.length} نموذج
                         </span>
                       </h3>
-                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {selectedProduct.variants?.map((variant) => (
-                          <div
-                            key={variant.id}
-                            className="group bg-white border-2 border-gray-200 hover:border-blue-300 rounded-xl p-4 space-y-3 transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
-                          >
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {selectedProduct.variants.map((variant) => (
+                          <div key={variant.id} className="bg-white border-2 border-gray-200 rounded-xl p-4 space-y-3">
                             <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                              <img
-                                src={variant.primary_image_url}
-                                alt={variant.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                              />
+                              <img src={variant.primary_image_url} alt={variant.title} className="w-full h-full object-cover" />
                             </div>
                             <div className="space-y-2">
-                              <h4 className="font-bold text-gray-800 leading-tight">
-                                {variant.title}
-                              </h4>
-                              {variant.size && (
-                                <p className="text-sm text-gray-600 flex items-center gap-1">
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                                    />
-                                  </svg>
-                                  الحجم: {variant.size}
-                                  {variant.measure_unit &&
-                                    ` ${variant.measure_unit}`}
-                                </p>
-                              )}
-                              {variant.allows_custom_quantity && (
-                                <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                  يسمح بكمية مخصصة
-                                </p>
-                              )}
-                            </div>
-                            <div className="space-y-1">
+                              <h4 className="font-bold text-gray-800">{variant.title}</h4>
+                              <p className="text-sm text-gray-600">الحجم: {variant.size} {variant.measure_unit}</p>
                               <div className="flex items-baseline gap-2">
-                                <p className="text-lg font-bold text-green-600">
-                                  {variant.price} دج
-                                </p>
-                                {variant.measure_unit && (
-                                  <span className="text-xs text-gray-500">
-                                    / {variant.measure_unit}
-                                  </span>
+                                <p className="text-lg font-bold text-green-600">{formatPrice(variant.price)}</p>
+                                {variant.discount_price && (
+                                  <p className="text-red-600 font-semibold">{formatPrice(variant.discount_price)}</p>
                                 )}
                               </div>
-                              {variant.discount_price && (
-                                <p className="text-red-600 font-semibold flex items-center gap-1">
-                                  <span className="bg-red-100 text-red-800 text-xs px-1.5 py-0.5 rounded">
-                                    خصم
-                                  </span>
-                                  {variant.discount_price} دج
-                                  {variant.measure_unit && (
-                                    <span className="text-xs text-red-400">
-                                      / {variant.measure_unit}
-                                    </span>
-                                  )}
-                                </p>
+                              <div className="flex gap-2">
+                                <Badge variant={variant.is_active ? "default" : "secondary"}>
+                                  {variant.is_active ? "نشط" : "غير نشط"}
+                                </Badge>
+                                {variant.has_discount && <Badge className="bg-green-100 text-green-800">خصم</Badge>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Related Products */}
+                  {selectedProduct.related_products?.length > 0 && (
+                    <section>
+                      <h3 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        المنتجات ذات الصلة
+                        <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                          {selectedProduct.related_products.length} منتج
+                        </span>
+                      </h3>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {selectedProduct.related_products.map((relatedProduct) => (
+                          <div key={relatedProduct.id} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+                            <div className="flex gap-3">
+                              {relatedProduct.main_image_url && (
+                                <img src={relatedProduct.main_image_url} alt={relatedProduct.name} className="w-16 h-16 object-cover rounded" />
                               )}
+                              <div className="flex-1">
+                                <h4 className="font-medium text-sm">{relatedProduct.name}</h4>
+                                <p className="text-xs text-gray-600">{formatPrice(relatedProduct.price)}</p>
+                                {relatedProduct.unit_info?.has_measure_unit && (
+                                  <Badge variant="outline" className="text-xs">{relatedProduct.unit_info.measure_unit}</Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
