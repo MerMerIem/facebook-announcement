@@ -337,21 +337,21 @@ export default function Products() {
 
   const getDiscountStatus = (product) => {
     if (!product?.discount_price) return null;
-
+  
     if (product.discount_start && product.discount_end) {
       const now = new Date();
       const startDate = new Date(product.discount_start);
       const endDate = new Date(product.discount_end);
-
+  
       if (now >= startDate && now <= endDate) {
         return <Badge className="bg-green-500 text-white">خصم نشط</Badge>;
       }
       if (now < startDate) {
-        return <Badge className="bg-zinc-400 text-white">خصم سينشط </Badge>;
+        return <Badge className="bg-zinc-400 text-white">خصم سينشط</Badge>;
       }
-      return <Badge variant="outline">خصم منتهي</Badge>;
+      return <Badge variant="outline" className="text-gray-500">خصم منتهي</Badge>;
     }
-
+  
     return <Badge className="bg-red-500 text-white">خصم نشط</Badge>;
   };
 
@@ -386,6 +386,21 @@ export default function Products() {
       </div>
     );
   }
+
+  const isDiscountActive = (product) => {
+    if (!product?.discount_price) return false;
+  
+    if (product.discount_start && product.discount_end) {
+      const now = new Date();
+      const startDate = new Date(product.discount_start);
+      const endDate = new Date(product.discount_end);
+  
+      return now >= startDate && now <= endDate;
+    }
+  
+    // If no start/end dates, assume discount is active
+    return true;
+  };
 
   return (
     <div className="space-y-6">
@@ -588,7 +603,7 @@ export default function Products() {
                       </td>
                       <td className="p-4">
                         <div>
-                          {product?.discount_price ? (
+                          {isDiscountActive(product) ? (
                             <div>
                               <div className="font-bold">
                                 {product.discount_price} دج
@@ -929,28 +944,47 @@ export default function Products() {
                         </h3>
                         <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-100">
                           <div className="flex items-baseline gap-3">
-                            <p className="text-2xl font-bold text-green-700">
-                              {selectedProduct.price}
-                              {selectedProduct.has_measure_unit &&
-                                selectedProduct.measure_unit && (
-                                  <span className="text-sm font-normal text-gray-600 mr-2">
-                                    / {selectedProduct.measure_unit}
+                            {isDiscountActive(selectedProduct) ? (
+                              <>
+                                <p className="text-2xl font-bold text-green-700">
+                                  {selectedProduct.discount_price}
+                                  {selectedProduct.has_measure_unit &&
+                                    selectedProduct.measure_unit && (
+                                      <span className="text-sm font-normal text-gray-600 mr-2">
+                                        / {selectedProduct.measure_unit}
+                                      </span>
+                                    )}
+                                </p>
+                                <p className="text-xl text-gray-500 line-through">
+                                  {selectedProduct.price}
+                                  {selectedProduct.has_measure_unit &&
+                                    selectedProduct.measure_unit && (
+                                      <span className="text-sm font-normal text-gray-400 mr-2">
+                                        / {selectedProduct.measure_unit}
+                                      </span>
+                                    )}
+                                </p>
+                                <span className="bg-red-100 text-red-600 px-2 py-1 rounded-lg text-sm font-medium">
+                                  خصم نشط
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-2xl font-bold text-green-700">
+                                  {selectedProduct.price}
+                                  {selectedProduct.has_measure_unit &&
+                                    selectedProduct.measure_unit && (
+                                      <span className="text-sm font-normal text-gray-600 mr-2">
+                                        / {selectedProduct.measure_unit}
+                                      </span>
+                                    )}
+                                </p>
+                                {selectedProduct.discount_price && (
+                                  <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg text-sm">
+                                    خصم منتهي
                                   </span>
                                 )}
-                            </p>
-                            {selectedProduct.discount_price && (
-                              <p className="text-xl font-bold text-red-600 flex items-center gap-2">
-                                <span className="bg-red-100 px-2 py-1 rounded-lg">
-                                  خصم
-                                </span>
-                                {selectedProduct.discount_price}
-                                {selectedProduct.has_measure_unit &&
-                                  selectedProduct.measure_unit && (
-                                    <span className="text-sm font-normal text-red-500 mr-2">
-                                      / {selectedProduct.measure_unit}
-                                    </span>
-                                  )}
-                              </p>
+                              </>
                             )}
                           </div>
                         </div>

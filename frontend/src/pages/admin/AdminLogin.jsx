@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "frontend/src/components/ui/card";
-import { ArrowRight, LogIn } from "lucide-react";
+import { ArrowLeft, LogIn } from "lucide-react";
 import { useAuth } from "frontend/src/contexts/AuthContext";
 import { toast } from "sonner"; // Changed to sonner
 import { useApi } from "../../contexts/RestContext";
@@ -70,7 +70,7 @@ const AdminLogin = () => {
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <Button variant="ghost" onClick={() => navigate("/")} className="mb-6">
-          <ArrowRight className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Store
         </Button>
 
