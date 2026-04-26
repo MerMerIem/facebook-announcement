@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  ArrowRight,
   ShoppingCart,
   Minus,
   Plus,
@@ -829,7 +828,7 @@ const ProductDetail = () => {
               <Link to="/shop">
                 <Button variant="outline">
                   عرض المزيد
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <ArrowLeft className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
             </div>
