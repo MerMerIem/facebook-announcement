@@ -231,7 +231,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section - Fixed Button Contrast */}
-      <section className="py-8 sm:py-12 md:py-16 px-3 sm:px-4 bg-primary">
+      <section className="py-8 sm:py-12 md:py-16 px-3 sm:px-4 bg-muted">
         <div className="container mx-auto text-center">
           <div className="max-w-2xl mx-auto text-white">
             <h2 className="text-xl xs:text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 leading-tight">

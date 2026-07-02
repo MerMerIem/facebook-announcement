@@ -1,19 +1,42 @@
--- MySQL dump 10.13  Distrib 8.0.40, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.43, for Win64 (x86_64)
 --
--- Host: localhost    Database: quincaillerie_sekkar
+-- Host: localhost    Database: sekkar_quincaillerie
 -- ------------------------------------------------------
--- Server version	8.0.40
+-- Server version	8.0.43
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8mb4 */;
+/*!50503 SET NAMES utf8 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `brands`
+--
+
+DROP TABLE IF EXISTS `brands`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `brands` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `brands`
+--
+
+LOCK TABLES `brands` WRITE;
+/*!40000 ALTER TABLE `brands` DISABLE KEYS */;
+/*!40000 ALTER TABLE `brands` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `categories`
@@ -26,8 +49,47 @@ CREATE TABLE `categories` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `categories`
+--
+
+LOCK TABLES `categories` WRITE;
+/*!40000 ALTER TABLE `categories` DISABLE KEYS */;
+/*!40000 ALTER TABLE `categories` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `notification`
+--
+
+DROP TABLE IF EXISTS `notification`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `notification` (
+  `notification_id` int NOT NULL AUTO_INCREMENT,
+  `content` varchar(255) DEFAULT NULL,
+  `notification_status` varchar(255) DEFAULT NULL,
+  `time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `user_id` int DEFAULT NULL,
+  PRIMARY KEY (`notification_id`),
+  KEY `idx_notification_user_id` (`user_id`),
+  KEY `idx_notification_time` (`time`),
+  KEY `idx_notification_status` (`notification_status`),
+  CONSTRAINT `notification_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `notification`
+--
+
+LOCK TABLES `notification` WRITE;
+/*!40000 ALTER TABLE `notification` DISABLE KEYS */;
+/*!40000 ALTER TABLE `notification` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `order_items`
@@ -40,15 +102,27 @@ CREATE TABLE `order_items` (
   `id` int NOT NULL AUTO_INCREMENT,
   `order_id` int DEFAULT NULL,
   `product_id` int DEFAULT NULL,
+  `variant_id` int DEFAULT NULL,
   `quantity` int DEFAULT NULL,
   `unit_price` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `order_id` (`order_id`),
   KEY `product_id` (`product_id`),
+  KEY `idx_order_items_variant_id` (`variant_id`),
   CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `order_items_ibfk_3` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `order_items`
+--
+
+LOCK TABLES `order_items` WRITE;
+/*!40000 ALTER TABLE `order_items` DISABLE KEYS */;
+/*!40000 ALTER TABLE `order_items` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `orders`
@@ -74,6 +148,15 @@ CREATE TABLE `orders` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Dumping data for table `orders`
+--
+
+LOCK TABLES `orders` WRITE;
+/*!40000 ALTER TABLE `orders` DISABLE KEYS */;
+/*!40000 ALTER TABLE `orders` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `product_images`
 --
 
@@ -83,13 +166,23 @@ DROP TABLE IF EXISTS `product_images`;
 CREATE TABLE `product_images` (
   `id` int NOT NULL AUTO_INCREMENT,
   `url` text,
+  `public_id` varchar(255) DEFAULT NULL,
   `product_id` int DEFAULT NULL,
   `is_main` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `product_id` (`product_id`),
   CONSTRAINT `product_images_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_images`
+--
+
+LOCK TABLES `product_images` WRITE;
+/*!40000 ALTER TABLE `product_images` DISABLE KEYS */;
+/*!40000 ALTER TABLE `product_images` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `product_tags`
@@ -107,8 +200,84 @@ CREATE TABLE `product_tags` (
   KEY `tag_id` (`tag_id`),
   CONSTRAINT `product_tags_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `product_tags_ibfk_2` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_tags`
+--
+
+LOCK TABLES `product_tags` WRITE;
+/*!40000 ALTER TABLE `product_tags` DISABLE KEYS */;
+/*!40000 ALTER TABLE `product_tags` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `product_variant_images`
+--
+
+DROP TABLE IF EXISTS `product_variant_images`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_variant_images` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `variant_id` int NOT NULL,
+  `url` text NOT NULL,
+  `alt_text` varchar(255) DEFAULT NULL,
+  `is_primary` tinyint(1) DEFAULT '0',
+  `sort_order` int DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_variant_images_variant_id` (`variant_id`),
+  KEY `idx_variant_images_primary` (`is_primary`),
+  CONSTRAINT `product_variant_images_ibfk_1` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_variant_images`
+--
+
+LOCK TABLES `product_variant_images` WRITE;
+/*!40000 ALTER TABLE `product_variant_images` DISABLE KEYS */;
+/*!40000 ALTER TABLE `product_variant_images` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `product_variants`
+--
+
+DROP TABLE IF EXISTS `product_variants`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_variants` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `discount_price` decimal(10,2) DEFAULT NULL,
+  `discount_start` date DEFAULT NULL,
+  `discount_end` date DEFAULT NULL,
+  `measure_unit` varchar(50) DEFAULT NULL,
+  `size` varchar(100) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_product_variants_product_id` (`product_id`),
+  KEY `idx_product_variants_active` (`is_active`),
+  CONSTRAINT `product_variants_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_variants`
+--
+
+LOCK TABLES `product_variants` WRITE;
+/*!40000 ALTER TABLE `product_variants` DISABLE KEYS */;
+/*!40000 ALTER TABLE `product_variants` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `products`
@@ -121,7 +290,7 @@ CREATE TABLE `products` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `description` text,
-  `discount_price` decimal(10,2) DEFAULT '0.00',
+  `discount_price` decimal(10,2) DEFAULT NULL,
   `discount_start` date DEFAULT NULL,
   `discount_end` date DEFAULT NULL,
   `category_id` int NOT NULL,
@@ -135,8 +304,45 @@ CREATE TABLE `products` (
   KEY `fk_products_subcategory` (`subcategory_id`),
   CONSTRAINT `fk_products_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_products_subcategory` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `products`
+--
+
+LOCK TABLES `products` WRITE;
+/*!40000 ALTER TABLE `products` DISABLE KEYS */;
+/*!40000 ALTER TABLE `products` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `push_subscriptions`
+--
+
+DROP TABLE IF EXISTS `push_subscriptions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `push_subscriptions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `endpoint` text NOT NULL,
+  `subscription_keys` json NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `push_subscriptions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `push_subscriptions`
+--
+
+LOCK TABLES `push_subscriptions` WRITE;
+/*!40000 ALTER TABLE `push_subscriptions` DISABLE KEYS */;
+/*!40000 ALTER TABLE `push_subscriptions` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `refresh_tokens`
@@ -153,8 +359,17 @@ CREATE TABLE `refresh_tokens` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `refresh_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=91 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `refresh_tokens`
+--
+
+LOCK TABLES `refresh_tokens` WRITE;
+/*!40000 ALTER TABLE `refresh_tokens` DISABLE KEYS */;
+/*!40000 ALTER TABLE `refresh_tokens` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `subcategories`
@@ -170,8 +385,17 @@ CREATE TABLE `subcategories` (
   PRIMARY KEY (`id`),
   KEY `category_id` (`category_id`),
   CONSTRAINT `subcategories_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `subcategories`
+--
+
+LOCK TABLES `subcategories` WRITE;
+/*!40000 ALTER TABLE `subcategories` DISABLE KEYS */;
+/*!40000 ALTER TABLE `subcategories` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `tags`
@@ -184,8 +408,17 @@ CREATE TABLE `tags` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `tags`
+--
+
+LOCK TABLES `tags` WRITE;
+/*!40000 ALTER TABLE `tags` DISABLE KEYS */;
+/*!40000 ALTER TABLE `tags` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `users`
@@ -202,8 +435,17 @@ CREATE TABLE `users` (
   `role` enum('client','admin') DEFAULT 'client',
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `users`
+--
+
+LOCK TABLES `users` WRITE;
+/*!40000 ALTER TABLE `users` DISABLE KEYS */;
+/*!40000 ALTER TABLE `users` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `wilayas`
@@ -217,8 +459,17 @@ CREATE TABLE `wilayas` (
   `name` varchar(100) NOT NULL,
   `delivery_fee` decimal(10,2) NOT NULL DEFAULT '0.00',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `wilayas`
+--
+
+LOCK TABLES `wilayas` WRITE;
+/*!40000 ALTER TABLE `wilayas` DISABLE KEYS */;
+/*!40000 ALTER TABLE `wilayas` ENABLE KEYS */;
+UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -229,4 +480,4 @@ CREATE TABLE `wilayas` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-30  0:34:04
+-- Dump completed on 2026-07-02 20:20:53

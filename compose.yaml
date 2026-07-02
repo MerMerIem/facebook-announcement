@@ -1,0 +1,18 @@
+services:
+  db:
+    image: mysql:8.0-debian
+    container_name: quincaillerie_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: dev
+      MYSQL_USER: dev
+      MYSQL_PASSWORD: dev
+      MYSQL_DATABASE: quincaillerie_sekkar
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./quincaillerie_sekkar.sql:/docker-entrypoint-initdb.d/quincaillerie_sekkar.sql:ro
+
+volumes:
+  db_data:

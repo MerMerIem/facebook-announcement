@@ -1334,6 +1334,7 @@ export async function addProduct(req, res) {
       },
     });
   } catch (err) {
+    console.error("addProduct error:", err);
     if (connection) {
       await connection.rollback();
     }
