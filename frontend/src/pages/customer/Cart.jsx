@@ -39,6 +39,7 @@ const Cart = () => {
   const [itemsLoadingPricing, setItemsLoadingPricing] = useState(new Set());
   const navigate = useNavigate();
   console.log("pricingData", pricingData);
+  console.log("loadingPricing", loadingPricing);
 
   const formatPrice = (price) => {
     const numericPrice = parseFloat(price);

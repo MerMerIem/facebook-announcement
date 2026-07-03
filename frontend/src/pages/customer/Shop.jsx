@@ -418,7 +418,7 @@ const Shop = () => {
       className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-admin"
       dir="rtl"
     >
-      <Header onSearch={handleSearch} searchQuery={searchQuery} />
+      {/* <Header onSearch={handleSearch} searchQuery={searchQuery} /> */}
 
       <div className="container mx-auto px-4 py-8">
         {/* Category breadcrumb/title */}

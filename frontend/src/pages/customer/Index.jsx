@@ -5,7 +5,7 @@ import {
     Truck,
     Shield,
     Headphones,
-    ChevronLeft,
+    ChevronRight,
     CheckCircle2,
     Package,
     Mail,
@@ -155,7 +155,7 @@ const Index = () => {
                                     className="bg-primary text-primary-foreground hover:opacity-90 text-sm sm:text-base px-6 sm:px-8 py-3 sm:py-4 min-h-[48px] font-medium border-0 flex items-center gap-2"
                                 >
                                     تسوق الآن
-                                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                                 </Button>
                             </Link>
                         </div>
@@ -303,41 +303,6 @@ const Index = () => {
                                     <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 mt-0.5 text-primary" />
                                 </div>
                             ))}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Newsletter CTA */}
-            <section className="px-3 sm:px-4 pb-10 sm:pb-14 md:pb-20">
-                <div className="container mx-auto">
-                    <div className="rounded-2xl p-6 sm:p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-l from-primary to-accent">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center flex-shrink-0 order-1 md:order-1 bg-white/20">
-                            <Package className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" />
-                        </div>
-
-                        <div className="text-center md:text-right flex-grow order-2 md:order-2">
-                            <h2 className="text-lg xs:text-xl sm:text-2xl font-bold mb-2 text-primary-foreground">
-                                لا تفوت العروض الجديدة
-                            </h2>
-                            <p className="text-sm sm:text-base opacity-90 text-primary-foreground">
-                                اشترك في نشرتنا البريدية لتصلك أحدث العروض
-                                والمنتجات
-                            </p>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto order-3 md:order-3">
-                            <div className="relative">
-                                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <input
-                                    type="email"
-                                    placeholder="أدخل بريدك الإلكتروني"
-                                    className="w-full sm:w-64 rounded-lg py-3 pr-10 pl-4 text-sm outline-none bg-input text-foreground"
-                                />
-                            </div>
-                            <Button className="min-h-[44px] font-medium border-0 whitespace-nowrap bg-secondary text-secondary-foreground hover:opacity-90">
-                                اشترك الآن
-                            </Button>
                         </div>
                     </div>
                 </div>
