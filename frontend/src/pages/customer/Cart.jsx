@@ -337,7 +337,6 @@ const Cart = () => {
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-shop-bg">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12 sm:py-16">
             <ShoppingBag className="h-16 w-16 sm:h-24 sm:w-24 text-muted-foreground mx-auto mb-4 sm:mb-6" />
@@ -359,7 +358,6 @@ const Cart = () => {
 
   return (
     <div dir="rtl" className="min-h-screen bg-shop-bg">
-      <Header />
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Breadcrumb - Improved mobile spacing */}
         <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4 sm:mb-6 px-1">
