@@ -100,7 +100,10 @@ const Index = () => {
                     setCategories(data.categories || []);
                 } else {
                     toast.error('خطأ في تحميل الفئات', {
-                        description: error || 'فشل في تحميل فئات المنتجات',
+                        description:
+                            error?.response?.data?.message ||
+                            error?.message ||
+                            'فشل في تحميل فئات المنتجات',
                         duration: 4000,
                         style: {
                             direction: 'rtl',

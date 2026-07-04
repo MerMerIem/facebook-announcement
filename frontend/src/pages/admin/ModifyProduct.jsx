@@ -5,6 +5,8 @@ import { useApi } from '@/contexts/RestContext';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
 
+//TODO: i should add removeProductDiscountPercentage and removeProductDiscount
+
 const ModifyProduct = () => {
     const { api } = useApi();
     const { id } = useParams();
@@ -391,6 +393,11 @@ const ModifyProduct = () => {
             );
             // Calculate main_image_index based on current images array
             formDataToSend.append('main_image_index', mainImageIndex);
+            formDataToSend.append('prod_ref', formData.prod_ref || '');
+            formDataToSend.append(
+                'discount_threshold',
+                formData.discount_threshold || ''
+            );
 
             // Optional discount
             if (formData.discount_percentage) {

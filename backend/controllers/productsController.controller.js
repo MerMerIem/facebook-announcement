@@ -222,6 +222,7 @@ export async function getProductById(req, res) {
         p.allows_custom_quantity,
         p.prod_ref,
         p.discount_threshold,
+        p.discount_percentage,
         c.name AS category_name,
         s.name AS subcategory_name,
         JSON_ARRAYAGG(
@@ -240,8 +241,7 @@ export async function getProductById(req, res) {
         if (isAdmin) {
             query += `,
         p.initial_price,
-        p.profit,
-        p.discount_percentage
+        p.profit
       `;
         }
 
@@ -252,12 +252,13 @@ export async function getProductById(req, res) {
       LEFT JOIN product_images pi ON p.id = pi.product_id
       WHERE p.id = ?
       GROUP BY p.id, p.name, p.description, p.price, p.discount_price, 
-              p.discount_start, p.discount_end, p.category_id, p.subcategory_id,
-              p.has_measure_unit, p.measure_unit, p.allows_custom_quantity, c.name, s.name
+        p.discount_start, p.discount_end, p.category_id, p.subcategory_id,
+        p.has_measure_unit, p.measure_unit, p.allows_custom_quantity, 
+        p.discount_threshold, p.discount_percentage, c.name, s.name
     `;
 
         if (isAdmin) {
-            query += `, p.initial_price, p.profit, p.discount_percentage`;
+            query += `, p.initial_price, p.profit`;
         }
 
         const [rows] = await db.execute(query, [id]);
@@ -396,6 +397,7 @@ export async function getProductById(req, res) {
             allows_custom_quantity: product.allows_custom_quantity,
             prod_ref: product.prod_ref,
             discount_threshold: product.discount_threshold,
+            discount_percentage: product.discount_percentage,
             category: {
                 id: product.category_id,
                 name: product.category_name,

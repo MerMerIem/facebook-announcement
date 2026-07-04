@@ -5,6 +5,8 @@ import { useApi } from '@/contexts/RestContext';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
+//TODO: i should add removeProductDiscountPercentage and removeProductDiscount
+
 const ProductPage = () => {
     const navigate = useNavigate();
     const { api } = useApi();
@@ -327,6 +329,7 @@ const ProductPage = () => {
                         'Content-Type': 'multipart/form-data',
                     },
                     withCredentials: true,
+                    timeout: 30000, // give image uploads more time than the 10s default
                 }
             );
 
@@ -345,7 +348,7 @@ const ProductPage = () => {
                 });
                 resetForm();
             } else {
-                handleApiError(error, error.response.data);
+                handleApiError(error, error?.response?.data);
             }
         } catch (error) {
             toast.dismiss(loadingToast);
@@ -374,12 +377,16 @@ const ProductPage = () => {
         let errorDescription =
             'حدث خطأ أثناء إضافة المنتج. يرجى المحاولة مرة أخرى.';
 
-        if (data?.message) {
+        if (!error?.response) {
+            // No response reached us at all — network/timeout/CORS
+            errorMessage = 'تعذر الاتصال بالخادم';
+            errorDescription =
+                error?.code === 'ECONNABORTED'
+                    ? 'استغرق الطلب وقتًا طويلاً. حاول مرة أخرى أو قلل حجم/عدد الصور.'
+                    : 'تعذر الوصول إلى الخادم. تحقق من اتصال الإنترنت.';
+        } else if (data?.message) {
             errorMessage = data.message;
             errorDescription = data.description || errorDescription;
-        } else if (error?.message) {
-            errorMessage = 'خطأ في النظام';
-            errorDescription = error.message;
         }
 
         if (data?.errorType) {

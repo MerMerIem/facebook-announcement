@@ -51,7 +51,10 @@ const ProductDetail = () => {
                     console.error('Failed to fetch product:', error);
                     toast({
                         title: 'خطأ',
-                        description: error || 'فشل في تحميل المنتج',
+                        description:
+                            error?.response?.data?.message ||
+                            error?.message ||
+                            'فشل في تحميل المنتج',
                         variant: 'destructive',
                     });
                     setProduct(null);
@@ -108,17 +111,6 @@ const ProductDetail = () => {
         );
     }
 
-    const calculateLiveTotal = () => {
-        if (hasMeasureUnit) {
-            const qty = parseFloat(customQuantity);
-            if (isNaN(qty) || qty <= 0) return null;
-            return currentPrice * qty;
-        } else {
-            // For regular products, use the quantity state
-            return currentPrice * quantity;
-        }
-    };
-
     const getDisplayData = () => {
         if (product.has_variants && selectedVariant) {
             return {
@@ -147,21 +139,40 @@ const ProductDetail = () => {
         isVariant,
     } = getDisplayData();
 
+    const getUnitPriceForQuantity = qty => {
+        const threshold = parseFloat(currentData.discount_threshold || '0');
+        const pct = parseFloat(currentData.discount_percentage || '0');
+
+        if (threshold > 0 && pct > 0 && qty > threshold) {
+            return currentPrice * (1 - pct / 100);
+        }
+        return currentPrice;
+    };
+
+    const calculateLiveTotal = () => {
+        if (hasMeasureUnit) {
+            const qty = parseFloat(customQuantity);
+            if (isNaN(qty) || qty <= 0) return null;
+            return getUnitPriceForQuantity(qty) * qty;
+        } else {
+            return getUnitPriceForQuantity(quantity) * quantity;
+        }
+    };
+
     const getCurrentPricing = () => {
         const data = currentData;
-        const hasDiscount =
+        const hasDiscountWindow =
             data.has_discount && new Date(data.has_discount) > new Date();
         const originalPrice = parseFloat(data.price || '0');
         const discountPrice = parseFloat(data.discount_price || '0');
 
-        // Show discount price if it exists and discount is active, otherwise show original price
-        const currentPrice =
-            hasDiscount && discountPrice > 0 ? discountPrice : originalPrice;
+        // Only treat it as a real discount if it's actually cheaper
+        const hasDiscount =
+            hasDiscountWindow &&
+            discountPrice > 0 &&
+            discountPrice < originalPrice;
 
-        console.log('hasDiscount', hasDiscount);
-        console.log('originalPrice', originalPrice);
-        console.log('discountPrice', discountPrice);
-        console.log('currentPrice', currentPrice);
+        const currentPrice = hasDiscount ? discountPrice : originalPrice;
 
         return {
             hasDiscount,
@@ -223,16 +234,6 @@ const ProductDetail = () => {
         return quantity;
     };
 
-    const calculateRegularProductTotal = () => {
-        return currentPrice * quantity;
-    };
-
-    // Calculate total price based on effective quantity
-    const calculateTotalPrice = () => {
-        const effectiveQty = getEffectiveQuantity();
-        return currentPrice * effectiveQty;
-    };
-
     const handleAddToCart = () => {
         const effectiveQty = getEffectiveQuantity();
 
@@ -253,7 +254,7 @@ const ProductDetail = () => {
             itemToAdd = {
                 id: selectedVariant.id,
                 name: `${product.name} - ${selectedVariant.title}`,
-                price: currentPrice,
+                price: getUnitPriceForQuantity(effectiveQty),
                 discount_price: selectedVariant.discount_price,
                 has_discount: selectedVariant.has_discount,
                 used_discount: selectedVariant.has_discount, // Ensure consistency
@@ -275,7 +276,7 @@ const ProductDetail = () => {
             itemToAdd = {
                 id: product.id,
                 name: product.name,
-                price: currentPrice,
+                price: getUnitPriceForQuantity(effectiveQty),
                 discount_price: product.discount_price,
                 has_discount: product.has_discount,
                 used_discount: product.has_discount, // Ensure consistency
