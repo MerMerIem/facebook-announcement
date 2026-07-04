@@ -301,8 +301,6 @@ const ModifyProduct = () => {
         if (!formData.profit || formData.profit < 0)
             newErrors.profit = 'الربح صالح مطلوب';
         if (!formData.category) newErrors.category = 'الفئة مطلوبة';
-        if (!formData.subcategory)
-            newErrors.subcategory = 'الفئة الفرعية مطلوبة';
         if (formData.has_measure_unit && !formData.measure_unit)
             newErrors.measure_unit = 'وحدة القياس مطلوبة عند اختيار وحدة قياس';
 
@@ -675,7 +673,7 @@ const ModifyProduct = () => {
 
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                الفئة الفرعية *
+                                                الفئة الفرعية (اختياري)
                                             </label>
                                             <select
                                                 name="subcategory"
@@ -686,7 +684,6 @@ const ModifyProduct = () => {
                                                         ? 'border-red-500'
                                                         : 'border-gray-300'
                                                 }`}
-                                                required
                                                 disabled={!selectedCategory}
                                             >
                                                 <option value="">

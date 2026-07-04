@@ -288,7 +288,7 @@ CREATE TABLE `products` (
   `discount_start` date DEFAULT NULL,
   `discount_end` date DEFAULT NULL,
   `category_id` int NOT NULL,
-  `subcategory_id` int NOT NULL,
+  `subcategory_id` int DEFAULT NULL,
   `has_measure_unit` tinyint(1) DEFAULT '0',
   `measure_unit` varchar(50) DEFAULT NULL,
   `initial_price` decimal(10,2) DEFAULT NULL,

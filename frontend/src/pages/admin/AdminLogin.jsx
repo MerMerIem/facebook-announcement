@@ -67,16 +67,16 @@ const AdminLogin = () => {
   }, [isAuthenticated, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center px-4">
+    <div className="admin-app min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <Button variant="ghost" onClick={() => navigate("/")} className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Store
         </Button>
 
-        <Card className="bg-gradient-card shadow-card border-0">
+        <Card className="bg-card border border-border">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center bg-primary bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold text-center text-primary">
               Admin Panel
             </CardTitle>
             <p className="text-muted-foreground text-center">

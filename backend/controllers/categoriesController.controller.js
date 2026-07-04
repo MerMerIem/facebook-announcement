@@ -6,7 +6,17 @@ export async function getAllCategories(req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
     const search = req.query.search;
-    console.log("search in categories",search)
+
+    // Whitelist sortable columns
+    const SORTABLE_COLUMNS = {
+        id: "c.id",
+        name: "c.name",
+        product_count: "product_count",
+        subcategory_count: "subcategory_count",
+    };
+    const sortByRaw = req.query.sortBy || "id";
+    const sortBy = SORTABLE_COLUMNS[sortByRaw] || "c.id";
+    const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
 
     try {
         let whereClause = "";
@@ -31,7 +41,7 @@ export async function getAllCategories(req, res) {
                 (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count
             FROM categories c
             ${whereClause}
-            ORDER BY c.id
+            ORDER BY ${sortBy} ${sortOrder}
             LIMIT ${limit} OFFSET ${offset}
         `, params);
 

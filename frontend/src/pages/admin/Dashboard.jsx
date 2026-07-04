@@ -170,7 +170,7 @@ export default function Dashboard() {
           ? Array.from({ length: 6 }).map((_, index) => (
               <Card
                 key={index}
-                className="border-0 p-3 shadow-admin animate-pulse"
+                className="border-border p-3 shadow-admin animate-pulse"
               >
                 <CardContent className="p-0">
                   <div className="flex items-center space-x-5">
@@ -184,7 +184,7 @@ export default function Dashboard() {
               </Card>
             ))
           : statsCards.map((stat) => (
-              <Card key={stat.title} className="border-0 p-3 shadow-admin">
+              <Card key={stat.title} className="border-border p-3 shadow-admin">
                 <CardContent className="p-0">
                   <div className="flex items-center space-x-5">
                     <div className={`p-3 rounded-lg ${stat.bgColor}`}>
@@ -207,7 +207,7 @@ export default function Dashboard() {
       {/* Charts and Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
         {/* Recent Orders */}
-        <Card className="border-0 shadow-admin">
+        <Card className="border-border shadow-admin">
           <CardHeader>
             <CardTitle className="text-right flex items-center gap-2">
               <ShoppingCart className="w-5 h-5" />
@@ -303,7 +303,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Today's Orders */}
-        <Card className="border-0 shadow-admin">
+        <Card className="border-border shadow-admin">
           <CardHeader>
             <CardTitle className="text-right flex items-center gap-2">
               <Calendar className="w-5 h-5" />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,15 @@ import {
     ChevronDown,
     Layers,
     Settings,
+    MoreHorizontal,
 } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useApi } from '@/contexts/RestContext';
 import { useNavigate } from 'react-router-dom';
@@ -34,14 +42,12 @@ export default function Products() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [isOpen, setIsOpen] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
     const [selectedImageUrl, setSelectedImageUrl] = useState(null);
-    const [isSearchMode, setIsSearchMode] = useState(false);
     const [pagination, setPagination] = useState({
         totalPages: 1,
         totalItems: 0,
@@ -49,40 +55,104 @@ export default function Products() {
         hasPrevPage: false,
     });
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [sortBy, setSortBy] = useState('id');
+    const [sortOrder, setSortOrder] = useState('desc');
+    const shouldShowFullPageLoading = isLoading && products.length === 0;
 
-    const fetchProducts = async (page = 1) => {
-        setIsLoading(true);
+    const sortProducts = useCallback(
+        items => {
+            const sortedItems = [...items].sort((left, right) => {
+                let leftValue = left?.[sortBy];
+                let rightValue = right?.[sortBy];
 
-        try {
-            const queryParams = new URLSearchParams({
-                page: page.toString(),
-                limit: itemsPerPage.toString(),
+                if (sortBy === 'name') {
+                    leftValue = String(leftValue || '').toLowerCase();
+                    rightValue = String(rightValue || '').toLowerCase();
+                } else if (sortBy === 'price') {
+                    leftValue = Number(leftValue) || 0;
+                    rightValue = Number(rightValue) || 0;
+                } else if (sortBy === 'created_at') {
+                    leftValue = new Date(leftValue || left?.id || 0).getTime();
+                    rightValue = new Date(
+                        rightValue || right?.id || 0
+                    ).getTime();
+                } else {
+                    leftValue = Number(leftValue) || 0;
+                    rightValue = Number(rightValue) || 0;
+                }
+
+                if (leftValue < rightValue) {
+                    return sortOrder === 'asc' ? -1 : 1;
+                }
+
+                if (leftValue > rightValue) {
+                    return sortOrder === 'asc' ? 1 : -1;
+                }
+
+                return 0;
             });
 
-            const [data, _, responseCode, error] = await api.get(
-                `/product/getAll?${queryParams.toString()}`
-            );
+            return sortedItems;
+        },
+        [sortBy, sortOrder]
+    );
 
-            if (
-                !error &&
-                responseCode === 200 &&
-                data &&
-                Array.isArray(data.products)
-            ) {
-                setProducts(data.products || []);
-                setPagination({
-                    totalPages: data.pagination?.totalPages || 1,
-                    totalItems: data.pagination?.total || 0,
-                    hasNextPage: data.pagination?.hasNextPage || false,
-                    hasPrevPage: data.pagination?.hasPrevPage || false,
+    const fetchProducts = useCallback(
+        async (page = 1) => {
+            setIsLoading(true);
+
+            try {
+                const queryParams = new URLSearchParams({
+                    page: page.toString(),
+                    limit: itemsPerPage.toString(),
+                    sortBy,
+                    sortOrder,
                 });
-            } else {
-                console.error(
-                    'Error fetching products:',
-                    error || 'No data returned'
+
+                const [data, _, responseCode, error] = await api.get(
+                    `/product/getAll?${queryParams.toString()}`
                 );
+
+                if (
+                    !error &&
+                    responseCode === 200 &&
+                    data &&
+                    Array.isArray(data.products)
+                ) {
+                    setProducts(sortProducts(data.products || []));
+                    setPagination({
+                        totalPages: data.pagination?.totalPages || 1,
+                        totalItems: data.pagination?.total || 0,
+                        hasNextPage: data.pagination?.hasNextPage || false,
+                        hasPrevPage: data.pagination?.hasPrevPage || false,
+                    });
+                } else {
+                    console.error(
+                        'Error fetching products:',
+                        error || 'No data returned'
+                    );
+                    toast.error('خطأ', {
+                        description: 'فشل في تحميل المنتجات',
+                        duration: 4000,
+                        style: {
+                            background: '#ef4444',
+                            color: '#ffffff',
+                            direction: 'rtl',
+                            textAlign: 'right',
+                        },
+                    });
+                    setProducts([]);
+                    setPagination({
+                        totalPages: 1,
+                        totalItems: 0,
+                        hasNextPage: false,
+                        hasPrevPage: false,
+                    });
+                }
+            } catch (err) {
+                console.error('Unexpected error fetching products:', err);
                 toast.error('خطأ', {
-                    description: 'فشل في تحميل المنتجات',
+                    description: 'حدث خطأ غير متوقع أثناء تحميل المنتجات',
                     duration: 4000,
                     style: {
                         background: '#ef4444',
@@ -98,36 +168,17 @@ export default function Products() {
                     hasNextPage: false,
                     hasPrevPage: false,
                 });
+            } finally {
+                setIsLoading(false);
             }
-        } catch (err) {
-            console.error('Unexpected error fetching products:', err);
-            toast.error('خطأ', {
-                description: 'حدث خطأ غير متوقع أثناء تحميل المنتجات',
-                duration: 4000,
-                style: {
-                    background: '#ef4444',
-                    color: '#ffffff',
-                    direction: 'rtl',
-                    textAlign: 'right',
-                },
-            });
-            setProducts([]);
-            setPagination({
-                totalPages: 1,
-                totalItems: 0,
-                hasNextPage: false,
-                hasPrevPage: false,
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        },
+        [api, itemsPerPage, sortProducts, sortBy, sortOrder]
+    );
 
     const fetchProductDetails = async id => {
         const [data, _, responseCode, error] = await api.get(
             `/product/get/${id}`
         );
-        console.log('data', data);
 
         if (!error && responseCode === 200 && data) {
             setSelectedProduct(data);
@@ -163,75 +214,87 @@ export default function Products() {
         return new Date(dateString).toLocaleDateString('ar-DZ');
     };
 
-    const searchProducts = async (page = 1) => {
-        setIsLoading(true);
+    const searchProducts = useCallback(
+        async (page = 1, query = debouncedSearchTerm) => {
+            setIsLoading(true);
+            const normalizedQuery = query.trim();
 
-        try {
-            const queryParams = new URLSearchParams({
-                page: page.toString(),
-                limit: itemsPerPage.toString(),
-                ...(searchTerm.trim() && { searchQuery: searchTerm }),
-            });
+            try {
+                const queryParams = new URLSearchParams({
+                    page: page.toString(),
+                    limit: itemsPerPage.toString(),
+                    sortBy,
+                    sortOrder,
+                    ...(normalizedQuery && { searchQuery: normalizedQuery }),
+                });
 
-            const endpoint = searchTerm.trim()
-                ? '/product/search'
-                : '/product/getAll';
-            const [data, _, responseCode, error] = await api.get(
-                `${endpoint}?${queryParams.toString()}`
-            );
+                const endpoint = normalizedQuery
+                    ? '/product/search'
+                    : '/product/getAll';
+                const [data, _, responseCode, error] = await api.get(
+                    `${endpoint}?${queryParams.toString()}`
+                );
 
-            if (!error && responseCode === 200 && data) {
-                const products = searchTerm.trim() ? data.data : data.products;
-                if (Array.isArray(products)) {
-                    setProducts(products || []);
-                    setPagination({
-                        totalPages:
-                            data.pagination?.totalPages ||
-                            Math.ceil(data.pagination?.total / itemsPerPage) ||
-                            1,
-                        totalItems: data.pagination?.total || 0,
-                        hasNextPage:
-                            data.pagination?.hasNextPage ||
-                            page <
+                if (!error && responseCode === 200 && data) {
+                    const products = normalizedQuery
+                        ? data.data
+                        : data.products;
+                    if (Array.isArray(products)) {
+                        setProducts(sortProducts(products || []));
+                        setPagination({
+                            totalPages:
+                                data.pagination?.totalPages ||
                                 Math.ceil(
                                     data.pagination?.total / itemsPerPage
-                                ),
-                        hasPrevPage: data.pagination?.hasPrevPage || page > 1,
+                                ) ||
+                                1,
+                            totalItems: data.pagination?.total || 0,
+                            hasNextPage:
+                                data.pagination?.hasNextPage ||
+                                page <
+                                    Math.ceil(
+                                        data.pagination?.total / itemsPerPage
+                                    ),
+                            hasPrevPage:
+                                data.pagination?.hasPrevPage || page > 1,
+                        });
+                    }
+                } else {
+                    console.error(
+                        'Error searching products:',
+                        error || 'No data returned'
+                    );
+                    setProducts([]);
+                    setPagination({
+                        totalPages: 1,
+                        totalItems: 0,
+                        hasNextPage: false,
+                        hasPrevPage: false,
                     });
                 }
-            } else {
-                console.error(
-                    'Error searching products:',
-                    error || 'No data returned'
-                );
-                setProducts([]);
-                setPagination({
-                    totalPages: 1,
-                    totalItems: 0,
-                    hasNextPage: false,
-                    hasPrevPage: false,
+            } catch (err) {
+                console.error('Unexpected error searching products:', err);
+                toast.error('خطأ', {
+                    description: 'حدث خطأ غير متوقع أثناء البحث',
+                    duration: 4000,
+                    style: {
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        direction: 'rtl',
+                        textAlign: 'right',
+                    },
                 });
+            } finally {
+                setIsLoading(false);
             }
-        } catch (err) {
-            console.error('Unexpected error searching products:', err);
-            toast.error('خطأ', {
-                description: 'حدث خطأ غير متوقع أثناء البحث',
-                duration: 4000,
-                style: {
-                    background: '#ef4444',
-                    color: '#ffffff',
-                    direction: 'rtl',
-                    textAlign: 'right',
-                },
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        },
+        [api, itemsPerPage, sortProducts, sortBy, sortOrder]
+    );
 
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
+            setCurrentPage(1);
         }, 500);
 
         return () => clearTimeout(searchTimeout);
@@ -239,19 +302,16 @@ export default function Products() {
 
     useEffect(() => {
         if (debouncedSearchTerm.trim()) {
-            setIsSearchMode(true);
-            searchProducts(currentPage);
-        } else if (isSearchMode && !debouncedSearchTerm.trim()) {
-            setIsSearchMode(false);
-            fetchProducts(currentPage);
-        } else if (!isSearchMode) {
-            fetchProducts(currentPage);
+            searchProducts(currentPage, debouncedSearchTerm);
+            return;
         }
-    }, [currentPage, itemsPerPage, debouncedSearchTerm]);
+
+        fetchProducts(currentPage);
+    }, [currentPage, debouncedSearchTerm, fetchProducts, searchProducts]);
 
     const deleteProduct = async productId => {
         try {
-            const [data, _, responseCode, error] = await api.delete(
+            const [, _, responseCode, error] = await api.delete(
                 `/product/delete/${productId}`
             );
 
@@ -266,7 +326,11 @@ export default function Products() {
                         textAlign: 'right',
                     },
                 });
-                fetchProducts(currentPage);
+                if (debouncedSearchTerm.trim()) {
+                    searchProducts(currentPage, debouncedSearchTerm);
+                } else {
+                    fetchProducts(currentPage);
+                }
             } else {
                 console.error('Error deleting product:', error);
                 toast.error('خطأ', {
@@ -307,64 +371,6 @@ export default function Products() {
         setProductToDelete(null);
     };
 
-    const filteredProducts = Array.isArray(products) ? products : [];
-
-    const fetchProductById = async productId => {
-        try {
-            const [data, _, responseCode, error] = await api.get(
-                `/product/get/${productId}`
-            );
-
-            if (!error && responseCode === 200 && data) {
-                return data;
-            } else {
-                console.error(
-                    'Error fetching product:',
-                    error || 'No data returned'
-                );
-                toast.error('خطأ', {
-                    description: 'فشل في تحميل تفاصيل المنتج',
-                    duration: 4000,
-                    style: {
-                        background: '#ef4444',
-                        color: '#ffffff',
-                        direction: 'rtl',
-                        textAlign: 'right',
-                    },
-                });
-                return null;
-            }
-        } catch (err) {
-            console.error('Unexpected error fetching product:', err);
-            toast.error('خطأ', {
-                description: 'حدث خطأ غير متوقع أثناء تحميل تفاصيل المنتج',
-                duration: 4000,
-                style: {
-                    background: '#ef4444',
-                    color: '#ffffff',
-                    direction: 'rtl',
-                    textAlign: 'right',
-                },
-            });
-            return null;
-        }
-    };
-
-    const showProductDetails = async product => {
-        setIsLoading(true);
-        try {
-            setSelectedProduct(product);
-            setIsDetailsOpen(true);
-
-            const fullProduct = await fetchProductById(product.id);
-            if (fullProduct) {
-                setSelectedProduct(fullProduct);
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     const getDiscountStatus = product => {
         if (!product?.discount_price) return null;
 
@@ -397,14 +403,14 @@ export default function Products() {
         if (page < 1 || page > pagination.totalPages) return;
         setCurrentPage(page);
 
-        if (isSearchMode) {
-            searchProducts(page);
+        if (debouncedSearchTerm.trim()) {
+            searchProducts(page, debouncedSearchTerm);
         } else {
             fetchProducts(page);
         }
     };
 
-    if (isLoading) {
+    if (shouldShowFullPageLoading) {
         return (
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -441,126 +447,121 @@ export default function Products() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-5">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+                <Package className="w-7 h-7 text-primary" />
                 <div>
-                    <h1 className="text-3xl font-bold">إدارة المنتجات</h1>
-                    <p className="text-gray-600 mt-2">
+                    <h1 className="text-2xl font-bold">إدارة المنتجات</h1>
+                    <p className="text-muted-foreground text-sm">
                         إدارة المنتجات والتسعير والمخزون
                     </p>
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 justify-between">
-                <div className="relative w-full flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute right-3 top-3 h-4 w-4 text-gray-500 bg-input/80 rounded-full p-1" />
-                        <Input
-                            placeholder="البحث في المنتجات، الفئات، أو الفئات الفرعية..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="pr-10 bg-input"
-                        />
-                    </div>
-
-                    <div className="relative">
-                        <select
-                            id="items-per-page"
-                            value={itemsPerPage}
-                            onChange={e => {
-                                setItemsPerPage(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
-                            className="
-              appearance-none
-              w-full
-              px-4 py-2
-              pr-10
-              bg-input
-              border-2 border-gray-200
-              rounded-lg
-              text-gray-900
-              text-sm
-              font-medium
-              cursor-pointer
-              transition-all
-              duration-200
-              ease-in-out
-              hover:border-primary
-              hover:shadow-sm
-              focus:outline-none
-              focus:ring-2
-              focus:ring-ring
-              focus:ring-opacity-20
-              focus:border-ring
-              focus:shadow-md
-            "
-                        >
-                            <option value={10}>10 items</option>
-                            <option value={20}>20 items</option>
-                            <option value={30}>30 items</option>
-                            <option value={40}>40 items</option>
-                            <option value={50}>50 items</option>
-                        </select>
-
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <ChevronDown
-                                className="h-5 w-5 text-gray-400 transition-colors duration-200"
-                                aria-hidden="true"
-                            />
-                        </div>
-                    </div>
-
-                    <Button
-                        variant="outline"
-                        className={
-                            'bg-white! hover:bg-primary! hover:text-white!'
-                        }
-                        onClick={() => {
-                            if (searchTerm.trim()) {
-                                setCurrentPage(1);
-                                setIsSearchMode(true);
-                                searchProducts(1);
-                            }
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center gap-2">
+                {/* Search */}
+                <div className="relative flex-1 min-w-[220px] max-w-md">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <Input
+                        placeholder="البحث في المنتجات، الفئات، أو الفئات الفرعية..."
+                        value={searchTerm}
+                        onChange={e => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
                         }}
-                    >
-                        بحث
-                    </Button>
-
-                    {isSearchMode && (
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setSearchTerm('');
-                                setDebouncedSearchTerm('');
-                                setIsSearchMode(false);
-                                setCurrentPage(1);
-                                fetchProducts(1);
-                            }}
-                        >
-                            مسح البحث
-                        </Button>
-                    )}
+                        className="pr-10 rounded-none border-border"
+                        dir="rtl"
+                    />
                 </div>
 
-                <Button onClick={() => navigate('/admin/add-product')}>
-                    <Plus className="h-4 w-4 ml-2" />
+                {/* Sort By */}
+                <select
+                    value={sortBy}
+                    onChange={e => {
+                        setSortBy(e.target.value);
+                        setCurrentPage(1);
+                    }}
+                    className="h-9 px-3 text-sm border border-border bg-background text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary rounded-none"
+                >
+                    <option value="id">ترتيب: رقم</option>
+                    <option value="name">ترتيب: الاسم</option>
+                    <option value="price">ترتيب: السعر</option>
+                    <option value="created_at">ترتيب: التاريخ</option>
+                </select>
+
+                {/* Sort Order */}
+                <button
+                    onClick={() => {
+                        setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+                        setCurrentPage(1);
+                    }}
+                    className="h-9 px-3 border border-border bg-background text-foreground text-sm flex items-center gap-1.5 hover:bg-muted transition-colors rounded-none"
+                >
+                    {sortOrder === 'asc' ? (
+                        <>
+                            <ChevronDown className="w-4 h-4 rotate-180" />{' '}
+                            تصاعدي
+                        </>
+                    ) : (
+                        <>
+                            <ChevronDown className="w-4 h-4" /> تنازلي
+                        </>
+                    )}
+                </button>
+
+                {/* Items per page */}
+                <select
+                    value={itemsPerPage}
+                    onChange={e => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                    }}
+                    className="h-9 px-3 text-sm border border-border bg-background text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary rounded-none"
+                >
+                    <option value={10}>10 / صفحة</option>
+                    <option value={20}>20 / صفحة</option>
+                    <option value={30}>30 / صفحة</option>
+                    <option value={50}>50 / صفحة</option>
+                </select>
+
+                {debouncedSearchTerm.trim() && (
+                    <button
+                        onClick={() => {
+                            setSearchTerm('');
+                            setDebouncedSearchTerm('');
+                            setCurrentPage(1);
+                        }}
+                        className="h-9 px-3 border border-border bg-background text-foreground text-sm hover:bg-muted transition-colors rounded-none"
+                    >
+                        ✕ مسح البحث
+                    </button>
+                )}
+
+                {/* Add Button */}
+                <Button
+                    onClick={() => navigate('/admin/add-product')}
+                    className="gap-2 rounded-none h-9 ml-auto"
+                    size="sm"
+                >
+                    <Plus className="h-4 w-4" />
                     إضافة منتج جديد
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <Card className="border-0 p-3 shadow-admin">
+            <div className="grid grid-cols-2 gap-4">
+                <Card className="border-border p-3 rounded-none">
                     <CardContent className="p-0">
-                        <div className="flex items-center space-x-3">
-                            <div className="p-3 rounded-lg bg-blue-100">
-                                <Package className="w-6 h-6 text-blue-500" />
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100">
+                                <Package className="w-5 h-5 text-blue-500" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-muted-foreground truncate">
+                                <p className="text-sm text-muted-foreground">
                                     إجمالي المنتجات
                                 </p>
-                                <p className="text-lg font-bold text-foreground truncate">
+                                <p className="text-2xl font-bold">
                                     {pagination.totalItems}
                                 </p>
                             </div>
@@ -568,17 +569,17 @@ export default function Products() {
                     </CardContent>
                 </Card>
 
-                <Card className="border-0 p-3 shadow-admin">
+                <Card className="border-border p-3 rounded-none">
                     <CardContent className="p-0">
-                        <div className="flex items-center space-x-3">
-                            <div className="p-3 rounded-lg bg-green-100">
-                                <Tag className="w-6 h-6 text-green-500" />
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-100">
+                                <Tag className="w-5 h-5 text-green-500" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-muted-foreground truncate">
+                                <p className="text-sm text-muted-foreground">
                                     منتجات بخصم
                                 </p>
-                                <p className="text-lg font-bold text-foreground truncate">
+                                <p className="text-2xl font-bold">
                                     {
                                         products.filter(p => p?.discount_price)
                                             .length
@@ -590,86 +591,86 @@ export default function Products() {
                 </Card>
             </div>
 
-            <Card className={'border-0 p-0'}>
-                <CardContent className="p-0 m-0 border-0">
+            <Card className="border-border p-0">
+                <CardContent className="m-0 border-0 p-0">
                     {!Array.isArray(products) || products.length === 0 ? (
-                        <div className="text-center py-8">
-                            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <div className="py-8 text-center">
+                            <Package className="mx-auto mb-4 h-16 w-16 text-gray-400" />
                             <p className="text-gray-600">لا توجد منتجات</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full min-w-[800px]">
-                                <thead className="border-b">
-                                    <tr className="text-right">
-                                        <th className="p-4 font-medium">
-                                            صورة
-                                        </th>
-                                        <th className="p-4 font-medium">
-                                            اسم المنتج
-                                        </th>
-                                        <th className="p-4 font-medium">
-                                            الفئة
-                                        </th>
-                                        <th className="p-4 font-medium">
-                                            الفئة الفرعية
-                                        </th>
-                                        <th className="p-4 font-medium">
-                                            السعر
-                                        </th>
-                                        <th className="p-4 font-medium">
-                                            الحالة
-                                        </th>
-                                        <th className="p-4 font-medium"></th>
-                                        <th className="p-4 font-medium">
-                                            الإجراءات
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {products.map(product => (
-                                        <tr
-                                            key={product?.id}
-                                            className="border-b hover:bg-gray-50"
-                                        >
-                                            <td className="p-4">
-                                                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                                                    {product?.main_image_url ? (
-                                                        <img
-                                                            src={
-                                                                product.main_image_url
-                                                            }
-                                                            alt={product?.name}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center">
-                                                            <Package className="h-6 w-6 text-gray-400" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="p-4">
-                                                <div>
+                        <div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[800px]">
+                                    <thead className="border-b">
+                                        <tr className="text-right">
+                                            <th className="p-4 font-medium">
+                                                صورة
+                                            </th>
+                                            <th className="p-4 font-medium">
+                                                اسم المنتج
+                                            </th>
+                                            <th className="p-4 font-medium">
+                                                الفئة
+                                            </th>
+                                            <th className="p-4 font-medium">
+                                                الفئة الفرعية
+                                            </th>
+                                            <th className="p-4 font-medium">
+                                                السعر
+                                            </th>
+                                            <th className="p-4 font-medium">
+                                                الحالة
+                                            </th>
+                                            <th className="p-4 font-medium"></th>
+                                            <th className="p-4 font-medium">
+                                                الإجراءات
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {products.map(product => (
+                                            <tr
+                                                key={product?.id}
+                                                className="border-b hover:bg-gray-50"
+                                            >
+                                                <td className="p-4">
+                                                    <div className="h-16 w-16 overflow-hidden rounded-lg bg-gray-100">
+                                                        {product?.main_image_url ? (
+                                                            <img
+                                                                src={
+                                                                    product.main_image_url
+                                                                }
+                                                                alt={
+                                                                    product?.name
+                                                                }
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center">
+                                                                <Package className="h-6 w-6 text-gray-400" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4">
                                                     <div className="font-medium">
                                                         {product?.name}
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-4">
-                                                <Badge variant="outline">
-                                                    {product?.category?.name ||
-                                                        'N/A'}
-                                                </Badge>
-                                            </td>
-                                            <td className="p-4">
-                                                <Badge variant="outline">
-                                                    {product?.subcategory
-                                                        ?.name || 'N/A'}
-                                                </Badge>
-                                            </td>
-                                            <td className="p-4">
-                                                <div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <Badge variant="outline">
+                                                        {product?.category
+                                                            ?.name || 'N/A'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="p-4">
+                                                    <Badge variant="outline">
+                                                        {product?.subcategory
+                                                            ?.name || 'N/A'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="p-4">
                                                     {isDiscountActive(
                                                         product
                                                     ) ? (
@@ -690,187 +691,196 @@ export default function Products() {
                                                             {product?.price} دج
                                                         </div>
                                                     )}
-                                                </div>
-                                            </td>
-                                            <td className="p-4">
-                                                {getDiscountStatus(product)}
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="text-sm space-y-1">
-                                                    <div className="font-semibold">
-                                                        الصور:{' '}
-                                                        <span className="font-normal text-gray-600">
-                                                            {product?.total_images ||
-                                                                0}
-                                                        </span>
+                                                </td>
+                                                <td className="p-4">
+                                                    {getDiscountStatus(product)}
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="space-y-1 text-sm">
+                                                        <div className="font-semibold">
+                                                            الصور:{' '}
+                                                            <span className="font-normal text-gray-600">
+                                                                {product?.total_images ||
+                                                                    0}
+                                                            </span>
+                                                        </div>
+                                                        <div className="font-semibold">
+                                                            العلامات:{' '}
+                                                            <span className="font-normal text-gray-600">
+                                                                {product?.total_tags ||
+                                                                    0}
+                                                            </span>
+                                                        </div>
+                                                        <div className="font-semibold">
+                                                            أنواع المنتج:{' '}
+                                                            <span className="font-normal text-gray-600">
+                                                                {product?.total_variants ||
+                                                                    0}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    <div className="font-semibold">
-                                                        العلامات:{' '}
-                                                        <span className="font-normal text-gray-600">
-                                                            {product?.total_tags ||
-                                                                0}
-                                                        </span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            aria-label="View product"
+                                                            onClick={() =>
+                                                                fetchProductDetails(
+                                                                    product.id
+                                                                )
+                                                            }
+                                                            className="group flex items-center justify-center rounded-md border-sky-500 bg-white! shadow-none! cursor-pointer transition hover:border-sky-600 hover:bg-sky-50 hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1 text-sky-500"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger
+                                                                asChild
+                                                            >
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0 cursor-pointer border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                                                                >
+                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent
+                                                                align="end"
+                                                                className="w-44 text-right"
+                                                                dir="rtl"
+                                                            >
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        navigate(
+                                                                            `/admin/edit-product/${product.id}`
+                                                                        )
+                                                                    }
+                                                                    className="cursor-pointer text-right"
+                                                                >
+                                                                    <Edit2 className="ml-2 inline h-4 w-4 text-indigo-500" />
+                                                                    تعديل المنتج
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        navigate(
+                                                                            `/admin/products/${product.id}/add-variants`
+                                                                        )
+                                                                    }
+                                                                    className="cursor-pointer text-right"
+                                                                >
+                                                                    <Layers className="ml-2 inline h-4 w-4 text-emerald-500" />
+                                                                    إضافة نوع
+                                                                    (Variant)
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        navigate(
+                                                                            `/admin/products/${product.id}/edit-variants`
+                                                                        )
+                                                                    }
+                                                                    className="cursor-pointer text-right"
+                                                                >
+                                                                    <Settings className="ml-2 inline h-4 w-4 text-amber-500" />
+                                                                    تعديل
+                                                                    الأنواع
+                                                                </DropdownMenuItem>
+
+                                                                <DropdownMenuSeparator />
+
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        handleDeleteClick(
+                                                                            product?.id
+                                                                        )
+                                                                    }
+                                                                    className="cursor-pointer text-right text-red-600 focus:bg-red-50 focus:text-red-700"
+                                                                >
+                                                                    <Trash2 className="ml-2 inline h-4 w-4" />
+                                                                    حذف المنتج
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                     </div>
-                                                    <div className="font-semibold">
-                                                        أنواع المنتج:{' '}
-                                                        <span className="font-normal text-gray-600">
-                                                            {product?.total_variants ||
-                                                                0}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex gap-1">
-                                                    {/* View product */}
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        aria-label="View product"
-                                                        onClick={() =>
-                                                            fetchProductDetails(
-                                                                product.id
-                                                            )
-                                                        }
-                                                        className="group bg-white! shadow-none! flex items-center justify-center cursor-pointer transition 
-        border-sky-500 text-sky-500 rounded-md
-        hover:bg-sky-50 hover:border-sky-600 hover:text-sky-600
-        focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-sky-400"
-                                                    >
-                                                        <Eye className="h-3 w-3 transition-transform group-hover:scale-110" />
-                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                                                    {/* Edit product */}
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        aria-label="Edit product"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/admin/edit-product/${product.id}`
-                                                            )
-                                                        }
-                                                        className="group flex items-center justify-center cursor-pointer transition 
-        border-indigo-500 text-indigo-500 bg-white! rounded-md shadow-sm
-        hover:bg-indigo-50 hover:border-indigo-600 hover:text-indigo-600
-        focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-400"
-                                                    >
-                                                        <Edit2 className="h-3 w-3 transition-transform group-hover:scale-110" />
-                                                    </Button>
-
-                                                    {/* Add variant */}
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        aria-label="Add variant"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/admin/products/${product.id}/add-variants`
-                                                            )
-                                                        }
-                                                        className="group bg-white! shadow-none! flex items-center justify-center cursor-pointer transition 
-        border-emerald-500 text-emerald-500 rounded-md
-        hover:bg-emerald-50 hover:border-emerald-600 hover:text-emerald-600
-        focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-400"
-                                                    >
-                                                        <Layers className="h-3 w-3 transition-transform group-hover:scale-110" />
-                                                    </Button>
-
-                                                    {/* Edit variant */}
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        aria-label="Edit variant"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/admin/products/${product.id}/edit-variants`
-                                                            )
-                                                        }
-                                                        className="group bg-white! shadow-none! flex items-center justify-center cursor-pointer transition 
-        border-amber-500 text-amber-500 rounded-md
-        hover:bg-amber-50 hover:border-amber-600 hover:text-amber-600
-        focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-amber-400"
-                                                    >
-                                                        <Settings className="h-3 w-3 transition-transform group-hover:scale-110" />
-                                                    </Button>
-
-                                                    {/* Delete product */}
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        aria-label="Delete product"
-                                                        onClick={() =>
-                                                            handleDeleteClick(
-                                                                product?.id
-                                                            )
-                                                        }
-                                                        className="group bg-white! shadow-none! flex items-center justify-center cursor-pointer transition 
-        border-rose-500 text-rose-500 rounded-md
-        hover:bg-rose-50 hover:border-rose-600 hover:text-rose-600
-        focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-400"
-                                                    >
-                                                        <Trash2 className="h-3 w-3 transition-transform group-hover:scale-110" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            {pagination.totalPages > 1 && (
+                                <div className="flex flex-col items-center justify-between gap-4 px-4 py-4 sm:flex-row">
+                                    <p className="text-sm text-gray-600">
+                                        صفحة {currentPage} من{' '}
+                                        {pagination.totalPages}
+                                        <span className="mr-2">
+                                            • المجموع: {pagination.totalItems}{' '}
+                                            منتج
+                                        </span>
+                                    </p>
+                                    <div className="flex flex-wrap justify-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handlePageChange(1)}
+                                            disabled={currentPage === 1}
+                                        >
+                                            الأولى
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                handlePageChange(
+                                                    currentPage - 1
+                                                )
+                                            }
+                                            disabled={!pagination.hasPrevPage}
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                        <span className="rounded bg-gray-100 px-3 py-1">
+                                            {currentPage} /{' '}
+                                            {pagination.totalPages}
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                handlePageChange(
+                                                    currentPage + 1
+                                                )
+                                            }
+                                            disabled={!pagination.hasNextPage}
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                handlePageChange(
+                                                    pagination.totalPages
+                                                )
+                                            }
+                                            disabled={
+                                                currentPage ===
+                                                pagination.totalPages
+                                            }
+                                        >
+                                            الأخيرة
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>
             </Card>
-
-            {pagination.totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p className="text-sm text-gray-600">
-                        صفحة {currentPage} من {pagination.totalPages}
-                        <span className="mr-2">
-                            • المجموع: {pagination.totalItems} منتج
-                        </span>
-                    </p>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePageChange(1)}
-                            disabled={currentPage === 1}
-                        >
-                            الأولى
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={!pagination.hasPrevPage}
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </Button>
-                        <span className="px-3 py-1 bg-gray-100 rounded">
-                            {currentPage} / {pagination.totalPages}
-                        </span>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={!pagination.hasNextPage}
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                                handlePageChange(pagination.totalPages)
-                            }
-                            disabled={currentPage === pagination.totalPages}
-                        >
-                            الأخيرة
-                        </Button>
-                    </div>
-                </div>
-            )}
 
             {isDetailsOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
@@ -1681,8 +1691,8 @@ export default function Products() {
                 dir="rtl"
                 onOpenChange={setDeleteDialogOpen}
             >
-                <DialogContent className="text-right font-admin border-none">
-                    <DialogHeader>
+                <DialogContent className="text-right font-admin border-none admin-app">
+                    <DialogHeader className="pt-5">
                         <DialogTitle className="font-admin text-center">
                             تأكيد الحذف
                         </DialogTitle>

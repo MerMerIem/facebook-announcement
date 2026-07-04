@@ -6,32 +6,62 @@ export async function getAllTags(req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
     const search = req.query.search;
-    
+
+    // Whitelist sortable columns
+    const SORTABLE_COLUMNS = {
+        id: "t.id",
+        name: "t.name",
+        product_count: "product_count",
+    };
+    const sortByRaw = req.query.sortBy || "id";
+    const sortBy = SORTABLE_COLUMNS[sortByRaw] || "t.id";
+    const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
+
     try {
-        let query = "SELECT * FROM tags";
-        let countQuery = "SELECT COUNT(*) as total FROM tags";
+        let whereClause = "";
         let params = [];
         let countParams = [];
 
         if (search) {
-            query += " WHERE name LIKE ?";
-            countQuery += " WHERE name LIKE ?";
+            whereClause = "WHERE t.name LIKE ?";
             const searchParam = `%${search}%`;
             params.push(searchParam);
             countParams.push(searchParam);
         }
 
-        query += " ORDER BY id LIMIT ? OFFSET ?";
+        const query = `
+            SELECT 
+                t.id,
+                t.name,
+                COUNT(pt.product_id) AS product_count
+            FROM tags t
+            LEFT JOIN product_tags pt ON pt.tag_id = t.id
+            ${whereClause}
+            GROUP BY t.id, t.name
+            ORDER BY ${sortBy} ${sortOrder}
+            LIMIT ? OFFSET ?
+        `;
         params.push(limit, offset);
-        
+
+        const countQuery = `SELECT COUNT(*) as total FROM tags t ${whereClause}`;
+
         const [rows] = await db.query(query, params);
         const [totalResult] = await db.query(countQuery, countParams);
         const total = totalResult[0].total;
         const totalPages = Math.ceil(total / limit);
-        
+
+        // Total products linked to any tag
+        const [[{ total_tagged }]] = await db.query(
+            "SELECT COUNT(DISTINCT product_id) as total_tagged FROM product_tags"
+        );
+
         res.status(200).json({
             success: true,
             tags: rows,
+            stats: {
+                total_tags: total,
+                total_tagged_products: total_tagged,
+            },
             pagination: {
                 page,
                 limit,
@@ -43,56 +73,55 @@ export async function getAllTags(req, res) {
         });
     } catch (err) {
         console.error("Erreur lors de la récupération des tags :", err);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            message: "Internal server error" 
+            message: "Internal server error",
         });
     }
 }
 
-export async function addTag(req,res){
-    const {name} = req.body;
-    try{
+export async function addTag(req, res) {
+    const { name } = req.body;
+    try {
         const [rows] = await db.execute("SELECT * FROM tags WHERE name = ?", [name]);
         if (rows.length > 0) {
             return res.status(400).json({ message: "Tag already exists" });
         }
         await db.execute("INSERT INTO tags (name) VALUES (?)", [name]);
         res.status(201).json({ message: "Tag added successfully" });
-    }catch(err){
+    } catch (err) {
         console.error("Erreur lors de l'ajout du tag :", err);
         res.status(500).json({ message: "Internal server error" });
     }
 }
 
-export async function modifyTag(req,res){
-    const {id} = req.params;
-    const {name} = req.body;
-    try{
+export async function modifyTag(req, res) {
+    const { id } = req.params;
+    const { name } = req.body;
+    try {
         const [rows] = await db.execute("SELECT * FROM tags WHERE id = ?", [id]);
         if (rows.length === 0) {
             return res.status(404).json({ message: "Tag not found" });
         }
         await db.execute("UPDATE tags SET name = ? WHERE id = ?", [name, id]);
         res.status(200).json({ message: "Tag modified successfully" });
-    }catch(err){
+    } catch (err) {
         console.error("Erreur lors de la modification du tag :", err);
         res.status(500).json({ message: "Internal server error" });
     }
 }
 
-export async function deleteTag(req,res){
-    const {id} = req.params;
-    try{
+export async function deleteTag(req, res) {
+    const { id } = req.params;
+    try {
         const [rows] = await db.execute("SELECT * FROM tags WHERE id = ?", [id]);
         if (rows.length === 0) {
             return res.status(404).json({ message: "Tag not found" });
         }
         await db.execute("DELETE FROM tags WHERE id = ?", [id]);
         res.status(200).json({ message: "Tag deleted successfully" });
-    }catch(err){
+    } catch (err) {
         console.error("Erreur lors de la suppression du tag :", err);
         res.status(500).json({ message: "Internal server error" });
     }
 }
-

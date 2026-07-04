@@ -58,7 +58,10 @@ export function AdminLayout({ children }) {
 
         return () => clearInterval(interval);
     }, [permission]);
-
+    useEffect(() => {
+        document.body.classList.add('admin-app');
+        return () => document.body.classList.remove('admin-app');
+    }, []);
     return (
         <div className="admin-app min-h-screen bg-background">
             <div

@@ -856,6 +856,7 @@ export async function modifyProduct(req, res) {
 
         let category_id = null;
         let subcategory_id = null;
+        const defaultSubcategoryId = 6769;
 
         if (category) {
             const [catRows] = await connection.execute(
@@ -883,6 +884,12 @@ export async function modifyProduct(req, res) {
                 });
             }
             subcategory_id = subcatRows[0].id;
+        } else {
+            subcategory_id = await ensureDefaultSubcategory(
+                connection,
+                category_id,
+                defaultSubcategoryId
+            );
         }
 
         // Update query with new fields
@@ -1193,21 +1200,32 @@ export async function addProduct(req, res) {
         }
         const category_id = categoryRows[0].id;
 
-        const [subcategoryRows] = await connection.execute(
-            'SELECT id FROM subcategories WHERE name = ? AND category_id = ?',
-            [subcategory, category_id]
-        );
+        let subcategory_id = null;
+        const defaultSubcategoryId = 6769;
 
-        if (!subcategoryRows.length) {
-            await connection.rollback();
-            return res.status(400).json({
-                success: false,
-                message: 'الفئة الفرعية غير موجودة',
-                description: `الفئة الفرعية "${subcategory}" غير متوفرة في فئة "${category}"`,
-                errorType: 'SUBCATEGORY_NOT_FOUND',
-            });
+        if (subcategory) {
+            const [subcategoryRows] = await connection.execute(
+                'SELECT id FROM subcategories WHERE name = ? AND category_id = ?',
+                [subcategory, category_id]
+            );
+
+            if (!subcategoryRows.length) {
+                await connection.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: 'الفئة الفرعية غير موجودة',
+                    description: `الفئة الفرعية "${subcategory}" غير متوفرة في فئة "${category}"`,
+                    errorType: 'SUBCATEGORY_NOT_FOUND',
+                });
+            }
+            subcategory_id = subcategoryRows[0].id;
+        } else {
+            subcategory_id = await ensureDefaultSubcategory(
+                connection,
+                category_id,
+                defaultSubcategoryId
+            );
         }
-        const subcategory_id = subcategoryRows[0].id;
 
         const [existingProduct] = await connection.execute(
             'SELECT id FROM products WHERE name = ?',
@@ -1377,6 +1395,28 @@ export async function addProduct(req, res) {
 
 function toDateOnly(isoString) {
     return typeof isoString === 'string' ? isoString.split('T')[0] : null;
+}
+
+async function ensureDefaultSubcategory(connection, categoryId, subcategoryId) {
+    if (!categoryId) {
+        return subcategoryId;
+    }
+
+    const [existingRows] = await connection.execute(
+        'SELECT id FROM subcategories WHERE id = ?',
+        [subcategoryId]
+    );
+
+    if (existingRows.length > 0) {
+        return subcategoryId;
+    }
+
+    await connection.execute(
+        'INSERT INTO subcategories (id, category_id, name) VALUES (?, ?, ?)',
+        [subcategoryId, categoryId, 'بدون فئة فرعية']
+    );
+
+    return subcategoryId;
 }
 
 export async function deleteProduct(req, res) {

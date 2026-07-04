@@ -294,7 +294,7 @@ CREATE TABLE `products` (
   `discount_start` date DEFAULT NULL,
   `discount_end` date DEFAULT NULL,
   `category_id` int NOT NULL,
-  `subcategory_id` int NOT NULL,
+  `subcategory_id` int DEFAULT NULL,
   `initial_price` decimal(10,2) DEFAULT NULL,
   `profit` decimal(10,2) DEFAULT NULL,
   `discount_percentage` decimal(5,2) DEFAULT '0.00',

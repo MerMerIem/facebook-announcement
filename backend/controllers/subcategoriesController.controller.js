@@ -7,6 +7,17 @@ export async function getAllSubCategories(req, res) {
     const offset = (page - 1) * limit;
     const categoryId = req.query.categoryId; // Optional filter by category ID
     const search = req.query.search;
+
+    // Whitelist sortable columns
+    const SORTABLE_COLUMNS = {
+        id: "s.id",
+        name: "s.name",
+        product_count: "product_count",
+        category_name: "c.name",
+    };
+    const sortByRaw = req.query.sortBy || "id";
+    const sortBy = SORTABLE_COLUMNS[sortByRaw] || "s.id";
+    const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
   
     try {
       let query = `
@@ -42,8 +53,8 @@ export async function getAllSubCategories(req, res) {
         countQuery += whereClause;
       }
   
-      // Add pagination to main query
-      query += ` ORDER BY s.id LIMIT ? OFFSET ?`;
+      // Add ordering and pagination to main query
+      query += ` ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
       params.push(limit, offset);
   
       // Execute both queries

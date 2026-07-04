@@ -24,7 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, Trash2, Package, Filter, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Eye, Trash2, Package, Filter, ChevronDown, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useApi } from "@/contexts/RestContext";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
@@ -307,43 +314,45 @@ export default function Orders() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">إدارة الطلبات</h1>
-          <p className="text-muted-foreground mt-2">
-            متابعة ومعالجة طلبات العملاء
-          </p>
-        </div>
-      </div>
+      <div className="space-y-6">
+          <div className="flex items-center justify-between">
+              <div>
+                  <h1 className="text-3xl font-bold text-foreground">
+                      إدارة الطلبات
+                  </h1>
+                  <p className="text-muted-foreground mt-2">
+                      متابعة ومعالجة طلبات العملاء
+                  </p>
+              </div>
+          </div>
 
-      {/* Search and Filter Bar */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="البحث بالاسم، البريد الإلكتروني، الهاتف، أو رقم الطلب..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                setCurrentPage(1);
-                fetchData(1, statusFilter, searchTerm);
-              }
-            }}
-            className="pr-10 bg-white!"
-          />
-        </div>
+          {/* Search and Filter Bar */}
+          <div className="flex flex-col lg:flex-row gap-4">
+              <div className="relative flex-1">
+                  <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                      placeholder="البحث بالاسم، البريد الإلكتروني، الهاتف، أو رقم الطلب..."
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                              setCurrentPage(1);
+                              fetchData(1, statusFilter, searchTerm);
+                          }
+                      }}
+                      className="pr-10 bg-white!"
+                  />
+              </div>
 
-        <div className="relative">
-          <select
-            id="items-per-page"
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className="
+              <div className="relative">
+                  <select
+                      id="items-per-page"
+                      value={itemsPerPage}
+                      onChange={e => {
+                          setItemsPerPage(Number(e.target.value));
+                          setCurrentPage(1);
+                      }}
+                      className="
             appearance-none
             w-full
             px-4 py-2
@@ -367,437 +376,577 @@ export default function Orders() {
             focus:border-ring
             focus:shadow-md
           "
-          >
-            <option value={10}>10 items</option>
-            <option value={20}>20 items</option>
-            <option value={30}>30 items</option>
-            <option value={40}>40 items</option>
-            <option value={50}>50 items</option>
-          </select>
+                  >
+                      <option value={10}>10 items</option>
+                      <option value={20}>20 items</option>
+                      <option value={30}>30 items</option>
+                      <option value={40}>40 items</option>
+                      <option value={50}>50 items</option>
+                  </select>
 
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <ChevronDown
-              className="h-5 w-5 text-gray-400 transition-colors duration-200"
-              aria-hidden="true"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select
-            value={statusFilter || "all"}
-            onValueChange={handleStatusFilterChange}
-            dir="rtl"
-            className="bg-white!"
-          >
-            <SelectTrigger className="w-48 text-right bg-white!">
-              <SelectValue placeholder="تصفية حسب الحالة" />
-            </SelectTrigger>
-            <SelectContent side="bottom" align="end">
-              <SelectItem value="all">جميع الحالات</SelectItem>
-              <SelectItem value={ORDER_STATUS.PENDING}>
-                {ORDER_STATUS.PENDING}
-              </SelectItem>
-              <SelectItem value={ORDER_STATUS.CONFIRMED}>
-                {ORDER_STATUS.CONFIRMED}
-              </SelectItem>
-              <SelectItem value={ORDER_STATUS.DELIVERED}>
-                {ORDER_STATUS.DELIVERED}
-              </SelectItem>
-              <SelectItem value={ORDER_STATUS.CANCELLED}>
-                {ORDER_STATUS.CANCELLED}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {(statusFilter || searchTerm) && (
-        <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
-          <span className="text-sm text-muted-foreground">الفلاتر النشطة:</span>
-          {statusFilter && (
-            <Badge variant="secondary" className="gap-1">
-              حالة: {statusFilter}
-              <button
-                onClick={() => handleStatusFilterChange("")}
-                className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-          {searchTerm && (
-            <Badge variant="secondary" className="gap-1">
-              بحث: {searchTerm}
-              <button
-                onClick={() => setSearchTerm("")}
-                className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-        </div>
-      )}
-
-      <Card className={"p-0 border-0"}>
-        <CardContent className="p-0 m-0">
-          <div className="overflow-x-auto">
-            <Table className="min-w-[1000px]">
-              <TableHeader className={"p-0"}>
-                <TableRow className="text-right hover:bg-white">
-                  <TableHead className="text-right font-medium"></TableHead>
-                  <TableHead className="text-right font-medium">
-                    رقم الطلب
-                  </TableHead>
-                  <TableHead className="text-right font-medium">
-                    العميل
-                  </TableHead>
-                  <TableHead className="text-right font-medium">
-                    الولاية
-                  </TableHead>
-                  <TableHead className="text-right font-medium">
-                    الهاتف
-                  </TableHead>
-                  <TableHead className="text-right font-medium">
-                    العناصر
-                  </TableHead>
-                  <TableHead className="text-right font-medium">
-                    المجموع
-                  </TableHead>
-                  <TableHead className="text-right font-medium w-32">
-                    الحالة
-                  </TableHead>
-                  <TableHead className="text-right font-medium">
-                    التاريخ
-                  </TableHead>
-                  <TableHead className="text-right font-medium">
-                    الإجراءات
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ordersList.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
-                      <div className="text-muted-foreground">
-                        {searchTerm || statusFilter
-                          ? "لا توجد طلبات تطابق الفلاتر المحددة"
-                          : "لا توجد طلبات"}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  ordersList.map((order) => (
-                    <TableRow
-                      key={`${order.id}-${order.created_at}`}
-                      className="hover:bg-white"
-                    >
-                      <TableCell className="font-mono text-sm"></TableCell>
-                      <TableCell className="font-mono text-sm">
-                        #{order.id}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-right">
-                          <div className="font-medium text-sm">
-                            {order.full_name}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate max-w-32">
-                            {order.email}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{order.wilaya}</TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {order.phone}
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium bg-gray-100 rounded-full">
-                          {order.item_count}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="font-semibold text-sm">
-                          {order.total_price} دج
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          شحن: {order.delivery_fee} دج
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-32">
-                        {getStatusBadge(order.status)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="text-sm">
-                          {new Date(order.created_at).toLocaleDateString(
-                            "ar-DZ",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            }
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(order.created_at).toLocaleTimeString(
-                            "ar-DZ",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Select
-                            value={order.status}
-                            onValueChange={(newStatus) =>
-                              updateOrderStatus(order.id, newStatus)
-                            }
-                            dir="rtl"
-                          >
-                            <SelectTrigger className="h-8 w-28 text-xs text-right pr-2">
-                              <SelectValue placeholder="اختر الحالة" />
-                            </SelectTrigger>
-                            <SelectContent side="bottom" align="end">
-                              <SelectItem value={ORDER_STATUS.PENDING}>
-                                {ORDER_STATUS.PENDING}
-                              </SelectItem>
-                              <SelectItem value={ORDER_STATUS.CONFIRMED}>
-                                {ORDER_STATUS.CONFIRMED}
-                              </SelectItem>
-                              <SelectItem value={ORDER_STATUS.DELIVERED}>
-                                {ORDER_STATUS.DELIVERED}
-                              </SelectItem>
-                              <SelectItem value={ORDER_STATUS.CANCELLED}>
-                                {ORDER_STATUS.CANCELLED}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => showOrderDetails(order)}
-                            className="h-8 w-8 p-0 cursor-pointer hover:text-blue-700 hover:bg-blue-100"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 cursor-pointer p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDeleteClick(order.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {pagination.totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-10">
-          <div className="text-sm text-muted-foreground">
-            صفحة {currentPage} من {pagination.totalPages}
-            {pagination && (
-              <span className="mr-2"> • المجموع: {pagination.total} طلب</span>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
-            >
-              الأولى
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              السابق
-            </Button>
-            <span className="text-sm">
-              {currentPage} / {pagination.totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === pagination.totalPages}
-            >
-              التالي
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(pagination.totalPages)}
-              disabled={currentPage === pagination.totalPages}
-            >
-              الأخيرة
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto font-admin">
-          {selectedOrder && (
-            <>
-              <DialogHeader className="border-b pb-4 mb-6 flex flex-row-reverse">
-                <DialogTitle className="text-lg font-medium text-right">
-                  طلب #{selectedOrder.id}
-                </DialogTitle>
-              </DialogHeader>
-
-              <div className="grid md:grid-cols-2 gap-8 mb-8 text-right">
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-gray-900 mb-3">
-                    معلومات العميل
-                  </h3>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex justify-between">
-                      <span>{selectedOrder.full_name}</span>
-                      <span className="text-gray-400">الاسم</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>{selectedOrder.email}</span>
-                      <span className="text-gray-400">البريد</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>{selectedOrder.phone}</span>
-                      <span className="text-gray-400">الهاتف</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>{selectedOrder.wilaya}</span>
-                      <span className="text-gray-400">الولاية</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-left">{selectedOrder.address}</span>
-                      <span className="text-gray-400">العنوان</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>{selectedOrder.delivery_location}</span>
-                      <span className="text-gray-400">التسليم</span>
-                    </div>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <ChevronDown
+                          className="h-5 w-5 text-gray-400 transition-colors duration-200"
+                          aria-hidden="true"
+                      />
                   </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-gray-900 mb-3">
-                    تفاصيل الطلب
-                  </h3>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex justify-between">
-                      <span>
-                        {new Date(selectedOrder.created_at).toLocaleDateString(
-                          "fr"
-                        )}
-                      </span>
-                      <span className="text-gray-400">التاريخ</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>{getStatusBadge(selectedOrder.status)}</span>
-                      <span className="text-gray-400">الحالة</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>{selectedOrder.delivery_fee} دج</span>
-                      <span className="text-gray-400">الشحن</span>
-                    </div>
-                    <div className="flex justify-between font-black text-gray-900 pt-2 border-t">
-                      <span>{selectedOrder.total_price} دج</span>
-                      <span>المجموع</span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {selectedOrder.notes && (
-                <div className="mb-2 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-900 mb-2 text-right">
-                    ملاحظات
-                  </h3>
-                  <p className="text-sm text-gray-600">{selectedOrder.notes}</p>
-                </div>
-              )}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select
+                      value={statusFilter || 'all'}
+                      onValueChange={handleStatusFilterChange}
+                      dir="rtl"
+                      className="bg-white!"
+                  >
+                      <SelectTrigger className="w-48 text-right bg-white!">
+                          <SelectValue placeholder="تصفية حسب الحالة" />
+                      </SelectTrigger>
+                      <SelectContent side="bottom" align="end">
+                          <SelectItem value="all">جميع الحالات</SelectItem>
+                          <SelectItem value={ORDER_STATUS.PENDING}>
+                              {ORDER_STATUS.PENDING}
+                          </SelectItem>
+                          <SelectItem value={ORDER_STATUS.CONFIRMED}>
+                              {ORDER_STATUS.CONFIRMED}
+                          </SelectItem>
+                          <SelectItem value={ORDER_STATUS.DELIVERED}>
+                              {ORDER_STATUS.DELIVERED}
+                          </SelectItem>
+                          <SelectItem value={ORDER_STATUS.CANCELLED}>
+                              {ORDER_STATUS.CANCELLED}
+                          </SelectItem>
+                      </SelectContent>
+                  </Select>
+              </div>
+          </div>
 
-              {selectedOrder.items && selectedOrder.items.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-black text-gray-900 mb-4 pb-2 border-b text-right">
-                    المنتجات ({selectedOrder.items.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {selectedOrder.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-4 p-4 border-1 border-gray-500 rounded-lg bg-white transition-colors"
-                      >
-                        {item.product_image ? (
-                          <img
-                            src={item.product_image}
-                            alt={item.product_name}
-                            className="w-16 h-16 object-cover rounded-md border-1 flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 bg-gray-100 rounded-md border-1 flex items-center justify-center flex-shrink-0">
-                            <Package className="h-6 w-6 text-gray-400" />
-                          </div>
-                        )}
-
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 truncate">
-                            {item.product_name}
-                          </h4>
-                          <div
-                            className="prose max-w-none text-muted-foreground"
-                            dangerouslySetInnerHTML={{
-                              __html: item.product_description,
-                            }}
-                          />
-                        </div>
-
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-sm font-medium text-gray-900">
-                            {item.quantity} × {item.unit_price} دج
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {(
-                              item.quantity * parseFloat(item.unit_price)
-                            ).toFixed(2)}{" "}
-                            دج
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
+          {(statusFilter || searchTerm) && (
+              <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
+                  <span className="text-sm text-muted-foreground">
+                      الفلاتر النشطة:
+                  </span>
+                  {statusFilter && (
+                      <Badge variant="secondary" className="gap-1">
+                          حالة: {statusFilter}
+                          <button
+                              onClick={() => handleStatusFilterChange('')}
+                              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+                          >
+                              ×
+                          </button>
+                      </Badge>
+                  )}
+                  {searchTerm && (
+                      <Badge variant="secondary" className="gap-1">
+                          بحث: {searchTerm}
+                          <button
+                              onClick={() => setSearchTerm('')}
+                              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+                          >
+                              ×
+                          </button>
+                      </Badge>
+                  )}
+              </div>
           )}
-        </DialogContent>
-      </Dialog>
 
-      <ConfirmationDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={confirmDelete}
-        isLoading={isDeleting}
-        title="تأكيد حذف الطلب"
-        message="هل أنت متأكد أنك تريد حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
-        confirmText="حذف الطلب"
-        cancelText="إلغاء"
-      />
-    </div>
+          <Card className={'p-0 border-border'}>
+              <CardContent className="p-0 m-0">
+                  <div className="overflow-x-auto">
+                      <Table className="min-w-[1000px]">
+                          <TableHeader className={'p-0'}>
+                              <TableRow className="text-right hover:bg-white">
+                                  <TableHead className="text-right font-medium"></TableHead>
+                                  <TableHead className="text-right font-medium">
+                                      رقم الطلب
+                                  </TableHead>
+                                  <TableHead className="text-right font-medium">
+                                      العميل
+                                  </TableHead>
+                                  <TableHead className="text-right font-medium">
+                                      الولاية
+                                  </TableHead>
+                                  <TableHead className="text-right font-medium">
+                                      الهاتف
+                                  </TableHead>
+                                  <TableHead className="text-right font-medium">
+                                      العناصر
+                                  </TableHead>
+                                  <TableHead className="text-right font-medium">
+                                      المجموع
+                                  </TableHead>
+                                  <TableHead className="text-right font-medium w-32">
+                                      الحالة
+                                  </TableHead>
+                                  <TableHead className="text-right font-medium">
+                                      التاريخ
+                                  </TableHead>
+                                  <TableHead className="text-right font-medium">
+                                      الإجراءات
+                                  </TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {ordersList.length === 0 ? (
+                                  <TableRow>
+                                      <TableCell
+                                          colSpan={10}
+                                          className="text-center py-8"
+                                      >
+                                          <div className="text-muted-foreground">
+                                              {searchTerm || statusFilter
+                                                  ? 'لا توجد طلبات تطابق الفلاتر المحددة'
+                                                  : 'لا توجد طلبات'}
+                                          </div>
+                                      </TableCell>
+                                  </TableRow>
+                              ) : (
+                                  ordersList.map(order => (
+                                      <TableRow
+                                          key={`${order.id}-${order.created_at}`}
+                                          className="hover:bg-white"
+                                      >
+                                          <TableCell className="font-mono text-sm"></TableCell>
+                                          <TableCell className="font-mono text-sm">
+                                              #{order.id}
+                                          </TableCell>
+                                          <TableCell>
+                                              <div className="text-right">
+                                                  <div className="font-medium text-sm">
+                                                      {order.full_name}
+                                                  </div>
+                                                  <div className="text-xs text-gray-500 truncate max-w-32">
+                                                      {order.email}
+                                                  </div>
+                                              </div>
+                                          </TableCell>
+                                          <TableCell className="text-sm">
+                                              {order.wilaya}
+                                          </TableCell>
+                                          <TableCell className="text-sm font-mono">
+                                              {order.phone}
+                                          </TableCell>
+                                          <TableCell>
+                                              <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium bg-gray-100 rounded-full">
+                                                  {order.item_count}
+                                              </span>
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                              <div className="font-semibold text-sm">
+                                                  {order.total_price} دج
+                                              </div>
+                                              <div className="text-xs text-gray-500">
+                                                  شحن: {order.delivery_fee} دج
+                                              </div>
+                                          </TableCell>
+                                          <TableCell className="w-32">
+                                              {getStatusBadge(order.status)}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                              <div className="text-sm">
+                                                  {new Date(
+                                                      order.created_at
+                                                  ).toLocaleDateString(
+                                                      'ar-DZ',
+                                                      {
+                                                          year: 'numeric',
+                                                          month: 'short',
+                                                          day: 'numeric',
+                                                      }
+                                                  )}
+                                              </div>
+                                              <div className="text-xs text-gray-500">
+                                                  {new Date(
+                                                      order.created_at
+                                                  ).toLocaleTimeString(
+                                                      'ar-DZ',
+                                                      {
+                                                          hour: '2-digit',
+                                                          minute: '2-digit',
+                                                      }
+                                                  )}
+                                              </div>
+                                          </TableCell>
+                                          <TableCell>
+                                              <div className="flex items-center gap-2">
+                                                  {/* View details at the beginning */}
+                                                  <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      onClick={() =>
+                                                          showOrderDetails(
+                                                              order
+                                                          )
+                                                      }
+                                                      className="h-8 w-8 p-0 cursor-pointer text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+                                                  >
+                                                      <Eye className="h-4 w-4" />
+                                                  </Button>
+
+                                                  {/* Dots dropdown for the remaining actions */}
+                                                  <DropdownMenu>
+                                                      <DropdownMenuTrigger
+                                                          asChild
+                                                      >
+                                                          <Button
+                                                              variant="ghost"
+                                                              size="sm"
+                                                              className="h-8 w-8 p-0 cursor-pointer text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                                          >
+                                                              <MoreHorizontal className="h-4 w-4" />
+                                                          </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent
+                                                          align="end"
+                                                          className="w-44 text-right"
+                                                          dir="rtl"
+                                                      >
+                                                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-b border-gray-100 mb-1">
+                                                              تغيير حالة الطلب
+                                                          </div>
+                                                          <DropdownMenuItem
+                                                              onClick={() =>
+                                                                  updateOrderStatus(
+                                                                      order.id,
+                                                                      ORDER_STATUS.PENDING
+                                                                  )
+                                                              }
+                                                              className={
+                                                                  order.status ===
+                                                                  ORDER_STATUS.PENDING
+                                                                      ? 'bg-accent/50 font-medium text-right cursor-pointer'
+                                                                      : 'text-right cursor-pointer'
+                                                              }
+                                                          >
+                                                              {
+                                                                  ORDER_STATUS.PENDING
+                                                              }
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem
+                                                              onClick={() =>
+                                                                  updateOrderStatus(
+                                                                      order.id,
+                                                                      ORDER_STATUS.CONFIRMED
+                                                                  )
+                                                              }
+                                                              className={
+                                                                  order.status ===
+                                                                  ORDER_STATUS.CONFIRMED
+                                                                      ? 'bg-accent/50 font-medium text-right cursor-pointer'
+                                                                      : 'text-right cursor-pointer'
+                                                              }
+                                                          >
+                                                              {
+                                                                  ORDER_STATUS.CONFIRMED
+                                                              }
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem
+                                                              onClick={() =>
+                                                                  updateOrderStatus(
+                                                                      order.id,
+                                                                      ORDER_STATUS.DELIVERED
+                                                                  )
+                                                              }
+                                                              className={
+                                                                  order.status ===
+                                                                  ORDER_STATUS.DELIVERED
+                                                                      ? 'bg-accent/50 font-medium text-right cursor-pointer'
+                                                                      : 'text-right cursor-pointer'
+                                                              }
+                                                          >
+                                                              {
+                                                                  ORDER_STATUS.DELIVERED
+                                                              }
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem
+                                                              onClick={() =>
+                                                                  updateOrderStatus(
+                                                                      order.id,
+                                                                      ORDER_STATUS.CANCELLED
+                                                                  )
+                                                              }
+                                                              className={
+                                                                  order.status ===
+                                                                  ORDER_STATUS.CANCELLED
+                                                                      ? 'bg-accent/50 font-medium text-right cursor-pointer'
+                                                                      : 'text-right cursor-pointer'
+                                                              }
+                                                          >
+                                                              {
+                                                                  ORDER_STATUS.CANCELLED
+                                                              }
+                                                          </DropdownMenuItem>
+
+                                                          <DropdownMenuSeparator />
+
+                                                          <DropdownMenuItem
+                                                              onClick={() =>
+                                                                  handleDeleteClick(
+                                                                      order.id
+                                                                  )
+                                                              }
+                                                              className="text-red-600 focus:text-red-700 focus:bg-red-50 text-right cursor-pointer"
+                                                          >
+                                                              <Trash2 className="ml-2 h-4 w-4 inline" />
+                                                              حذف الطلب
+                                                          </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                  </DropdownMenu>
+                                              </div>
+                                          </TableCell>
+                                      </TableRow>
+                                  ))
+                              )}
+                          </TableBody>
+                      </Table>
+                  </div>
+              </CardContent>
+          </Card>
+
+          {pagination.totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-10">
+                  <div className="text-sm text-muted-foreground">
+                      صفحة {currentPage} من {pagination.totalPages}
+                      {pagination && (
+                          <span className="mr-2">
+                              {' '}
+                              • المجموع: {pagination.total} طلب
+                          </span>
+                      )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 justify-center">
+                      <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                      >
+                          الأولى
+                      </Button>
+                      <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                      >
+                          السابق
+                      </Button>
+                      <span className="text-sm">
+                          {currentPage} / {pagination.totalPages}
+                      </span>
+                      <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === pagination.totalPages}
+                      >
+                          التالي
+                      </Button>
+                      <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                              handlePageChange(pagination.totalPages)
+                          }
+                          disabled={currentPage === pagination.totalPages}
+                      >
+                          الأخيرة
+                      </Button>
+                  </div>
+              </div>
+          )}
+
+          <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+              <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto font-admin admin-app">
+                  {selectedOrder && (
+                      <>
+                          <DialogHeader className="border-b pb-4 mb-6 flex flex-row-reverse">
+                              <DialogTitle className="text-lg font-medium text-right">
+                                  طلب #{selectedOrder.id}
+                              </DialogTitle>
+                          </DialogHeader>
+
+                          <div className="grid md:grid-cols-2 gap-8 mb-8 text-right">
+                              <div className="space-y-3">
+                                  <h3 className="text-sm font-bold text-gray-900 mb-3">
+                                      معلومات العميل
+                                  </h3>
+                                  <div className="space-y-2 text-sm text-gray-600">
+                                      <div className="flex justify-between">
+                                          <span>{selectedOrder.full_name}</span>
+                                          <span className="text-gray-400">
+                                              الاسم
+                                          </span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                          <span>{selectedOrder.email}</span>
+                                          <span className="text-gray-400">
+                                              البريد
+                                          </span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                          <span>{selectedOrder.phone}</span>
+                                          <span className="text-gray-400">
+                                              الهاتف
+                                          </span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                          <span>{selectedOrder.wilaya}</span>
+                                          <span className="text-gray-400">
+                                              الولاية
+                                          </span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                          <span className="text-left">
+                                              {selectedOrder.address}
+                                          </span>
+                                          <span className="text-gray-400">
+                                              العنوان
+                                          </span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                          <span>
+                                              {selectedOrder.delivery_location}
+                                          </span>
+                                          <span className="text-gray-400">
+                                              التسليم
+                                          </span>
+                                      </div>
+                                  </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                  <h3 className="text-sm font-bold text-gray-900 mb-3">
+                                      تفاصيل الطلب
+                                  </h3>
+                                  <div className="space-y-2 text-sm text-gray-600">
+                                      <div className="flex justify-between">
+                                          <span>
+                                              {new Date(
+                                                  selectedOrder.created_at
+                                              ).toLocaleDateString('fr')}
+                                          </span>
+                                          <span className="text-gray-400">
+                                              التاريخ
+                                          </span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                          <span>
+                                              {getStatusBadge(
+                                                  selectedOrder.status
+                                              )}
+                                          </span>
+                                          <span className="text-gray-400">
+                                              الحالة
+                                          </span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                          <span>
+                                              {selectedOrder.delivery_fee} دج
+                                          </span>
+                                          <span className="text-gray-400">
+                                              الشحن
+                                          </span>
+                                      </div>
+                                      <div className="flex justify-between font-black text-gray-900 pt-2 border-t">
+                                          <span>
+                                              {selectedOrder.total_price} دج
+                                          </span>
+                                          <span>المجموع</span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+
+                          {selectedOrder.notes && (
+                              <div className="mb-2 p-4 bg-gray-50 rounded-lg">
+                                  <h3 className="text-sm font-medium text-gray-900 mb-2 text-right">
+                                      ملاحظات
+                                  </h3>
+                                  <p className="text-sm text-gray-600">
+                                      {selectedOrder.notes}
+                                  </p>
+                              </div>
+                          )}
+
+                          {selectedOrder.items &&
+                              selectedOrder.items.length > 0 && (
+                                  <div>
+                                      <h3 className="text-sm font-black text-gray-900 mb-4 pb-2 border-b text-right">
+                                          المنتجات ({selectedOrder.items.length}
+                                          )
+                                      </h3>
+                                      <div className="space-y-3">
+                                          {selectedOrder.items.map(item => (
+                                              <div
+                                                  key={item.id}
+                                                  className="flex items-center gap-4 p-4 border-1 border-gray-500 rounded-lg bg-white transition-colors"
+                                              >
+                                                  {item.product_image ? (
+                                                      <img
+                                                          src={
+                                                              item.product_image
+                                                          }
+                                                          alt={
+                                                              item.product_name
+                                                          }
+                                                          className="w-16 h-16 object-cover rounded-md border-1 flex-shrink-0"
+                                                      />
+                                                  ) : (
+                                                      <div className="w-16 h-16 bg-gray-100 rounded-md border-1 flex items-center justify-center flex-shrink-0">
+                                                          <Package className="h-6 w-6 text-gray-400" />
+                                                      </div>
+                                                  )}
+
+                                                  <div className="flex-1 min-w-0">
+                                                      <h4 className="font-medium text-gray-900 truncate">
+                                                          {item.product_name}
+                                                      </h4>
+                                                      <div
+                                                          className="prose max-w-none text-muted-foreground"
+                                                          dangerouslySetInnerHTML={{
+                                                              __html: item.product_description,
+                                                          }}
+                                                      />
+                                                  </div>
+
+                                                  <div className="text-right flex-shrink-0">
+                                                      <div className="text-sm font-medium text-gray-900">
+                                                          {item.quantity} ×{' '}
+                                                          {item.unit_price} دج
+                                                      </div>
+                                                      <div className="text-xs text-gray-600">
+                                                          {(
+                                                              item.quantity *
+                                                              parseFloat(
+                                                                  item.unit_price
+                                                              )
+                                                          ).toFixed(2)}{' '}
+                                                          دج
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </div>
+                              )}
+                      </>
+                  )}
+              </DialogContent>
+          </Dialog>
+
+          <ConfirmationDialog
+              isOpen={isDeleteDialogOpen}
+              onClose={() => setIsDeleteDialogOpen(false)}
+              onConfirm={confirmDelete}
+              isLoading={isDeleting}
+              title="تأكيد حذف الطلب"
+              message="هل أنت متأكد أنك تريد حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
+              confirmText="حذف الطلب"
+              cancelText="إلغاء"
+          />
+      </div>
   );
 }

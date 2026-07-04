@@ -232,3 +232,187 @@ body {
 button {
     cursor: pointer;
 }
+
+/* Admin Panel Overrides - Sky/Ocean Blue Theme, Sharp Corners, No Shadows */
+.admin-app {
+    /* Clean Sky/Ocean Blue Theme */
+    --background: #f8fafc; /* Slate-50 background */
+    --foreground: #0f172a; /* Slate-900 foreground */
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    
+    /* Sky Blue Primary */
+    --primary: #0284c7; /* Sky-600 */
+    --primary-foreground: #ffffff;
+    
+    /* Slate/Muted Blue tones */
+    --secondary: #f1f5f9; /* Slate-100 */
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b; /* Slate-500 */
+    --accent: #e0f2fe; /* Sky-100 */
+    --accent-foreground: #0369a1; /* Sky-700 */
+    
+    /* Strict red for destructive actions */
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    
+    /* Border and inputs */
+    --border: #e2e8f0; /* Soft Slate-200 */
+    --input: #ffffff;
+    --ring: #0ea5e9; /* Sky-500 */
+    
+    /* Chart Overrides */
+    --chart-1: #0ea5e9;
+    --chart-2: #0284c7;
+    --chart-3: #0369a1;
+    --chart-4: #0f172a;
+    --chart-5: #38bdf8;
+    
+    /* Sidebar (Dark Ocean Blue / Slate 900) */
+    --sidebar: #0f172a;
+    --sidebar-foreground: #f8fafc;
+    --sidebar-primary: #38bdf8;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #1e293b;
+    --sidebar-accent-foreground: #f8fafc;
+    --sidebar-border: #1e293b;
+    --sidebar-ring: #38bdf8;
+    
+    /* Radius & shadows */
+    --radius: 0px !important;
+}
+
+/* Force sharp borders (0 radius) and no shadows inside admin-app */
+.admin-app,
+.admin-app *,
+.admin-app ::before,
+.admin-app ::after {
+    border-radius: 0px !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+/* Table border overrides to a very soft Slate-200 color that barely shows */
+.admin-app table,
+.admin-app thead,
+.admin-app tbody,
+.admin-app tr,
+.admin-app th,
+.admin-app td,
+.admin-app [data-slot='table'],
+.admin-app [data-slot='table-row'],
+.admin-app [data-slot='table-cell'],
+.admin-app [data-slot='table-head'] {
+    border-color: #e2e8f0 !important;
+}
+
+/* Dark mode table border overrides */
+.dark .admin-app table,
+.dark .admin-app thead,
+.dark .admin-app tbody,
+.dark .admin-app tr,
+.dark .admin-app th,
+.dark .admin-app td,
+.dark .admin-app [data-slot='table'],
+.dark .admin-app [data-slot='table-row'],
+.dark .admin-app [data-slot='table-cell'],
+.dark .admin-app [data-slot='table-head'] {
+    border-color: #1e293b !important;
+}
+
+/* Override legacy gradient backgrounds to make them clean, light-bordered cards */
+.admin-app .bg-gradient-to-br.from-purple-50.to-pink-50,
+.admin-app .bg-gradient-to-br.from-indigo-50.to-blue-50,
+.admin-app .bg-gradient-to-br.from-green-50.to-emerald-50,
+.admin-app .bg-gradient-to-br.from-gray-50.to-white,
+.admin-app .bg-gradient-to-br.from-gray-50.to-gray-100 {
+    background-image: none !important;
+    background-color: #f8fafc !important; /* Clean Slate-50 background */
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* Make tags clean, minimalistic, and pretty */
+.admin-app span.bg-gradient-to-r.from-blue-500.to-purple-600 {
+    background-image: none !important;
+    background-color: #f0f9ff !important; /* Sky-50 */
+    color: #0369a1 !important; /* Sky-700 */
+    border: 1px solid #bae6fd !important; /* Sky-200 */
+    font-weight: 500 !important;
+}
+
+/* Make header gradient minimal */
+.admin-app .bg-gradient-to-r.from-blue-50.to-indigo-50 {
+    background-image: none !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* Pricing highlight badge */
+.admin-app span.bg-red-100.text-red-600 {
+    background-color: #fef2f2 !important; /* Red-50 */
+    color: #dc2626 !important; /* Red-600 */
+    border: 1px solid #fecaca !important;
+}
+
+.admin-app .from-blue-500.to-purple-600 {
+    background-image: linear-gradient(to right, var(--primary), var(--ring)) !important;
+}
+
+/* Fix text colors */
+.admin-app .text-purple-500,
+.admin-app .text-indigo-500,
+.admin-app .text-purple-600,
+.admin-app .text-indigo-600 {
+    color: var(--primary) !important;
+}
+
+.admin-app .border-purple-200,
+.admin-app .border-gray-100,
+.admin-app .border-gray-200 {
+    border-color: var(--border) !important;
+}
+
+.admin-app .bg-blue-100 {
+    background-color: var(--accent) !important;
+    color: var(--accent-foreground) !important;
+}
+
+.admin-app .text-blue-700 {
+    color: var(--accent-foreground) !important;
+}
+
+/* Dark mode for admin panel */
+.dark .admin-app {
+    --background: #090d16;
+    --foreground: #f8fafc;
+    --card: #0d1527;
+    --card-foreground: #f8fafc;
+    --popover: #0d1527;
+    --popover-foreground: #f8fafc;
+    --primary: #38bdf8;
+    --primary-foreground: #090d16;
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --accent: #0c4a6e;
+    --accent-foreground: #e0f2fe;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #1e293b;
+    --input: #0d1527;
+    --ring: #38bdf8;
+    --sidebar: #030712;
+    --sidebar-foreground: #f8fafc;
+    --sidebar-primary: #38bdf8;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #1e293b;
+    --sidebar-accent-foreground: #f8fafc;
+    --sidebar-border: #1e293b;
+    --sidebar-ring: #38bdf8;
+    --radius: 0px !important;
+}
+

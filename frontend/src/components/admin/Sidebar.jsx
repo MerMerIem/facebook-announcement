@@ -11,7 +11,7 @@ import {
     ChevronDown,
     ChevronRight,
 } from 'lucide-react';
-
+import logo from '@/assets/logo.jpg';
 const menuItems = [
     {
         title: 'لوحة التحكم',
@@ -73,9 +73,11 @@ export function Sidebar({ collapsed }) {
         >
             <div className="p-4 border-b border-sidebar-border">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-9 rounded-lg bg-gradient-to-r from-[#c47b18] via-[#e6ad52] to-[#f7b33d] flex items-center justify-center shadow-sm">
-                        <Package className="w-4 h-4 text-white" />
-                    </div>
+                        <img
+                            src={logo}
+                            alt="Logo"
+                            className="w-15 h-15 object-contain"
+                        />
                     {!collapsed && (
                         <div>
                             <h1 className="text-sidebar-foreground font-bold text-lg">
@@ -106,8 +108,9 @@ export function Sidebar({ collapsed }) {
                                     style={
                                         hasActiveChild
                                             ? {
-                                                  backgroundColor: '#c47b18',
-                                                  color: '#ffffff',
+                                                  backgroundColor:
+                                                      'var(--primary)',
+                                                  color: 'var(--primary-foreground)',
                                               }
                                             : undefined
                                     }
@@ -141,8 +144,8 @@ export function Sidebar({ collapsed }) {
                                                     isActive(child.href)
                                                         ? {
                                                               backgroundColor:
-                                                                  '#c47b18',
-                                                              color: '#ffffff',
+                                                                  'var(--primary)',
+                                                              color: 'var(--primary-foreground)',
                                                           }
                                                         : undefined
                                                 }
@@ -167,8 +170,8 @@ export function Sidebar({ collapsed }) {
                             style={
                                 isActive(item.href)
                                     ? {
-                                          backgroundColor: '#c47b18',
-                                          color: '#ffffff',
+                                          backgroundColor: 'var(--primary)',
+                                          color: 'var(--primary-foreground)',
                                       }
                                     : undefined
                             }
