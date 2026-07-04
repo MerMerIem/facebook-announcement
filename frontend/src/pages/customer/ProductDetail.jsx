@@ -348,27 +348,27 @@ const ProductDetail = () => {
     const relatedProducts = product.related_products || [];
 
     return (
-        <div dir="rtl" className="min-h-screen bg-shop-bg text-right">
+        <div dir="rtl" className="min-h-screen bg-background text-right">
             <div className="container mx-auto px-4 py-6">
                 {/* Breadcrumb */}
-                <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
+                <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                     <Link
                         to="/"
-                        className="hover:text-primary cursor-pointer transition-colors"
+                        className="hover:text-primary transition-colors"
                     >
                         الرئيسية
                     </Link>
                     <span>/</span>
                     <Link
                         to="/shop"
-                        className="hover:text-primary cursor-pointer transition-colors"
+                        className="hover:text-primary transition-colors"
                     >
                         المتجر
                     </Link>
                     <span>/</span>
                     <Link
                         to={`/shop?category=${product.category?.id}`}
-                        className="hover:text-primary cursor-pointer transition-colors"
+                        className="hover:text-primary transition-colors"
                     >
                         {product.category?.name}
                     </Link>
@@ -382,9 +382,9 @@ const ProductDetail = () => {
                 {selectedVariant && (
                     <div className="mb-4">
                         <Button
-                            variant="outline"
+                            variant=""
                             onClick={handleBackToMain}
-                            className="flex items-center gap-2"
+                            className="rounded-none flex items-center gap-2"
                         >
                             <ArrowLeft className="h-4 w-4" />
                             العودة للمنتج الرئيسي
@@ -395,8 +395,8 @@ const ProductDetail = () => {
                 <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 mb-8 sm:mb-12">
                     {/* Product Images */}
                     <div className="space-y-4">
-                        <div className="relative group">
-                            <div className="aspect-square bg-white rounded-lg overflow-hidden border-2 border-gray-100">
+                        <div className="relative">
+                            <div className="aspect-square bg-card border border-border overflow-hidden">
                                 <img
                                     src={
                                         currentImages?.[selectedImageIndex]
@@ -405,10 +405,10 @@ const ProductDetail = () => {
                                         '/placeholder.svg'
                                     }
                                     alt={currentData.name || product.name}
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    className="w-full h-full object-cover"
                                 />
                                 {hasDiscount && (
-                                    <div className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-full font-bold shadow-lg">
+                                    <div className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-4 py-2 font-bold">
                                         خصم {discountPercentage}%
                                     </div>
                                 )}
@@ -422,10 +422,10 @@ const ProductDetail = () => {
                                             onClick={() =>
                                                 setSelectedImageIndex(index)
                                             }
-                                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all duration-300 ${
+                                            className={`flex-shrink-0 w-20 h-20 overflow-hidden border-2 transition-colors ${
                                                 selectedImageIndex === index
-                                                    ? 'ring-4 ring-ring shadow-lg scale-105'
-                                                    : 'ring-2 ring-gray-200 hover:ring-accent hover:shadow-md'
+                                                    ? 'border-primary'
+                                                    : 'border-border hover:border-primary'
                                             }`}
                                         >
                                             <img
@@ -443,7 +443,7 @@ const ProductDetail = () => {
                     {/* Product Info */}
                     <div className="space-y-4 sm:space-y-6">
                         {/* Header */}
-                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight">
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4 leading-tight">
                             {product.name}
                             {selectedVariant && (
                                 <span className="text-base sm:text-lg font-normal text-muted-foreground ml-2 block sm:inline">
@@ -453,19 +453,22 @@ const ProductDetail = () => {
                         </h1>
 
                         <div>
-                            <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center flex-wrap gap-2 mb-3">
                                 {product.category?.name && (
-                                    <span className="px-3 py-1 bg-muted/30 text-primary text-sm font-medium rounded-full">
+                                    <span className="px-3 py-1 bg-muted text-foreground text-sm font-medium">
                                         {product.category.name}
                                     </span>
                                 )}
                                 {product.subcategory?.name && (
-                                    <span className="px-3 py-1 bg-indigo-100 text-indigo-800 text-sm font-medium rounded-full">
+                                    <span className="px-3 py-1 bg-accent text-accent-foreground text-sm font-medium">
                                         {product.subcategory.name}
                                     </span>
                                 )}
                                 {selectedVariant && (
-                                    <Badge variant="secondary">
+                                    <Badge
+                                        variant="secondary"
+                                        className="rounded-none"
+                                    >
                                         {selectedVariant.size}{' '}
                                         {selectedVariant.measure_unit}
                                     </Badge>
@@ -473,7 +476,7 @@ const ProductDetail = () => {
                                 {hasMeasureUnit && (
                                     <Badge
                                         variant="outline"
-                                        className="flex items-center gap-1"
+                                        className="rounded-none flex items-center gap-1"
                                     >
                                         <Calculator className="h-3 w-3" />
                                         يُباع بال{measureUnit}
@@ -481,7 +484,7 @@ const ProductDetail = () => {
                                 )}
                                 {currentData.discount_threshold &&
                                     currentData.discount_threshold > 0 && (
-                                        <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                                        <div className="w-full bg-accent border border-border text-accent-foreground px-3 py-2 text-sm font-medium flex items-center gap-2">
                                             <Zap className="h-4 w-4" />
                                             يوجد خصم خاص عند شراء أكثر من{' '}
                                             {currentData.discount_threshold} من
@@ -495,7 +498,7 @@ const ProductDetail = () => {
                                     {product.tags.map((tag, index) => (
                                         <span
                                             key={index}
-                                            className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full flex items-center gap-1"
+                                            className="px-3 py-1 bg-accent text-accent-foreground text-sm flex items-center gap-1"
                                         >
                                             <Zap className="h-3 w-3" />
                                             {typeof tag === 'string'
@@ -512,12 +515,12 @@ const ProductDetail = () => {
                             product.has_variants &&
                             product.variants &&
                             product.variants.length > 0 && (
-                                <div className="bg-accent/10 p-6 rounded-2xl border border-border/70 mb-6">
-                                    <h3 className="font-bold text-xl text-black flex items-center gap-3 mb-4">
-                                        <Package className="h-6 w-6 text-black" />
+                                <div className="bg-white p-6 border border-0 mb-6">
+                                    <h3 className="font-bold text-xl text-foreground flex items-center gap-3 mb-4">
+                                        <Package className="h-6 w-6" />
                                         اختر النوع والحجم:
                                     </h3>
-                                    <p className="text-foreground text-sm mb-4">
+                                    <p className="text-muted-foreground text-sm mb-4">
                                         يرجى اختيار نوع وحجم الخزان المناسب
                                         لاحتياجاتك
                                     </p>
@@ -541,22 +544,6 @@ const ProductDetail = () => {
                                                 variantDiscountPrice > 0
                                                     ? variantDiscountPrice
                                                     : variantOriginalPrice;
-                                            console.log(
-                                                'variantOriginalPrice',
-                                                variantOriginalPrice
-                                            );
-                                            console.log(
-                                                'variantHasDiscount',
-                                                variantHasDiscount
-                                            );
-                                            console.log(
-                                                'variantDiscountPrice',
-                                                variantDiscountPrice
-                                            );
-                                            console.log(
-                                                'variantCurrentPrice',
-                                                variantCurrentPrice
-                                            );
 
                                             return (
                                                 <button
@@ -566,11 +553,11 @@ const ProductDetail = () => {
                                                             variant
                                                         )
                                                     }
-                                                    className="p-4 border-2 border-border/70 bg-white rounded-xl transition-all duration-300 text-right hover:border-primary hover:shadow-lg hover:scale-105"
+                                                    className="p-4 border-1 border-border bg-card text-right hover:border-primary transition-colors"
                                                 >
                                                     <div className="flex gap-3">
                                                         {variant.primary_image_url && (
-                                                            <div className="w-16 h-16 bg-white rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                                            <div className="w-16 h-16 bg-card border border-border overflow-hidden flex-shrink-0">
                                                                 <img
                                                                     src={
                                                                         variant.primary_image_url
@@ -589,7 +576,7 @@ const ProductDetail = () => {
                                                                     variant.measure_unit
                                                                 }
                                                             </div>
-                                                            <div className="text-sm text-gray-600 mb-2">
+                                                            <div className="text-sm text-muted-foreground mb-2">
                                                                 {variant.title}
                                                             </div>
                                                             <div className="flex items-center gap-2">
@@ -625,8 +612,8 @@ const ProductDetail = () => {
                                             );
                                         })}
                                     </div>
-                                    <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-lg">
-                                        <p className="text-amber-700 text-sm flex items-center gap-2">
+                                    <div className="mt-4 p-3 bg-accent border border-border text-accent-foreground">
+                                        <p className="text-sm flex items-center gap-2">
                                             <Info className="h-4 w-4" />
                                             يجب اختيار نوع معين لإضافة المنتج
                                             إلى السلة
@@ -640,14 +627,12 @@ const ProductDetail = () => {
                             <div
                                 className={
                                     selectedVariant
-                                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100'
+                                        ? 'bg-white p-6 border border-border'
                                         : ''
                                 }
                             >
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-                                    <span
-                                        className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${selectedVariant ? 'text-blue-600' : ''}`}
-                                    >
+                                    <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
                                         {formatPrice(currentPrice)}
                                         {hasMeasureUnit && measureUnit && (
                                             <span className="text-sm sm:text-base lg:text-lg text-muted-foreground">
@@ -659,10 +644,10 @@ const ProductDetail = () => {
                                         discountPrice > 0 &&
                                         originalPrice !== currentPrice && (
                                             <div className="flex flex-col">
-                                                <span className="text-xl text-gray-500 line-through">
+                                                <span className="text-xl text-muted-foreground line-through">
                                                     {formatPrice(originalPrice)}
                                                 </span>
-                                                <span className="text-green-600 font-medium text-sm">
+                                                <span className="text-primary font-medium text-sm">
                                                     وفر{' '}
                                                     {formatPrice(
                                                         originalPrice -
@@ -674,298 +659,132 @@ const ProductDetail = () => {
                                 </div>
 
                                 {hasDiscount && timeRemaining && (
-                                    <div className="flex items-center gap-2 text-red-600 font-medium bg-red-50 px-4 py-2 rounded-lg mb-4">
-                                        <Timer className="h-5 w-5 animate-pulse" />
+                                    <div className="flex items-center gap-2 text-destructive font-medium border border-destructive px-4 py-2 mb-4">
+                                        <Timer className="h-5 w-5" />
                                         <span>
                                             العرض ينتهي خلال: {timeRemaining}
                                         </span>
                                     </div>
                                 )}
 
-                                {/* Quantity Section */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-medium text-gray-900">
+                                {/* Unit price / Quantity */}
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div className=" p-4">
+                                        <div className="text-sm text-muted-foreground mb-1">
+                                            سعر الوحدة
+                                        </div>
+                                        <div className="text-xl font-bold text-foreground">
+                                            {formatPrice(currentPrice)}
+                                        </div>
+                                    </div>
+
+                                    <div className=" border-0 p-4">
+                                        <div className="text-sm text-muted-foreground mb-1">
                                             {hasMeasureUnit
-                                                ? `الكمية (${measureUnit}):`
-                                                : 'الكمية:'}
-                                        </span>
+                                                ? `الكمية (${measureUnit})`
+                                                : 'الكمية'}
+                                        </div>
 
                                         {hasMeasureUnit ? (
-                                            // Custom input for measure unit products with live calculation
-                                            <div className="flex items-center gap-2 flex-1">
-                                                <div className="relative flex-1 max-w-xs">
-                                                    <input
-                                                        type="text"
-                                                        value={customQuantity}
-                                                        onChange={e =>
-                                                            handleCustomQuantityChange(
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        placeholder={`أدخل الكمية بال${measureUnit}`}
-                                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center font-semibold focus:border-primary focus:outline-none transition-colors"
-                                                    />
-                                                    {customQuantity &&
-                                                        parseFloat(
-                                                            customQuantity
-                                                        ) > 0 && (
-                                                            <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
-                                                                <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded">
-                                                                    {
-                                                                        measureUnit
-                                                                    }
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                </div>
-
-                                                {/* Live Price Display */}
-                                                {customQuantity &&
-                                                    parseFloat(customQuantity) >
-                                                        0 && (
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 animate-pulse">
-                                                                <div className="text-center">
-                                                                    <div className="text-sm text-green-600 font-medium mb-1">
-                                                                        إجمالي
-                                                                        السعر
-                                                                    </div>
-                                                                    <div className="text-2xl font-bold text-green-700">
-                                                                        {formatPrice(
-                                                                            calculateLiveTotal()
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="text-xs text-green-600 mt-1">
-                                                                        {parseFloat(
-                                                                            customQuantity
-                                                                        )}{' '}
-                                                                        {
-                                                                            measureUnit
-                                                                        }{' '}
-                                                                        ×{' '}
-                                                                        {formatPrice(
-                                                                            currentPrice
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                            </div>
+                                            <input
+                                                type="text"
+                                                value={customQuantity}
+                                                onChange={e =>
+                                                    handleCustomQuantityChange(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder={`أدخل الكمية بال${measureUnit}`}
+                                                className="w-full px-2 py-1 border border-border bg-background text-foreground font-semibold focus:border-primary focus:outline-none"
+                                            />
                                         ) : (
-                                            // Modified regular quantity selector with live price display
-                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                                                <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden w-full sm:w-auto">
-                                                    <button
-                                                        onClick={() =>
-                                                            setQuantity(
-                                                                Math.max(
-                                                                    1,
-                                                                    quantity - 1
-                                                                )
+                                            <div className="flex bg-muted items-center border border-border">
+                                                <button
+                                                    onClick={() =>
+                                                        setQuantity(
+                                                            Math.max(
+                                                                1,
+                                                                quantity - 1
                                                             )
-                                                        }
-                                                        disabled={quantity <= 1}
-                                                        className="p-2 sm:p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-                                                    >
-                                                        <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
-                                                    </button>
-                                                    <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-50 font-semibold min-w-[60px] sm:min-w-[80px] text-center flex-1 sm:flex-none">
-                                                        {quantity}
-                                                    </span>
-                                                    <button
-                                                        onClick={() =>
-                                                            setQuantity(
-                                                                quantity + 1
-                                                            )
-                                                        }
-                                                        className="p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
-                                                    >
-                                                        <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                                                    </button>
-                                                </div>
-
-                                                {/* ADD THIS: Live Price Display for Regular Products */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-4">
-                                                        <div className="text-center">
-                                                            <div className="text-sm text-blue-600 font-medium mb-1">
-                                                                إجمالي السعر
-                                                            </div>
-                                                            <div className="text-2xl font-bold text-blue-700">
-                                                                {formatPrice(
-                                                                    calculateLiveTotal()
-                                                                )}
-                                                            </div>
-                                                            <div className="text-xs text-blue-600 mt-1">
-                                                                {quantity} ×{' '}
-                                                                {formatPrice(
-                                                                    currentPrice
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                        )
+                                                    }
+                                                    disabled={quantity <= 1}
+                                                    className="p-2 hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    <Minus className="h-4 w-4" />
+                                                </button>
+                                                <span className="flex-1 text-center font-semibold text-foreground">
+                                                    {quantity}
+                                                </span>
+                                                <button
+                                                    onClick={() =>
+                                                        setQuantity(
+                                                            quantity + 1
+                                                        )
+                                                    }
+                                                    className="p-2 hover:bg-muted transition-colors"
+                                                >
+                                                    <Plus className="h-4 w-4" />
+                                                </button>
                                             </div>
-                                        )}
-
-                                        {cartQuantity > 0 && (
-                                            <span className="text-sm text-muted-foreground">
-                                                ({cartQuantity} في السلة)
-                                            </span>
                                         )}
                                     </div>
+                                </div>
 
-                                    {/* Enhanced info section for measure unit products */}
-                                    {hasMeasureUnit && (
-                                        <div className="space-y-3">
-                                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                                                <div className="flex items-start gap-3">
-                                                    <Calculator className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                                                    <div>
-                                                        <p className="text-blue-700 text-sm font-medium mb-1">
-                                                            كيفية الحساب:
-                                                        </p>
-                                                        <p className="text-blue-600 text-sm">
-                                                            أدخل الكمية المطلوبة
-                                                            بال{measureUnit}.
-                                                            مثال: 50 للحصول على
-                                                            50 {measureUnit}
-                                                        </p>
-                                                        <p className="text-blue-600 text-xs mt-2">
-                                                            سعر ال{measureUnit}{' '}
-                                                            الواحد:{' '}
-                                                            {formatPrice(
-                                                                currentPrice
-                                                            )}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                {cartQuantity > 0 && (
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                        ({cartQuantity} في السلة)
+                                    </p>
+                                )}
 
-                                            {/* Show calculation breakdown when user types */}
-                                            {customQuantity &&
-                                                parseFloat(customQuantity) >
-                                                    0 && (
-                                                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                                                        <div className="flex items-center gap-2 text-amber-700">
-                                                            <Info className="h-4 w-4" />
-                                                            <span className="font-medium text-sm">
-                                                                حساب السعر:
-                                                            </span>
-                                                        </div>
-                                                        <div className="mt-2 text-sm text-amber-800">
-                                                            <div className="flex justify-between items-center">
-                                                                <span>
-                                                                    الكمية:
-                                                                </span>
-                                                                <span className="font-semibold">
-                                                                    {parseFloat(
-                                                                        customQuantity
-                                                                    )}{' '}
-                                                                    {
-                                                                        measureUnit
-                                                                    }
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex justify-between items-center">
-                                                                <span>
-                                                                    السعر لكل{' '}
-                                                                    {
-                                                                        measureUnit
-                                                                    }
-                                                                    :
-                                                                </span>
-                                                                <span className="font-semibold">
-                                                                    {formatPrice(
-                                                                        currentPrice
-                                                                    )}
-                                                                </span>
-                                                            </div>
-                                                            <hr className="my-2 border-amber-300" />
-                                                            <div className="flex justify-between items-center font-bold text-base">
-                                                                <span>
-                                                                    المجموع:
-                                                                </span>
-                                                                <span className="text-lg text-amber-900">
-                                                                    {formatPrice(
-                                                                        calculateLiveTotal()
-                                                                    )}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                {hasMeasureUnit && (
+                                    <div className="border border-border bg-muted p-3 mb-4 flex items-start gap-2">
+                                        <Calculator className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                        <p className="text-sm text-muted-foreground">
+                                            أدخل الكمية المطلوبة بال
+                                            {measureUnit}. سعر ال{measureUnit}{' '}
+                                            الواحد: {formatPrice(currentPrice)}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Add to cart button */}
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleAddToCart}
+                                        disabled={
+                                            hasMeasureUnit &&
+                                            (!customQuantity ||
+                                                parseFloat(customQuantity) <= 0)
+                                        }
+                                        className="w-full bg-primary text-primary-foreground px-4 sm:px-6 lg:px-8 py-3 sm:py-4 font-semibold text-base sm:text-lg flex flex-col items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
+                                            أضف إلى السلة (
+                                            {hasMeasureUnit
+                                                ? measureUnit
+                                                : 'قطعة'}
+                                            )
+                                        </span>
+                                        {getEffectiveQuantity() > 0 &&
+                                            calculateLiveTotal() && (
+                                                <span className="text-sm opacity-90">
+                                                    {formatPrice(
+                                                        calculateLiveTotal()
+                                                    )}
+                                                </span>
+                                            )}
+                                    </button>
+
+                                    {added && (
+                                        <div className="flex items-center gap-2 text-primary bg-accent px-4 py-2 border border-primary">
+                                            <CheckCircle className="h-5 w-5" />
+                                            <span className="font-medium">
+                                                تم الإضافة!
+                                            </span>
                                         </div>
                                     )}
-
-                                    {/* Add to cart button */}
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={handleAddToCart}
-                                            disabled={
-                                                hasMeasureUnit &&
-                                                (!customQuantity ||
-                                                    parseFloat(
-                                                        customQuantity
-                                                    ) <= 0)
-                                            }
-                                            className={`w-full text-white px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 sm:gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                selectedVariant
-                                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
-                                                    : 'bg-gradient-to-r from-accent to-primary hover:scale-105'
-                                            }`}
-                                        >
-                                            <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
-                                            <span className="hidden sm:inline">
-                                                أضف إلى السلة
-                                            </span>
-                                            <span className="sm:hidden">
-                                                إضافة
-                                            </span>
-
-                                            {/* Show live total for both measure unit and regular products */}
-                                            {(() => {
-                                                const effectiveQty =
-                                                    getEffectiveQuantity();
-                                                const liveTotal =
-                                                    calculateLiveTotal();
-
-                                                if (
-                                                    effectiveQty > 0 &&
-                                                    liveTotal
-                                                ) {
-                                                    return (
-                                                        <div className="flex flex-col items-start text-sm opacity-90">
-                                                            <span>
-                                                                (
-                                                                {hasMeasureUnit
-                                                                    ? `${effectiveQty} ${measureUnit}`
-                                                                    : `${effectiveQty} قطعة`}
-                                                                )
-                                                            </span>
-                                                            <span className="text-xs">
-                                                                {formatPrice(
-                                                                    liveTotal
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
-                                        </button>
-
-                                        {added && (
-                                            <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-xl border border-green-200 animate-pulse">
-                                                <CheckCircle className="h-5 w-5" />
-                                                <span className="font-medium">
-                                                    تم الإضافة!
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                             </div>
                         )}
@@ -973,16 +792,16 @@ const ProductDetail = () => {
                 </div>
 
                 {/* Description */}
-                <div className="bg-white rounded-lg border border-gray-300 overflow-hidden mb-6 sm:mb-8">
-                    <div className="bg-accent/10 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+                <div className="bg-white border border-border overflow-hidden mb-6 sm:mb-8">
+                    <div className="bg-accent px-4 sm:px-6 py-3 sm:py-4 border-b border-border">
+                        <h2 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
                             <Info className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                             وصف المنتج
                         </h2>
                     </div>
                     <div className="p-4 sm:p-6">
                         <div
-                            className="prose prose-sm sm:prose-lg max-w-none text-gray-700 leading-relaxed font-admin!"
+                            className="prose prose-sm sm:prose-lg max-w-none text-foreground leading-relaxed font-admin!"
                             dangerouslySetInnerHTML={{
                                 __html:
                                     currentData.description ||
@@ -996,11 +815,11 @@ const ProductDetail = () => {
                 {relatedProducts.length > 0 && (
                     <section>
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-3xl font-bold text-gray-900">
+                            <h2 className="text-3xl font-bold text-foreground">
                                 منتجات مشابهة
                             </h2>
                             <Link to="/shop">
-                                <Button variant="outline">
+                                <Button variant="" className="rounded-none">
                                     عرض المزيد
                                     <ArrowLeft className="h-4 w-4 ml-2" />
                                 </Button>

@@ -11,14 +11,14 @@
     --card-foreground: #2d2723;
     --popover: #fffdf8;
     --popover-foreground: #2d2723;
-    --primary: #d97706;
+    --primary: #e75b28;
     --primary-foreground: #ffffff;
     --secondary: #7c5a2c;
     --secondary-foreground: #fff8f1;
-    --muted: #bfa68a;
-    --muted-foreground: #4a3f36;
-    --accent: #f59e0b;
-    --accent-foreground: #ffffff;
+    --muted: #f1e5d3;
+    --muted-foreground: #5c4b3a;
+    --accent: #fde8c8;
+    --accent-foreground: #7c4a12;
     --destructive: #bf2e2e;
     --destructive-foreground: #ffffff;
     --border: #d9c4a7;
@@ -73,8 +73,8 @@
     --secondary-foreground: #f8f0e9;
     --muted: #5a4f47;
     --muted-foreground: #d8c8b9;
-    --accent: #ffb347;
-    --accent-foreground: #1f1b18;
+    --accent: #3d342b;
+    --accent-foreground: #f5e6d3;
     --destructive: #e17d7d;
     --destructive-foreground: #221d1a;
     --border: #4f463f;
@@ -415,4 +415,3 @@ button {
     --sidebar-ring: #38bdf8;
     --radius: 0px !important;
 }
-

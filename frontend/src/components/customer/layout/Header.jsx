@@ -54,11 +54,12 @@ const Header = ({ onSearch, searchQuery = '' }) => {
                                 onChange={e =>
                                     setLocalSearchQuery(e.target.value)
                                 }
-                                className="pr-12 h-12 rounded-md border-2 border-border focus:border-primary"
+                                className="pr-12 h-12 rounded-md border-1 border-border focus:border-primary"
                             />
                             <Button
                                 type="submit"
                                 size="sm"
+                                variant="ghost"
                                 className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-md h-8 w-8 p-0"
                             >
                                 <Search className="h-4 w-4" />
@@ -70,11 +71,7 @@ const Header = ({ onSearch, searchQuery = '' }) => {
                     <div className="flex items-center space-x-reverse space-x-4">
                         {/* Cart Button */}
                         <Link to="/cart">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="relative"
-                            >
+                            <Button variant="" size="sm" className="relative hover:bg-amber-700">
                                 <ShoppingCart className="h-5 w-5" />
                                 {itemCount > 0 && (
                                     <Badge

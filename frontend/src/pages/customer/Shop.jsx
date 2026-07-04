@@ -407,7 +407,6 @@ const Shop = () => {
     if (isFilterOptionsLoading) {
         return (
             <div className="min-h-screen bg-shop-bg">
-                <Header onSearch={handleSearch} searchQuery={searchQuery} />
                 <div className="container mx-auto px-4 py-6">
                     <div className="flex items-center justify-center py-16">
                         <div className="text-center">
@@ -424,30 +423,19 @@ const Shop = () => {
 
     return (
         <div
-            className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-admin"
+            className="min-h-screen font-admin"
             dir="rtl"
         >
             {/* <Header onSearch={handleSearch} searchQuery={searchQuery} /> */}
 
             <div className="container mx-auto px-4 py-8">
-                {/* Category breadcrumb/title */}
-                {getCurrentCategoryName() && (
-                    <div className="mb-6 sm:mb-8 bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3 font-admin">
-                            {getCurrentCategoryName()}
-                        </h1>
-                        <p className="text-gray-600 font-admin text-base sm:text-lg">
-                            تصفح منتجات فئة {getCurrentCategoryName()}
-                        </p>
-                    </div>
-                )}
 
                 <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
                     {/* Filters Sidebar */}
                     <div
                         className={`lg:w-80 ${isFiltersOpen ? 'block' : 'hidden lg:block'}`}
                     >
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 sticky top-4">
+                        <div className="bg-white border border-primary shadow-none! rounded-xs sticky top-4">
                             <Filters
                                 options={filterOptions}
                                 activeFilters={filters}

@@ -232,7 +232,7 @@ const Index = () => {
                                             <CardContent className="p-5 sm:p-6 flex flex-col h-full">
                                                 <div className="flex items-start justify-between mb-3">
                                                     <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-md flex items-center justify-center flex-shrink-0 bg-accent">
-                                                        <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-accent-foreground" />
+                                                        <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                                                     </div>
                                                     {category.subcategory_count >
                                                         0 && (
@@ -270,12 +270,11 @@ const Index = () => {
                         <div className="text-center mt-8 sm:mt-10">
                             <Link to="/shop">
                                 <Button
-                                    variant="outline"
+                                    variant=""
                                     size="lg"
-                                    className="text-sm sm:text-base px-6 py-3 min-h-[44px] border-border text-foreground bg-card"
+                                    className="text-sm sm:text-base shadow-none border-primary px-6 py-3 min-h-[44px] text-foreground"
                                 >
                                     عرض جميع الفئات
-                                    <ChevronLeft className="mr-2 h-4 w-4" />
                                 </Button>
                             </Link>
                         </div>

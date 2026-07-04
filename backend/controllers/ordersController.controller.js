@@ -166,13 +166,10 @@ export async function addOrder(req, res) {
                 ? `${product.product_name} - ${product.variant_title}`
                 : product.name;
 
-            // Check if product has measure unit (either variant or product level)
-            const hasMeasureUnit = isVariant
-                ? product.variant_measure_unit !== null
-                : product.has_measure_unit;
-
             let unitPrice = Number(product.price);
+            let basePrice = unitPrice;
             let usedDiscount = false;
+            let specialPricing = false;
 
             // Check for active discount
             if (product.discount_price) {
@@ -182,6 +179,7 @@ export async function addOrder(req, res) {
 
                 if (now >= discountStart && now <= discountEnd) {
                     unitPrice = Number(product.discount_price);
+                    basePrice = unitPrice;
                     usedDiscount = true;
                     console.log(
                         `Discount applied on ${productName}: using discount price ${unitPrice}`
@@ -189,45 +187,24 @@ export async function addOrder(req, res) {
                 }
             }
 
-            // Apply pricing logic based on quantity and measure unit
-            if (hasMeasureUnit) {
-                // For products with measure unit, use simple pricing (no profit calculation)
+            // Apply threshold pricing consistently with calculatePricing
+            if (
+                product.discount_threshold &&
+                item.quantity >= product.discount_threshold
+            ) {
+                unitPrice =
+                    basePrice *
+                    (1 - Number(product.discount_percentage || 0) / 100);
+                specialPricing = true;
+
                 console.log(
-                    `Product ${productName} has measure unit - using simple pricing`
+                    `Threshold pricing for ${productName} (Qty: ${item.quantity}, Threshold: ${product.discount_threshold}): using ${unitPrice}`
                 );
-                subtotal += unitPrice * item.quantity;
             } else {
-                // For products without measure unit, apply quantity-based pricing
-                if (
-                    product.discount_threshold &&
-                    item.quantity >= product.discount_threshold
-                ) {
-                    // Apply custom pricing when quantity meets threshold
-                    const basePrice = product.discount_price
-                        ? Number(product.discount_price)
-                        : Number(product.price);
-
-                    const profitReduction =
-                        Number(product.profit || 0) *
-                        (Number(product.discount_percentage || 0) / 100);
-                    unitPrice = basePrice - profitReduction;
-
-                    console.log(
-                        `Threshold pricing for ${productName} (Qty: ${item.quantity}, Threshold: ${product.discount_threshold}):`
-                    );
-                    console.log(`- Base price: ${basePrice}`);
-                    console.log(`- Profit reduction: ${profitReduction}`);
-                    console.log(`- Final unit price: ${unitPrice}`);
-
-                    subtotal += unitPrice * item.quantity;
-                } else {
-                    // Normal pricing - use regular price
-                    subtotal += unitPrice * item.quantity;
-                    console.log(
-                        `Normal pricing for ${productName}: ${unitPrice}`
-                    );
-                }
+                console.log(`Normal pricing for ${productName}: ${unitPrice}`);
             }
+
+            subtotal += unitPrice * item.quantity;
 
             console.log(
                 `Item subtotal for ${productName} (Qty: ${item.quantity}): ${
@@ -243,6 +220,8 @@ export async function addOrder(req, res) {
                 product_name: productName,
                 quantity: item.quantity,
                 unit_price: unitPrice,
+                used_discount: usedDiscount,
+                special_pricing: specialPricing,
             };
 
             orderItemsData.push(orderItem);
