@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Trash2, Star, ArrowRight } from 'lucide-react';
+import { Upload, Trash2, Star, ArrowRight, X, ChevronDown } from 'lucide-react';
 import DescriptionEditor from '@/components/admin/DescriptionEditor';
 import { useApi } from '@/contexts/RestContext';
 import { toast } from 'sonner';
@@ -15,6 +15,10 @@ const ProductPage = () => {
     const [categories, setCategories] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [availableTags, setAvailableTags] = useState([]);
+    const [loadingTags, setLoadingTags] = useState(true);
+    const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+    const tagDropdownRef = React.useRef(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -27,7 +31,7 @@ const ProductPage = () => {
         discount_price: '',
         discount_start: '',
         discount_end: '',
-        tags: '',
+        tags: [],
         // NEW: Add new fields here
         has_measure_unit: false,
         measure_unit: '',
@@ -40,7 +44,52 @@ const ProductPage = () => {
     // Fetch categories on component mount
     useEffect(() => {
         fetchCategories();
+        fetchTags();
     }, []);
+
+    // Close tag dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = e => {
+            if (
+                tagDropdownRef.current &&
+                !tagDropdownRef.current.contains(e.target)
+            ) {
+                setTagDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () =>
+            document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const fetchTags = async () => {
+        try {
+            setLoadingTags(true);
+            const [data, _, responseCode, error] = await api.get(
+                '/tag/getAll?page=1&limit=1000'
+            );
+            if (responseCode === 200 && data?.tags) {
+                setAvailableTags(data.tags);
+            } else {
+                console.error('Error fetching tags:', error);
+                toast.error('حدث خطأ أثناء تحميل العلامات');
+            }
+        } catch (error) {
+            console.error('Error fetching tags:', error);
+            toast.error('حدث خطأ أثناء تحميل العلامات');
+        } finally {
+            setLoadingTags(false);
+        }
+    };
+
+    const toggleTag = tagName => {
+        setFormData(prev => ({
+            ...prev,
+            tags: prev.tags.includes(tagName)
+                ? prev.tags.filter(t => t !== tagName)
+                : [...prev.tags, tagName],
+        }));
+    };
 
     const handleInputChange = e => {
         const { name, value } = e.target;
@@ -308,12 +357,8 @@ const ProductPage = () => {
             }
 
             // Optional tags
-            if (formData.tags) {
-                const tags = formData.tags
-                    .split(',')
-                    .map(tag => tag.trim())
-                    .filter(tag => tag);
-                formDataToSend.append('tags', JSON.stringify(tags));
+            if (formData.tags && formData.tags.length > 0) {
+                formDataToSend.append('tags', JSON.stringify(formData.tags));
             }
 
             // Add images
@@ -465,7 +510,7 @@ const ProductPage = () => {
             discount_price: '',
             discount_start: '',
             discount_end: '',
-            tags: '',
+            tags: [],
             // NEW: Reset new fields
             has_measure_unit: false,
             measure_unit: '',
@@ -926,16 +971,105 @@ const ProductPage = () => {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Tags
+                                            العلامات (Tags)
                                         </label>
-                                        <input
-                                            type="text"
-                                            name="tags"
-                                            value={formData.tags}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                                            placeholder="tag, tag2, tag3"
-                                        />
+                                        <div
+                                            className="relative"
+                                            ref={tagDropdownRef}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setTagDropdownOpen(
+                                                        prev => !prev
+                                                    )
+                                                }
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg flex items-center justify-between bg-white text-right"
+                                            >
+                                                <span className="text-sm text-gray-500">
+                                                    {loadingTags
+                                                        ? 'جاري التحميل...'
+                                                        : formData.tags.length >
+                                                            0
+                                                          ? `${formData.tags.length} علامة مختارة`
+                                                          : 'اختر العلامات'}
+                                                </span>
+                                                <ChevronDown
+                                                    size={16}
+                                                    className={`text-gray-400 transition-transform ${
+                                                        tagDropdownOpen
+                                                            ? 'rotate-180'
+                                                            : ''
+                                                    }`}
+                                                />
+                                            </button>
+
+                                            {tagDropdownOpen && (
+                                                <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                                    {availableTags.length ===
+                                                    0 ? (
+                                                        <p className="p-3 text-sm text-gray-500 text-center">
+                                                            لا توجد علامات
+                                                            متاحة. أضف علامات من
+                                                            صفحة إدارة العلامات
+                                                            أولاً.
+                                                        </p>
+                                                    ) : (
+                                                        availableTags.map(
+                                                            tag => (
+                                                                <label
+                                                                    key={tag.id}
+                                                                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm"
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={formData.tags.includes(
+                                                                            tag.name
+                                                                        )}
+                                                                        onChange={() =>
+                                                                            toggleTag(
+                                                                                tag.name
+                                                                            )
+                                                                        }
+                                                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                                    />
+                                                                    <span>
+                                                                        {
+                                                                            tag.name
+                                                                        }
+                                                                    </span>
+                                                                </label>
+                                                            )
+                                                        )
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Selected tags as chips */}
+                                        {formData.tags.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                {formData.tags.map(tagName => (
+                                                    <span
+                                                        key={tagName}
+                                                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
+                                                    >
+                                                        {tagName}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                toggleTag(
+                                                                    tagName
+                                                                )
+                                                            }
+                                                            className="hover:text-blue-900"
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

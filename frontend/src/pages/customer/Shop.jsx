@@ -501,7 +501,7 @@ const Shop = () => {
                         ) : products.length > 0 ? (
                             <>
                                 {/* Products Grid */}
-                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                                     {products.map(product => (
                                         <div key={product.id} className="group">
                                             <div className="bg-white h-full rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-1">

@@ -6,6 +6,7 @@ import {
     Plus,
     Timer,
     CheckCircle,
+    ArrowRight,
     ArrowLeft,
     Info,
     Package,
@@ -150,7 +151,7 @@ const ProductDetail = () => {
     };
 
     const calculateLiveTotal = () => {
-        if (hasMeasureUnit) {
+        if (hasMeasureUnit && allowCustomQuantity) {
             const qty = parseFloat(customQuantity);
             if (isNaN(qty) || qty <= 0) return null;
             return getUnitPriceForQuantity(qty) * qty;
@@ -198,6 +199,9 @@ const ProductDetail = () => {
         currentData.has_measure_unit === 1 ||
         currentData.has_measure_unit === true;
     const measureUnit = currentData.measure_unit || product.measure_unit;
+    const allowCustomQuantity =
+        currentData.allows_custom_quantity === 1 ||
+        currentData.allows_custom_quantity === true;
 
     const formatPrice = price => {
         return new Intl.NumberFormat('ar-DZ', {
@@ -227,7 +231,7 @@ const ProductDetail = () => {
 
     // Get the effective quantity based on whether the product has measure unit
     const getEffectiveQuantity = () => {
-        if (hasMeasureUnit) {
+        if (hasMeasureUnit && allowCustomQuantity) {
             const customQty = parseFloat(customQuantity);
             return isNaN(customQty) || customQty <= 0 ? 0 : customQty;
         }
@@ -386,7 +390,7 @@ const ProductDetail = () => {
                             onClick={handleBackToMain}
                             className="rounded-none flex items-center gap-2"
                         >
-                            <ArrowLeft className="h-4 w-4" />
+                            <ArrowRight className="h-4 w-4" />
                             العودة للمنتج الرئيسي
                         </Button>
                     </div>
@@ -685,7 +689,8 @@ const ProductDetail = () => {
                                                 : 'الكمية'}
                                         </div>
 
-                                        {hasMeasureUnit ? (
+                                        {hasMeasureUnit &&
+                                        allowCustomQuantity ? (
                                             <input
                                                 type="text"
                                                 value={customQuantity}
@@ -741,9 +746,9 @@ const ProductDetail = () => {
                                     <div className="border border-border bg-muted p-3 mb-4 flex items-start gap-2">
                                         <Calculator className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                                         <p className="text-sm text-muted-foreground">
-                                            أدخل الكمية المطلوبة بال
-                                            {measureUnit}. سعر ال{measureUnit}{' '}
-                                            الواحد: {formatPrice(currentPrice)}
+                                            {allowCustomQuantity
+                                                ? `أدخل الكمية المطلوبة بال${measureUnit}. سعر ال${measureUnit} الواحد: ${formatPrice(currentPrice)}`
+                                                : `الكمية محسوبة بال${measureUnit}. سعر ال${measureUnit} الواحد: ${formatPrice(currentPrice)}`}
                                         </p>
                                     </div>
                                 )}
@@ -754,6 +759,7 @@ const ProductDetail = () => {
                                         onClick={handleAddToCart}
                                         disabled={
                                             hasMeasureUnit &&
+                                            allowCustomQuantity &&
                                             (!customQuantity ||
                                                 parseFloat(customQuantity) <= 0)
                                         }
