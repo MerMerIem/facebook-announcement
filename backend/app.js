@@ -82,7 +82,10 @@ if (!vapidDetails.publicKey || !vapidDetails.privateKey) {
 
 // ===== Push Notification Endpoints =====
 app.get('/test-notification', async (req, res) => {
-    await sendPushNotification(4);
+    const [adminRows] = await db.execute(
+        "SELECT id FROM users WHERE role = 'admin' ORDER BY id DESC LIMIT 1"
+    );
+    await sendPushNotification(adminRows[0]?.id);
     res.status(200).json({ success: true });
 });
 

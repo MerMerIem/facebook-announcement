@@ -66,7 +66,6 @@ export async function addOrder(req, res) {
             [wilaya]
         );
         const deliveryFee = Number(wilayaFound[0]?.delivery_fee) || 0;
-        console.log('Delivery fee for wilaya', wilaya, ':', deliveryFee);
 
         let subtotal = 0;
         const orderItemsData = [];
@@ -85,10 +84,6 @@ export async function addOrder(req, res) {
 
         // Process each unique item
         for (const item of processedItems.values()) {
-            console.log(
-                `Processing product with ID ${item.product_id}, parent: ${item.parent_product_id}, quantity: ${item.quantity}`
-            );
-
             let productQuery;
             let productParams;
             let isVariant = false;
@@ -156,10 +151,6 @@ export async function addOrder(req, res) {
             }
 
             const product = productResult[0];
-            console.log(
-                'Fetched product:',
-                isVariant ? product.variant_title : product.name
-            );
 
             // Determine the product name for the order
             const productName = isVariant
@@ -196,12 +187,6 @@ export async function addOrder(req, res) {
                     basePrice *
                     (1 - Number(product.discount_percentage || 0) / 100);
                 specialPricing = true;
-
-                console.log(
-                    `Threshold pricing for ${productName} (Qty: ${item.quantity}, Threshold: ${product.discount_threshold}): using ${unitPrice}`
-                );
-            } else {
-                console.log(`Normal pricing for ${productName}: ${unitPrice}`);
             }
 
             subtotal += unitPrice * item.quantity;
@@ -211,7 +196,6 @@ export async function addOrder(req, res) {
                     unitPrice * item.quantity
                 }`
             );
-            console.log(`Running subtotal: ${subtotal}`);
 
             // Prepare order item data
             const orderItem = {
@@ -243,9 +227,6 @@ export async function addOrder(req, res) {
         }
 
         const totalPrice = subtotal + deliveryFee;
-        console.log(
-            `Final subtotal: ${subtotal}, Delivery fee: ${deliveryFee}, Total price: ${totalPrice}`
-        );
 
         // Verify pricing if provided
         if (pricing_verification) {
@@ -290,7 +271,6 @@ export async function addOrder(req, res) {
 
         // Insert order items
         for (const item of orderItemsData) {
-            console.log(`Inserting item to DB:`, item);
             await db.execute(
                 'INSERT INTO order_items (order_id, product_id, variant_id, quantity, unit_price) VALUES (?, ?, ?, ?, ?)',
                 [
@@ -304,17 +284,27 @@ export async function addOrder(req, res) {
         }
 
         // Create notification for admin
-        const adminUserId = 4;
-        await db.execute(
-            `INSERT INTO notification (user_id, content, notification_status, time)
-       VALUES (?, ?, ?, NOW())`,
-            [adminUserId, `طلب جديد #${orderId} من ${full_name}`, 'unread']
+        // Get the current admin user id dynamically
+        const [adminRows] = await db.execute(
+            "SELECT id FROM users WHERE role = 'admin' ORDER BY id DESC LIMIT 1"
         );
+        const adminUserId = adminRows[0]?.id;
+
+        if (!adminUserId) {
+            console.warn('No admin user found — skipping notification');
+        } else {
+            await db.execute(
+                `INSERT INTO notification (user_id, content, notification_status, time)
+         VALUES (?, ?, ?, NOW())`,
+                [adminUserId, `طلب جديد #${orderId} من ${full_name}`, 'unread']
+            );
+        }
 
         await db.query('COMMIT');
 
-        // Send push notification
-        await sendPushNotification(4);
+        if (adminUserId) {
+            await sendPushNotification(adminUserId);
+        }
 
         res.status(201).json({
             success: true,
@@ -391,7 +381,6 @@ export async function calculatePricing(req, res) {
         const notFoundProducts = [];
 
         // Fetch all wilayas sorted by ID (ASC)
-        console.log('Fetching wilayas sorted by ID...');
         const [wilayasResult] = await db.execute(
             'SELECT id, name, delivery_fee FROM wilayas ORDER BY id ASC'
         );
@@ -402,11 +391,7 @@ export async function calculatePricing(req, res) {
             delivery_fee: Number(wilaya.delivery_fee),
         }));
 
-        console.log(`Found ${wilayas.length} wilayas (sorted by ID)`);
-
         for (const item of items) {
-            console.log(`Fetching product with ID ${item.product_id}`);
-
             let product = null;
             let isVariant = false;
             let parentProductId = null;
@@ -447,9 +432,6 @@ export async function calculatePricing(req, res) {
                 if (productResult.length > 0) {
                     product = productResult[0];
                     isVariant = false;
-                    console.log(
-                        `Found main product: ${product.name} (ID: ${product.id})`
-                    );
                 }
             }
 
@@ -595,9 +577,9 @@ export async function getOrderById(req, res) {
         // Get order details
         const [orderResult] = await db.execute(
             `SELECT o.*, w.delivery_fee 
-         FROM orders o
-         LEFT JOIN wilayas w ON o.wilaya = w.name
-         WHERE o.id = ?`,
+             FROM orders o
+             LEFT JOIN wilayas w ON o.wilaya = w.name
+             WHERE o.id = ?`,
             [id]
         );
 
@@ -608,21 +590,66 @@ export async function getOrderById(req, res) {
             });
         }
 
-        // Get order items with product details
+        // Get order items with product AND variant details
+        // Prefers variant info/image when variant_id is set, falls back to product-level otherwise
         const [itemsResult] = await db.execute(
-            `SELECT oi.*, p.name as product_name, p.description as product_description,
-                MAX(pi.url) as product_image
-         FROM order_items oi
-         JOIN products p ON oi.product_id = p.id
-         LEFT JOIN product_images pi ON p.id = pi.product_id
-         WHERE oi.order_id = ?
-         GROUP BY oi.id`,
+            `SELECT 
+        oi.*,
+        p.name AS product_name,
+        p.description AS product_description,
+        pv.id AS variant_id_check,
+        pv.title AS variant_title,
+        pv.size AS variant_size,
+        pv.measure_unit AS variant_measure_unit,
+        pv.prod_ref AS variant_prod_ref,
+        COALESCE(vimg.url, pimg.url) AS product_image
+     FROM order_items oi
+     JOIN products p ON oi.product_id = p.id
+     LEFT JOIN product_variants pv ON oi.variant_id = pv.id
+     LEFT JOIN (
+         SELECT variant_id, url
+         FROM (
+             SELECT
+                 variant_id,
+                 url,
+                 ROW_NUMBER() OVER (
+                     PARTITION BY variant_id
+                     ORDER BY is_primary DESC, sort_order ASC
+                 ) AS rn
+             FROM product_variant_images
+         ) ranked
+         WHERE rn = 1
+     ) vimg ON vimg.variant_id = oi.variant_id
+     LEFT JOIN (
+         SELECT product_id, url
+         FROM (
+             SELECT
+                 product_id,
+                 url,
+                 ROW_NUMBER() OVER (
+                     PARTITION BY product_id
+                     ORDER BY is_main DESC, id ASC
+                 ) AS rn
+             FROM product_images
+         ) ranked
+         WHERE rn = 1
+     ) pimg ON pimg.product_id = oi.product_id
+     WHERE oi.order_id = ?
+     ORDER BY oi.id`,
             [id]
         );
 
+        // Build a clean display name: "Product Name - Variant Title" when a variant exists
+        const items = itemsResult.map(item => ({
+            ...item,
+            display_name: item.variant_title
+                ? `${item.product_name} - ${item.variant_title}`
+                : item.product_name,
+        }));
+
         const order = {
             ...orderResult[0],
-            items: itemsResult,
+            items,
         };
 
         res.json({
@@ -637,6 +664,7 @@ export async function getOrderById(req, res) {
         });
     }
 }
+
 export async function getAllOrders(req, res) {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;

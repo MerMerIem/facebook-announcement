@@ -394,7 +394,7 @@ const Cart = () => {
               {items.map((item) => {
                 const itemPrice = getItemPrice(item);
                 const productName = getProductName(item);
-                const hasMeasureUnit = item.product.has_measure_unit === 1;
+                const hasMeasureUnit = item.product.has_measure_unit === 1 || item.product.has_measure_unit === true;
                 const measureUnit = item.product.measure_unit || "";
                 const hasVariant = item._itemType.hasVariant;
                 const isLoadingPrice = itemsLoadingPricing.has(

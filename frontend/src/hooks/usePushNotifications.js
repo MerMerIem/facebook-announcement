@@ -1,22 +1,20 @@
-import {useState, useEffect} from "react";
+import { useState, useEffect } from 'react';
 const PUBLIC_VAPID_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-console.log("PUBLIC_VAPID_KEY",PUBLIC_VAPID_KEY);
-
 function urlBase64ToUint8Array(base64String) {
     if (!base64String) {
-        throw new Error("VAPID key is missing");
+        throw new Error('VAPID key is missing');
     }
-    
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
-        
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
-    
+
     for (let i = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);
     }
@@ -30,8 +28,7 @@ export const usePushNotifications = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        console.log("Push notifications hook initialized, VAPID key:", PUBLIC_VAPID_KEY ? "Present" : "Missing");
-        
+
         if (permission === 'granted') {
             initializePush();
         }
@@ -46,7 +43,7 @@ export const usePushNotifications = () => {
         try {
             const permission = await Notification.requestPermission();
             setPermission(permission);
-            
+
             if (permission === 'granted') {
                 await initializePush();
                 return true;
@@ -69,34 +66,61 @@ export const usePushNotifications = () => {
         setError(null);
 
         try {
-            const registration = await navigator.serviceWorker.register('/worker.js', {
-                scope: '/'
-            });
-            
+            const registration = await navigator.serviceWorker.register(
+                '/sw.js',
+                {
+                    scope: '/',
+                }
+            );
+
             await navigator.serviceWorker.ready;
-            
-            let pushSubscription = await registration.pushManager.getSubscription();
-            
+
+            let pushSubscription =
+                await registration.pushManager.getSubscription();
+
             if (!pushSubscription) {
                 pushSubscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+                    applicationServerKey:
+                        urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
                 });
-                
-                // Save to backend - NEW ADDITION
-                await fetch(`${BACKEND_URL}/save-subscription`, {
-                    method: 'POST',
-                    body: JSON.stringify({ subscription: pushSubscription }),
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${Cookies.get('accessToken')}`
+
+                // Save to backend with credentials
+                try {
+                    const response = await fetch(
+                        `${BACKEND_URL}/save-subscription`,
+                        {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                subscription: pushSubscription,
+                            }),
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include', // Send cookies automatically
+                        }
+                    );
+
+                    if (!response.ok) {
+                        console.error(
+                            'Failed to save subscription:',
+                            response.status,
+                            response.statusText
+                        );
+                    } else {
+                        console.log('Subscription saved successfully');
                     }
-                });
+                } catch (subscriptionError) {
+                    console.error(
+                        'Error saving subscription:',
+                        subscriptionError
+                    );
+                }
             }
-            
+
             setSubscription(pushSubscription);
         } catch (error) {
-            console.error("Error initializing push:", error);
+            console.error('Error initializing push:', error);
             setError(error.message);
         } finally {
             setIsLoading(false);
@@ -105,7 +129,6 @@ export const usePushNotifications = () => {
 
     // KEEP YOUR EXISTING sendTestNotification FUNCTION
     const sendTestNotification = async () => {
-        const token = Cookies.get('accessToken');
         if (!subscription) {
             setError('No push subscription available');
             return;
@@ -120,20 +143,19 @@ export const usePushNotifications = () => {
                 body: JSON.stringify(subscription),
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
+                },
+                credentials: 'include', // Send cookies automatically
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
-            
+
             const result = await response.json();
-            console.log("Notification sent successfully:", result);
-            
+            console.log('Notification sent successfully:', result);
         } catch (error) {
-            console.error("Error sending notification:", error);
+            console.error('Error sending notification:', error);
             setError(error.message);
         } finally {
             setIsLoading(false);
@@ -147,6 +169,6 @@ export const usePushNotifications = () => {
         error,
         requestPermission,
         sendTestNotification,
-        initializePush
+        initializePush,
     };
 };

@@ -195,9 +195,10 @@ const ProductDetail = () => {
     const cartQuantity = getItemQuantity(cartProductId);
 
     // Check if the current product/variant has measure unit
-    const hasMeasureUnit =
-        currentData.has_measure_unit === 1 ||
-        currentData.has_measure_unit === true;
+    const hasMeasureUnit = isVariant
+        ? !!currentData.measure_unit
+        : currentData.has_measure_unit === 1 ||
+          currentData.has_measure_unit === true;
     const measureUnit = currentData.measure_unit || product.measure_unit;
     const allowCustomQuantity =
         currentData.allows_custom_quantity === 1 ||
@@ -261,7 +262,7 @@ const ProductDetail = () => {
                 price: getUnitPriceForQuantity(effectiveQty),
                 discount_price: selectedVariant.discount_price,
                 has_discount: selectedVariant.has_discount,
-                used_discount: selectedVariant.has_discount, // Ensure consistency
+                used_discount: selectedVariant.has_discount,
                 main_image_url:
                     selectedVariant.primary_image_url || product.main_image_url,
                 description: selectedVariant.description || product.description,
@@ -272,8 +273,9 @@ const ProductDetail = () => {
                 size: selectedVariant.size,
                 measure_unit: selectedVariant.measure_unit,
                 is_variant: true,
-                has_variants: false, // Variants themselves don't have variants
-                has_measure_unit: selectedVariant.has_measure_unit,
+                has_variants: false,
+                has_measure_unit: hasMeasureUnit ? 1 : 0, // ← use the derived value
+                allows_custom_quantity: allowCustomQuantity, // ← also missing, add this
                 discount_threshold: selectedVariant.discount_threshold,
             };
         } else {
@@ -283,15 +285,16 @@ const ProductDetail = () => {
                 price: getUnitPriceForQuantity(effectiveQty),
                 discount_price: product.discount_price,
                 has_discount: product.has_discount,
-                used_discount: product.has_discount, // Ensure consistency
+                used_discount: product.has_discount,
                 main_image_url: product.main_image_url,
                 description: product.description,
                 category: product.category,
                 subcategory: product.subcategory,
                 is_variant: false,
                 has_variants: product.has_variants,
-                has_measure_unit: product.has_measure_unit,
+                has_measure_unit: hasMeasureUnit ? 1 : 0, // normalized, same value as before
                 measure_unit: product.measure_unit,
+                allows_custom_quantity: allowCustomQuantity, // ← add this, was missing
                 discount_threshold: product.discount_threshold,
             };
         }

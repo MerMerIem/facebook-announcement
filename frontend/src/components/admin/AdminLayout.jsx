@@ -27,6 +27,7 @@ export function AdminLayout({ children }) {
             });
 
             if (responseCode === 200 && data) {
+                console.log('✅ Unread count updated:', data.count);
                 setUnreadCount(data.count);
             } else {
                 console.error('Error checking notifications:', error);
@@ -56,7 +57,35 @@ export function AdminLayout({ children }) {
         checkUnreadNotifications();
         const interval = setInterval(checkUnreadNotifications, 5 * 60 * 1000);
 
-        return () => clearInterval(interval);
+        // Listen for push notification messages from service worker
+        const handleServiceWorkerMessage = event => {
+            console.log('📥 Message from service worker:', event.data);
+            if (event.data && event.data.type === 'NOTIFICATION_RECEIVED') {
+                console.log(
+                    '🔔 New notification received, refreshing unread count...'
+                );
+                // Refresh unread count immediately when new notification arrives
+                checkUnreadNotifications();
+            }
+        };
+
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.addEventListener(
+                'message',
+                handleServiceWorkerMessage
+            );
+            console.log('✅ Service worker message listener registered');
+        }
+
+        return () => {
+            clearInterval(interval);
+            if (navigator.serviceWorker) {
+                navigator.serviceWorker.removeEventListener(
+                    'message',
+                    handleServiceWorkerMessage
+                );
+            }
+        };
     }, [permission]);
     useEffect(() => {
         document.body.classList.add('admin-app');

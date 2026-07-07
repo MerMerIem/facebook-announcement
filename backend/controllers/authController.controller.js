@@ -96,13 +96,11 @@ export async function login(req, res) {
 }
 
 export async function checkLogin(req, res) {
-    console.log('checklogin');
-
     const accessToken = req.cookies?.accessToken;
     const refreshToken = req.cookies?.refreshToken;
 
     try {
-        // ✅ Check and verify access token first
+        // Check and verify access token first
         if (accessToken) {
             try {
                 const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);

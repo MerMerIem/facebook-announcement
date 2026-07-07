@@ -27,12 +27,9 @@ export async function updateNotificationStatus(req,res){
     }
 }
 
-// Backend - Keep getUnreadNotifications as it was (don't auto-mark as read)
 export async function getUnreadNotifications(req,res){
-    console.log("called")
     try{
         const userId = req.user.id;
-        console.log("userId",userId)
         if(!userId){
             return res.status(400).json({message:"User Id is required"});
         }
@@ -48,6 +45,26 @@ export async function getUnreadNotifications(req,res){
     }catch(err){
         console.log(err);
         res.status(500).json({message:err.message});
+    }
+}
+
+export async function getUnreadCount(req, res) {
+    try {
+        const userId = req.user.id;
+        console.log("Fetching unread notification count for user:", userId);
+        if (!userId) {
+            return res.status(400).json({ message: "User Id is required" });
+        }
+
+        const [result] = await db.query(
+            "SELECT COUNT(*) AS count FROM notification WHERE user_id = ? AND notification_status = 'unread'",
+            [userId]
+        );
+
+        res.status(200).json({ count: result[0].count });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: err.message });
     }
 }
 

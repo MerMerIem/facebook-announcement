@@ -182,15 +182,11 @@ export default function Orders() {
                 );
             case ORDER_STATUS.CONFIRMED:
                 return (
-                    <Badge className="bg-success text-success-foreground">
-                        {ORDER_STATUS.CONFIRMED}
-                    </Badge>
+                    <Badge variant="success">{ORDER_STATUS.CONFIRMED}</Badge>
                 );
             case ORDER_STATUS.DELIVERED:
                 return (
-                    <Badge className="bg-success text-success-foreground">
-                        {ORDER_STATUS.DELIVERED}
-                    </Badge>
+                    <Badge variant="success">{ORDER_STATUS.DELIVERED}</Badge>
                 );
             case ORDER_STATUS.CANCELLED:
                 return (
@@ -864,9 +860,7 @@ export default function Orders() {
                                             />
                                             <InfoRow
                                                 label="طريقة الدفع"
-                                                value={
-                                                    selectedOrder.payment_method
-                                                }
+                                                value="عند التسليم"
                                             />
                                             <InfoRow
                                                 label="المجموع"
@@ -922,9 +916,8 @@ export default function Orders() {
                                                             {/* Info (middle, right-aligned text) */}
                                                             <div className="flex-1 min-w-0 text-right">
                                                                 <h4 className="font-semibold text-gray-900 truncate">
-                                                                    {
-                                                                        item.product_name
-                                                                    }
+                                                                    {item.display_name ||
+                                                                        item.product_name}
                                                                 </h4>
                                                                 <div className="text-sm text-gray-500 truncate mt-0.5">
                                                                     {item.product_description

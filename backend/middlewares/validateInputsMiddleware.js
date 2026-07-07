@@ -118,7 +118,6 @@ export const validateNumber = [
 
   // Final validator result handler
   (req, res, next) => {
-    console.log("[validateNumber] Running validation result handler.");
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.log(
