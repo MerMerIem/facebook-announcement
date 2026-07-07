@@ -2,8 +2,8 @@
 
 # Start db, then backend and frontend
 dev: up
-	cd backend && npm install && npm start &
-	cd frontend && npm install && npm run dev
+	cd backend && npm start &
+	cd frontend && npm run dev
 
 # Start docker containers only
 up:

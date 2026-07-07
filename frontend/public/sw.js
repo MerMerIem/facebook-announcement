@@ -5,7 +5,7 @@ self.addEventListener('install', () => {
 });
 
 self.addEventListener('activate', event => {
-    event.waitUntil(clients.claim()); // Take control of open pages right away
+    event.waitUntil(self.clients.claim()); // Take control of open pages right away
 });
 
 self.addEventListener('push', event => {
@@ -21,7 +21,12 @@ self.addEventListener('push', event => {
             data = event.data.json();
             console.log('Parsed push data:', data);
         } catch (error) {
-            console.error('Error parsing push data:', error);
+            // Not JSON — treat the raw payload as plain text
+            console.warn('Push data is not JSON, using as plain text:', error);
+            data = {
+                title: 'New Notification',
+                body: event.data.text(),
+            };
         }
     }
 
@@ -58,11 +63,10 @@ self.addEventListener('push', event => {
             .catch(error => console.error('Error showing notification:', error))
     );
 });
-
 self.addEventListener('notificationclick', event => {
     console.log('Notification clicked:', event);
     event.notification.close();
 
     // Optional: Open a specific URL when notification is clicked
-    event.waitUntil(clients.openWindow('/admin/dashboard'));
+    event.waitUntil(self.clients.openWindow('/admin/dashboard'));
 });
