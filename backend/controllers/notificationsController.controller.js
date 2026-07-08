@@ -51,7 +51,6 @@ export async function getUnreadNotifications(req,res){
 export async function getUnreadCount(req, res) {
     try {
         const userId = req.user.id;
-        console.log("Fetching unread notification count for user:", userId);
         if (!userId) {
             return res.status(400).json({ message: "User Id is required" });
         }
@@ -72,7 +71,6 @@ export async function getUnreadCount(req, res) {
 export async function markAllNotificationsAsRead(req,res){
     try{
         const userId = req.user.id;
-        console.log("Marking all notifications as read for user:", userId)
         
         if(!userId){
             return res.status(400).json({message:"User Id is required"});
@@ -89,7 +87,6 @@ export async function markAllNotificationsAsRead(req,res){
             [userId]
         );
         
-        console.log(`Marked ${result.affectedRows} notifications as read for user ${userId}`);
         res.status(200).json({
             message: "All notifications marked as read", 
             updatedCount: result.affectedRows

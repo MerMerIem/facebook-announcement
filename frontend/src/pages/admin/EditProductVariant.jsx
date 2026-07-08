@@ -57,8 +57,6 @@ const EditProductVariant = () => {
             if (responseCode === 200 && data) {
                 setProduct(data.product);
 
-                console.log(data.variants);
-
                 // Transform the variants data to match our component state structure
                 const formattedVariants = data.variants.map(variant => ({
                     id: variant.id,
@@ -564,8 +562,6 @@ const EditProductVariant = () => {
             </div>
         );
     }
-
-    console.log(variants);
 
     return (
         <div className="min-h-screen  sm:p-6 lg:p-8" dir="rtl">

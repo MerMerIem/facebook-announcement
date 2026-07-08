@@ -36,8 +36,6 @@ export async function register(req, res) {
 export async function login(req, res) {
     const { email, password } = req.body;
 
-    console.log(req.body);
-
     try {
         const [user] = await db.query('SELECT * FROM users WHERE email = ?', [
             email,
@@ -105,7 +103,6 @@ export async function checkLogin(req, res) {
             try {
                 const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
 
-                console.log('user', username);
                 return res.status(200).json({
                     message: 'Access token valid',
                     user: {
@@ -212,7 +209,6 @@ export async function checkLogin(req, res) {
 
 export async function logout(req, res) {
     const refreshToken = req.cookies?.refreshToken;
-    console.log('Logout called with refreshToken:', refreshToken);
 
     try {
         res.clearCookie('accessToken', {

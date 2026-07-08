@@ -785,8 +785,6 @@ export async function modifyProduct(req, res) {
       allows_custom_quantity,
     } = req.body || {};
 
-    console.log("req", req.body);
-
     const discount_start = toDateOnly(discount_start_str);
     const discount_end = toDateOnly(discount_end_str);
 
@@ -1038,8 +1036,6 @@ export async function addProduct(req, res) {
     prod_ref = null,
     discount_threshold = null,
   } = req.body;
-
-  console.log("req body of adding", req.body);
 
   const validationErrors = [];
   if (!name)
@@ -1586,7 +1582,6 @@ export async function removeProductDiscountPercentage(req, res) {
 
 // ADD PRODUCT VARIANT
 export async function addProductVariants(req, res) {
-  console.log("Adding multiple product variants");
 
   // Helper functions
   function toMySQLDateTime(dateStr) {
@@ -1805,12 +1800,6 @@ export async function addProductVariants(req, res) {
 
       // FIXED: Handle images from processed middleware data
       const currentVariantImages = variantImages[index] || [];
-      console.log(
-        "currentVariantImages for variant",
-        index,
-        ":",
-        currentVariantImages,
-      );
 
       if (currentVariantImages.length === 0) {
         await conn.rollback();
@@ -1888,7 +1877,6 @@ export async function editVariants(req, res) {
   let variants;
   try {
     variants = JSON.parse(req.body.variants);
-    console.log("variants to edit", variants);
   } catch (error) {
     return res.status(400).json({
       success: false,
@@ -2157,16 +2145,6 @@ export async function editVariants(req, res) {
 
       updateVals.push(variant.id);
 
-      console.log("Updating variant with values:", {
-        id: variant.id,
-        title: variant.title,
-        finalPrice: finalPrice,
-        initialPrice: initialPrice,
-        profit: profit,
-        discountPrice: variant.discount_price,
-        bulkDiscountPercentage: bulkDiscountPercentage,
-      });
-
       // Execute UPDATE
       await conn.execute(
         `UPDATE product_variants SET ${updateCols.join(", ")} WHERE id = ?`,
@@ -2176,10 +2154,6 @@ export async function editVariants(req, res) {
       // Handle image deletion if provided
       let deletedImagesCount = 0;
       if (variant.deletedImages && variant.deletedImages.length > 0) {
-        console.log(
-          `Deleting images for variant ${variant.id}:`,
-          variant.deletedImages,
-        );
 
         // Verify that images belong to this variant before deletion
         const [imagesToDelete] = await conn.execute(
@@ -2207,9 +2181,6 @@ export async function editVariants(req, res) {
           );
 
           deletedImagesCount = imagesToDelete.length;
-          console.log(
-            `Successfully deleted ${deletedImagesCount} images for variant ${variant.id}`,
-          );
         }
       }
 
@@ -2252,9 +2223,6 @@ export async function editVariants(req, res) {
         }
 
         newImagesCount = currentVariantImages.length;
-        console.log(
-          `Added ${newImagesCount} new images for variant ${variant.id}`,
-        );
       }
 
       // Update main image if specified
@@ -2276,9 +2244,6 @@ export async function editVariants(req, res) {
           await conn.execute(
             "UPDATE product_variant_images SET is_primary = 1 WHERE id = ?",
             [allImages[mainImageIndex].id],
-          );
-          console.log(
-            `Set image at index ${mainImageIndex} as primary for variant ${variant.id}`,
           );
         }
       }
@@ -2430,8 +2395,6 @@ export async function deleteVariant(req, res) {
 }
 // Get all variants for a specific product
 export async function getVariants(req, res) {
-  console.log("Getting variants for product");
-
   const { productId } = req.params;
 
   // Validation
@@ -2669,8 +2632,6 @@ export async function getVariants(req, res) {
       (sum, v) => sum + v.orders.totalQuantityOrdered,
       0,
     );
-
-    console.log(`Found ${variants.length} variants for product ${productId}`);
 
     res.status(200).json({
       success: true,

@@ -97,7 +97,6 @@ export const validateNumber = [
     .isFloat({ gt: 0 })
     .withMessage("Price must be a number greater than 0")
     .custom((value, { req }) => {
-      console.log(`[validateNumber] Checking 'price': ${value}`);
       return true;
     }),
 
@@ -112,7 +111,6 @@ export const validateNumber = [
     .isFloat({ min: 0 }) // allow 0 now
     .withMessage("Discount price must be a number and not negative")
     .custom((value, { req }) => {
-      console.log(`[validateNumber] Checking 'discount_price': ${value}`);
       return true;
     }),
 
@@ -120,13 +118,8 @@ export const validateNumber = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log(
-        "[validateNumber] Validation errors found:",
-        JSON.stringify(errors.array(), null, 2)
-      );
       return res.status(400).json({ errors: errors.array() });
     }
-    console.log("[validateNumber] No validation errors. Proceeding.");
     next();
   },
 ];
@@ -139,9 +132,6 @@ export const validateDiscountDates = [
     .isISO8601()
     .withMessage("Discount start must be a valid date")
     .custom((value, { req }) => {
-      console.log(
-        `[validateDiscountDates] Checking 'discount_start': ${value}`
-      );
       return true;
     }),
 
@@ -152,13 +142,11 @@ export const validateDiscountDates = [
     .isISO8601()
     .withMessage("Discount end must be a valid date")
     .custom((value, { req }) => {
-      console.log(`[validateDiscountDates] Checking 'discount_end': ${value}`);
       return true;
     }),
 
   // Custom validator to check order (only if discount_price > 0)
   (req, res, next) => {
-    console.log("[validateDiscountDates] Running custom date order validator.");
 
     const errors = validationResult(req);
     const { discount_price, discount_start, discount_end } = req.body;
@@ -168,18 +156,11 @@ export const validateDiscountDates = [
       isNaN(parsedDiscountPrice) || parsedDiscountPrice === 0;
 
     if (isPriceInvalid) {
-      console.log(
-        "[validateDiscountDates] Skipping date validation because discount_price is 0, null, or NaN."
-      );
       return next();
     }
 
     // Return any format errors from previous validators
     if (!errors.isEmpty()) {
-      console.log(
-        "[validateDiscountDates] Initial date format errors found:",
-        JSON.stringify(errors.array(), null, 2)
-      );
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -188,9 +169,6 @@ export const validateDiscountDates = [
       const end = new Date(discount_end);
 
       if (start > end) {
-        console.log(
-          "[validateDiscountDates] Date order error: Start is after End."
-        );
         return res.status(400).json({
           errors: [
             {
@@ -225,7 +203,6 @@ export function validateOrderFields(req, res, next) {
   // Starts with 0, followed by 5/6/7, then 4-9, then 7 digits 0-9
   const phoneRegex = /^0[567][4-9]\d{7}$/;
   if (!phoneRegex.test(phone)) {
-    console.log("phone test")
     return res.status(400).json({
       error:
         "صيغة رقم الهاتف غير صحيحة. يجب أن يبدأ بـ 05 أو 06 أو 07، متبوعًا برقم بين 4 و9، ثم 7 أرقام أخرى.",

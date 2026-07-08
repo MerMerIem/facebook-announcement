@@ -270,7 +270,6 @@ const ProductPage = () => {
         }
 
         setErrors(newErrors);
-        console.log('formData', formData);
 
         // Show validation error toast if there are errors
         if (Object.keys(newErrors).length > 0) {

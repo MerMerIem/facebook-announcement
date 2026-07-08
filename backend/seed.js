@@ -56,8 +56,8 @@ async function seedWilayas() {
         const delivery_fee = randomDeliveryFee();
         await db.execute(
             `INSERT INTO wilayas (name, delivery_fee)
-             VALUES (?, ?)`,
-            [w.name, delivery_fee]
+         VALUES (?, ?)`,
+            [w.name_ar, delivery_fee] // ← store Arabic name here
         );
     }
 

@@ -43,11 +43,9 @@ const ProductDetail = () => {
             try {
                 const [productData, response, responseCode, error] =
                     await api.get(`/product/get/${id}`);
-                console.log('productData', productData);
 
                 if (responseCode === 200 && productData) {
                     setProduct(productData);
-                    console.log('Product data received:', productData);
                 } else {
                     console.error('Failed to fetch product:', error);
                     toast({

@@ -80,7 +80,7 @@ export async function getWilayas(req, res) {
 export async function modifyWilayaDeliveryPrice(req, res) {
     const { delivery_fee } = req.body;
     const { id } = req.params;
-    console.log("delivery_fee", delivery_fee, "id", id);
+
     try {
         await db.execute("UPDATE wilayas SET delivery_fee = ? WHERE id = ?", [delivery_fee, id]);
         res.status(200).json({ message: "Wilaya delivery price modified successfully" });

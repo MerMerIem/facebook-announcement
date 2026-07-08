@@ -109,7 +109,6 @@ export async function modifySubCategory(req, res) {
 
         const { id } = req.params;
         const { name, category_id } = req.body;
-        console.log("req body",req.body)
 
         // Validate inputs
         if (!name || !category_id) {
@@ -194,7 +193,6 @@ export async function deleteSubCategory(req, res) {
 
 export async function addSubCategory(req,res){
     const {categoryId, name} = req.body;
-    console.log("req body",req.body)
     try{
         const [rows2] = await db.execute("SELECT * FROM subcategories WHERE name = ? AND category_id = ?", 
             [name, categoryId]);

@@ -14,7 +14,6 @@ const CART_STORAGE_KEY = 'hardware_store_cart';
 let totalLenght;
 
 const calculateTotal = (items, pricingData = null) => {
-    console.log('Calculating total for items:', items);
 
     if (pricingData?.pricing_details) {
         // Use server pricing if available
@@ -462,7 +461,6 @@ export const CartProvider = ({ children }) => {
 
         // Skip if this exact call was already made
         if (lastApiCallRef.current === apiCallSignature) {
-            console.log('Skipping duplicate API call');
             return;
         }
 
@@ -492,7 +490,6 @@ export const CartProvider = ({ children }) => {
 
             // Check if request was aborted
             if (abortControllerRef.current?.signal.aborted) {
-                console.log('API request was aborted');
                 return;
             }
 
@@ -503,7 +500,6 @@ export const CartProvider = ({ children }) => {
             ) {
                 // Guard: ignore if cart has changed since this request was made
                 if (lastApiCallRef.current !== apiCallSignature) {
-                    console.log('Ignoring stale pricing response');
                     return;
                 }
 
@@ -595,13 +591,6 @@ export const CartProvider = ({ children }) => {
             // Include any additional fields from the product
             ...product,
         };
-
-        console.log(
-            'Adding item to cart:',
-            completeProduct,
-            'quantity:',
-            quantity
-        );
         dispatch({
             type: 'ADD_ITEM',
             product: completeProduct,
@@ -620,13 +609,6 @@ export const CartProvider = ({ children }) => {
     ) => {
         // If cartItemId is provided as third parameter, use the old signature
         if (cartItemId !== null) {
-            console.log(
-                'Updating quantity (old signature):',
-                cartItemIdOrProductId,
-                quantity,
-                'cartItemId:',
-                cartItemId
-            );
             dispatch({
                 type: 'UPDATE_QUANTITY',
                 productId: cartItemIdOrProductId,
@@ -643,12 +625,6 @@ export const CartProvider = ({ children }) => {
             cartItemIdOrProductId > 1000000000000; // Timestamp check
 
         if (isCartItemId) {
-            console.log(
-                'Updating quantity by cartItemId:',
-                cartItemIdOrProductId,
-                'quantity:',
-                quantity
-            );
             dispatch({
                 type: 'UPDATE_QUANTITY',
                 cartItemId: cartItemIdOrProductId,
@@ -656,12 +632,6 @@ export const CartProvider = ({ children }) => {
                 productId: null,
             });
         } else {
-            console.log(
-                'Updating quantity by productId:',
-                cartItemIdOrProductId,
-                'quantity:',
-                quantity
-            );
             dispatch({
                 type: 'UPDATE_QUANTITY',
                 productId: cartItemIdOrProductId,
@@ -671,7 +641,6 @@ export const CartProvider = ({ children }) => {
         }
     };
     const clearCart = () => {
-        console.log('Clearing cart');
         dispatch({ type: 'CLEAR_CART' });
         lastApiCallRef.current = '';
     };

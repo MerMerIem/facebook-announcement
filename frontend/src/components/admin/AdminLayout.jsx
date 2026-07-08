@@ -20,12 +20,6 @@ export function AdminLayout({ children }) {
                 '/notification/unread-count'
             );
 
-            console.log('API Response:', {
-                status: responseCode,
-                data: data,
-                error: error,
-            });
-
             if (responseCode === 200 && data) {
                 console.log('✅ Unread count updated:', data.count);
                 setUnreadCount(data.count);

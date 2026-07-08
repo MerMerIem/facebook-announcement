@@ -63,7 +63,6 @@ export default function Dashboard() {
   const getRecentOrders = async () => {
     try {
       const [data, _, responseCode, error] = await api.get("/order/getRecent");
-      console.log("recent", data);
       if (responseCode === 200 && data.success) {
         setRecentOrders(data.orders);
       }
@@ -75,7 +74,6 @@ export default function Dashboard() {
   const getTodaysOrders = async () => {
     try {
       const [data, _, responseCode, error] = await api.get("/order/getTodays");
-      console.log(data);
       if (responseCode === 200 && data.success) {
         setTodaysOrders(data.orders);
       }
@@ -87,7 +85,6 @@ export default function Dashboard() {
   const getStats = async () => {
     try {
       const [data, _, responseCode, error] = await api.get("/stats");
-      console.log(data);
       if (responseCode === 200 && data.success) {
         setStats(data.stats);
       }

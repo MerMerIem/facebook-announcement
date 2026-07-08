@@ -38,10 +38,7 @@ const ResetPassword = () => {
   }
 
   const handleResetPassword = async (e) => {
-    // console.log('callled')
     e.preventDefault()
-
-    // console.log("vvv",!validatePassword(password))
 
     if (!validatePassword(password)) {
       toast.error(

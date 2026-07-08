@@ -906,10 +906,10 @@ export default function Orders() {
                                                                     دج
                                                                 </div>
                                                                 <div className="text-xs text-gray-500 mt-0.5">
-                                                                    ×{' '}
-                                                                    {
-                                                                        item.quantity
-                                                                    }
+                                                                    {item.uses_custom_quantity &&
+                                                                    item.measure_unit
+                                                                        ? `${item.quantity} ${item.measure_unit}`
+                                                                        : `× ${item.quantity}`}
                                                                 </div>
                                                             </div>
 
@@ -935,7 +935,11 @@ export default function Orders() {
                                                                     {
                                                                         item.unit_price
                                                                     }{' '}
-                                                                    دج / وحدة
+                                                                    دج /{' '}
+                                                                    {item.uses_custom_quantity &&
+                                                                    item.measure_unit
+                                                                        ? item.measure_unit
+                                                                        : 'وحدة'}
                                                                 </div>
                                                             </div>
 

@@ -106,7 +106,6 @@ const AddProductVariant = () => {
     };
 
     const updateVariant = (variantId, field, value) => {
-        console.log(`Updating ${field} for variant ${variantId}:`, value); // DEBUG LINE
         setVariants(prev =>
             prev.map(variant =>
                 variant.id === variantId
@@ -323,8 +322,6 @@ const AddProductVariant = () => {
                     );
                 });
             });
-
-            console.log('formDataToSend after', formDataToSend);
 
             const [data, _, responseCode, error] = await api.post(
                 '/product/add/variant',

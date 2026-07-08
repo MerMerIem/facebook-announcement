@@ -66,7 +66,6 @@ const AuthProvider = ({ children }) => {
       };
     }
   }, []);
-  console.log("user",user)
 
   // // Register function
   // const register = useCallback(

@@ -36,8 +36,6 @@ const Cart = () => {
     const [editingQuantity, setEditingQuantity] = useState({});
     const [itemsLoadingPricing, setItemsLoadingPricing] = useState(new Set());
     const navigate = useNavigate();
-    console.log('pricingData', pricingData);
-    console.log('loadingPricing', loadingPricing);
 
     const formatPrice = price => {
         const numericPrice = parseFloat(price);
@@ -303,8 +301,6 @@ const Cart = () => {
                 parent_product_id: item.product?.parent_product_id || null,
             };
         });
-
-        console.log(selectedWilayaInfo);
 
         const checkoutData = {
             items: checkoutItems,
@@ -795,10 +791,6 @@ const Cart = () => {
                                         <Select
                                             value={selectedWilayaId || ''}
                                             onValueChange={value => {
-                                                console.log(
-                                                    'Selected wilaya:',
-                                                    value
-                                                );
                                                 setSelectedWilayaId(value);
                                             }}
                                         >
