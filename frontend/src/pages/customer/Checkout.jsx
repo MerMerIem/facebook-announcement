@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import Header from '@/components/customer/layout/Header';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from 'sonner';
 import { useApi } from '@/contexts/RestContext';
@@ -371,7 +370,7 @@ const Checkout = () => {
 
     return (
         <div dir="rtl" className="min-h-screen bg-shop-bg">
-            <div className="container mx-auto px-4 py-6">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
                 {/* Breadcrumb */}
                 <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                     <Link to="/" className="hover:text-primary">
@@ -387,7 +386,7 @@ const Checkout = () => {
 
                 {/* Data Source Info */}
                 {isUsingUrlData && (
-                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-none">
                         <p className="text-sm text-blue-800">
                             <strong>معلومة:</strong> تم تحميل بيانات الطلب من
                             السلة مع التسعير المحدث.
@@ -395,16 +394,16 @@ const Checkout = () => {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
                     {/* Checkout Form */}
                     <div className="lg:col-span-2">
-                        <Card>
-                            <CardHeader>
+                        <Card className="rounded-none bg-white shadow-none border border-gray-200">
+                            <CardHeader className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4">
                                 <CardTitle className="text-xl sm:text-2xl">
                                     معلومات التوصيل
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="px-5 sm:px-6 pb-5 sm:pb-6">
                                 <form
                                     onSubmit={handleSubmit}
                                     className="space-y-6"
@@ -515,7 +514,7 @@ const Checkout = () => {
                                                 الولاية *
                                             </Label>
                                             {urlWilaya ? (
-                                                <div className="p-3 bg-gray-50 border rounded-md">
+                                                <div className="p-4 bg-gray-50 border rounded-none">
                                                     <div className="flex justify-between items-center">
                                                         <span className="font-medium">
                                                             {urlWilaya.name}
@@ -549,11 +548,11 @@ const Checkout = () => {
                                                     }
                                                 >
                                                     <SelectTrigger
-                                                        className={
+                                                        className={`rounded-none ${
                                                             errors.wilayaId
                                                                 ? 'border-destructive'
                                                                 : ''
-                                                        }
+                                                        }`}
                                                     >
                                                         <SelectValue
                                                             placeholder={
@@ -652,8 +651,8 @@ const Checkout = () => {
 
                     {/* Order Summary */}
                     <div className="lg:col-span-1">
-                        <Card className="sticky top-20">
-                            <CardHeader>
+                        <Card className="sticky top-20 rounded-none shadow-none border bg-white border-gray-200">
+                            <CardHeader className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4">
                                 <CardTitle className="flex items-center justify-between">
                                     <span>ملخص الطلب</span>
                                     {!isUsingUrlData && loadingPricing && (
@@ -661,7 +660,7 @@ const Checkout = () => {
                                     )}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-5 px-5 sm:px-6 pb-5 sm:pb-6">
                                 {/* Loading State for Context Data */}
                                 {!isUsingUrlData && loadingPricing && (
                                     <div className="text-center py-4">
@@ -723,7 +722,7 @@ const Checkout = () => {
                                                 key={`item-${itemData.id}-${index}`}
                                                 className="flex gap-2 sm:gap-3"
                                             >
-                                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-none overflow-hidden flex-shrink-0">
                                                     {itemData.imageUrl ? (
                                                         <img
                                                             src={
@@ -817,7 +816,7 @@ const Checkout = () => {
                                 <Separator />
 
                                 {/* Pricing Summary */}
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     <div className="flex justify-between">
                                         <span>المجموع الفرعي:</span>
                                         <span>{formatPrice(subtotal)}</span>
@@ -873,7 +872,7 @@ const Checkout = () => {
                                 {/* Submit Button */}
                                 <Button
                                     onClick={handleSubmit}
-                                    className="w-full"
+                                    className="w-full rounded-none py-3.5"
                                     size="lg"
                                     disabled={
                                         isSubmitting ||
