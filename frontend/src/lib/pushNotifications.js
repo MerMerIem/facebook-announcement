@@ -25,14 +25,14 @@ export async function setupPushNotifications() {
     console.log("Fetching VAPID public key from server...");
     const response = await fetch(`${import.meta.env.VITE_API_URL}/vapid-public-key`);
     const { publicKey } = await response.json();
-    console.log("✅ VAPID public key received:", publicKey);
+    console.log(" VAPID public key received:", publicKey);
 
     console.log("Subscribing to push manager...");
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
-    console.log("✅ Push subscription created:", subscription);
+    console.log(" Push subscription created:", subscription);
 
     console.log("Sending subscription to server...");
     const saveResponse = await fetch(
