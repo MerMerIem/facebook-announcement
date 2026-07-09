@@ -1,11 +1,6 @@
-import {
-    useState,
-    useContext,
-    useCallback,
-    createContext,
-} from 'react';
+import { useState, useContext, useCallback, createContext } from 'react';
 import axios from 'axios';
-import.meta.env.VITE_API_URL
+import.meta.env.VITE_BACKEND_URL;
 
 const ApiContext = createContext();
 export const useApi = () => useContext(ApiContext);
@@ -15,7 +10,7 @@ const ApiProvider = ({ children }) => {
 
     // Create axios instance with default config
     const axiosInstance = axios.create({
-        baseURL: import.meta.env.VITE_API_URL,
+        baseURL: import.meta.env.VITE_BACKEND_URL,
         timeout: 10000,
         headers: {
             'Content-Type': 'application/json',
