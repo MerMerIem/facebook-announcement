@@ -23,7 +23,7 @@ export async function setupPushNotifications() {
     }
 
     console.log("Fetching VAPID public key from server...");
-    const response = await fetch("http://localhost:5000/vapid-public-key");
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/vapid-public-key`);
     const { publicKey } = await response.json();
     console.log("✅ VAPID public key received:", publicKey);
 
@@ -36,7 +36,7 @@ export async function setupPushNotifications() {
 
     console.log("Sending subscription to server...");
     const saveResponse = await fetch(
-      "http://localhost:5000/save-subscription",
+      `${import.meta.env.VITE_API_URL}/save-subscription`,
       {
         method: "POST",
         headers: {

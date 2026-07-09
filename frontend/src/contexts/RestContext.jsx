@@ -1,11 +1,11 @@
 import {
     useState,
-    useEffect,
     useContext,
     useCallback,
     createContext,
 } from 'react';
 import axios from 'axios';
+import.meta.env.VITE_API_URL
 
 const ApiContext = createContext();
 export const useApi = () => useContext(ApiContext);
@@ -15,8 +15,7 @@ const ApiProvider = ({ children }) => {
 
     // Create axios instance with default config
     const axiosInstance = axios.create({
-        baseURL:
-            'http://localhost:5000' /* You can also use an environment variable here, e.g., process.env.VITE_BACKEND_URL */,
+        baseURL: import.meta.env.VITE_API_URL,
         timeout: 10000,
         headers: {
             'Content-Type': 'application/json',
