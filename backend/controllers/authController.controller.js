@@ -73,15 +73,15 @@ export async function login(req, res) {
         );
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
             maxAge: 15 * 60 * 1000,
         });
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
             maxAge: 7 * 24 * 60 * 60 * 1000,
             path: '/auth',
         });
@@ -141,13 +141,13 @@ export async function checkLogin(req, res) {
             // Clear invalid cookies
             res.clearCookie('accessToken', {
                 httpOnly: true,
-                secure: false,
-                sameSite: 'strict',
+                secure: true,
+                sameSite: 'none',
             });
             res.clearCookie('refreshToken', {
                 httpOnly: true,
-                secure: false,
-                sameSite: 'strict',
+                secure: true,
+                sameSite: 'none',
             });
 
             return res
@@ -174,8 +174,8 @@ export async function checkLogin(req, res) {
         // 🍪 Set new access token cookie
         res.cookie('accessToken', newAccessToken, {
             httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
             maxAge: 15 * 60 * 1000, // 15 minutes
         });
 
@@ -194,13 +194,13 @@ export async function checkLogin(req, res) {
         // Clear cookies on error
         res.clearCookie('accessToken', {
             httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
         });
         res.clearCookie('refreshToken', {
             httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
         });
 
         res.status(500).json({ message: 'Internal server error' });
@@ -213,14 +213,14 @@ export async function logout(req, res) {
     try {
         res.clearCookie('accessToken', {
             httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
         });
 
         res.clearCookie('refreshToken', {
             httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
             path: '/auth',
         });
 
