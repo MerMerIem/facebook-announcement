@@ -994,21 +994,31 @@ const AddProductVariant = () => {
                                                                 value={
                                                                     variant.measure_unit
                                                                 }
-                                                                onChange={e =>
+                                                                onChange={e => {
+                                                                    const newUnit =
+                                                                        e.target
+                                                                            .value;
                                                                     updateVariant(
                                                                         variant.id,
                                                                         'measure_unit',
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                }
+                                                                        newUnit
+                                                                    );
+                                                                    if (
+                                                                        !newUnit &&
+                                                                        variant.allows_custom_quantity
+                                                                    ) {
+                                                                        updateVariant(
+                                                                            variant.id,
+                                                                            'allows_custom_quantity',
+                                                                            false
+                                                                        );
+                                                                    }
+                                                                }}
                                                                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                                             >
-                                                                <option
-                                                                    value=""
-                                                                    disabled
-                                                                >
-                                                                    اختر الوحدة
+                                                                <option value="">
+                                                                    بدون وحدة
+                                                                    قياس
                                                                 </option>
                                                                 <optgroup label="وحدات الوزن">
                                                                     <option value="piece">
