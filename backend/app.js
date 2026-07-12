@@ -10,7 +10,6 @@ import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import db from './config/db.js';
-import rd from './config/rd.js';
 import authRoute from './routes/authRoute.routes.js';
 import categoryRoute from './routes/categoriesRoute.routes.js';
 import productRoute from './routes/productsRoute.routes.js';
