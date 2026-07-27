@@ -20,7 +20,14 @@ import HeroImage from '@/assets/hero.webp';
 const Index = () => {
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [packProducts, setPackProducts] = useState([]);
+    const [isPacksLoading, setIsPacksLoading] = useState(true);
     const { api } = useApi();
+
+    // The "Packs" category is a normal category in the categories table —
+    // it's excluded from the فئات المنتجات grid and used to drive its own
+    // section instead. Change this if the category name ever changes.
+    const PACKS_CATEGORY_NAME = 'Packs';
 
     const features = [
         {
@@ -64,6 +71,23 @@ const Index = () => {
         },
     ];
 
+    // Product descriptions are stored as rich-text HTML (from the admin
+    // editor). For a small card preview we want clean plain text, not the
+    // raw HTML tags/classes rendered as text.
+    const stripHtmlToText = html => {
+        if (!html) return '';
+        return html
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+
     const categoryIcons = [
         ShoppingBag,
         Truck,
@@ -97,7 +121,14 @@ const Index = () => {
                     await api.get('/category/getAll');
 
                 if (responseCode === 200 && data) {
-                    setCategories(data.categories || []);
+                    // Exclude the "Packs" category from the regular
+                    // categories grid — it gets its own section below.
+                    const allCategories = data.categories || [];
+                    setCategories(
+                        allCategories.filter(
+                            cat => cat.name !== PACKS_CATEGORY_NAME
+                        )
+                    );
                 } else {
                     toast.error('خطأ في تحميل الفئات', {
                         description:
@@ -127,6 +158,30 @@ const Index = () => {
         };
 
         fetchCategories();
+    }, [api]);
+
+    useEffect(() => {
+        const fetchPackProducts = async () => {
+            try {
+                setIsPacksLoading(true);
+                const [data, response, responseCode, error] = await api.get(
+                    `/product/search?category=${encodeURIComponent(PACKS_CATEGORY_NAME)}&limit=6`
+                );
+
+                if (responseCode === 200 && data) {
+                    setPackProducts(data.data || []);
+                } else {
+                    setPackProducts([]);
+                }
+            } catch (err) {
+                console.error('Error fetching pack products:', err);
+                setPackProducts([]);
+            } finally {
+                setIsPacksLoading(false);
+            }
+        };
+
+        fetchPackProducts();
     }, [api]);
 
     return (
@@ -281,6 +336,114 @@ const Index = () => {
                     )}
                 </div>
             </section>
+
+            {/* Packs / Bundles — a separate section from categories above.
+                Only renders cards when packs actually exist; stays invisible
+                (no empty-state message, no error toast) if the feature isn't
+                seeded yet, so the homepage never looks broken. */}
+            {(isPacksLoading || packProducts.length > 0) && (
+                <section className="py-10 sm:py-14 md:py-20 px-3 sm:px-4 bg-card/40">
+                    <div className="container mx-auto">
+                        <div className="text-center mb-8 sm:mb-12">
+                            <h2 className="text-xl xs:text-2xl sm:text-3xl font-bold inline-block relative pb-3 text-foreground">
+                               (Offres & Packs) عروض وحزم
+                                <span className="absolute bottom-0 right-1/2 translate-x-1/2 w-16 h-1 rounded-full bg-primary" />
+                            </h2>
+                            <p className="text-sm sm:text-base mt-3 max-w-xl mx-auto text-muted-foreground">
+                                مجموعات منتجات مختارة بأسعار مميزة، كل ما
+                                تحتاجه في حزمة واحدة
+                            </p>
+                        </div>
+
+                        {isPacksLoading ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+                                {[1, 2, 3].map(item => (
+                                    <Card
+                                        key={item}
+                                        className="overflow-hidden animate-pulse border-0 bg-card"
+                                    >
+                                        <div className="h-40 sm:h-44 bg-muted" />
+                                        <CardContent className="p-5 sm:p-6">
+                                            <div className="h-5 sm:h-6 rounded mb-3 w-2/3 bg-muted" />
+                                            <div className="h-3 sm:h-4 rounded bg-muted" />
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+                                {packProducts.slice(0, 6).map(product => (
+                                    <Link
+                                        key={product.id}
+                                        to={`/product/${product.id}`}
+                                        className="block"
+                                    >
+                                        <Card className="cursor-pointer rounded-md overflow-hidden transition-all duration-300 hover:-translate-y-1 border border-border h-full bg-card">
+                                            <div className="relative h-40 sm:h-44 bg-muted overflow-hidden flex items-center justify-center p-3">
+                                                {product.main_image_url ? (
+                                                    <img
+                                                        src={
+                                                            product.main_image_url
+                                                        }
+                                                        alt={product.name}
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Package className="h-10 w-10 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                                <span className="absolute top-2 left-2 text-xs px-2.5 py-1 rounded-full font-medium bg-primary text-primary-foreground">
+                                                    حزمة
+                                                </span>
+                                            </div>
+                                            <CardContent className="p-5 sm:p-6 flex flex-col h-full">
+                                                <h3 className="text-base sm:text-lg font-semibold mb-2 leading-tight text-foreground">
+                                                    {product.name}
+                                                </h3>
+                                                <p className="text-xs sm:text-sm leading-relaxed flex-grow mb-3 text-muted-foreground line-clamp-2">
+                                                    {stripHtmlToText(
+                                                        product.description
+                                                    )}
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-base sm:text-lg font-bold text-primary">
+                                                        {product.has_discount
+                                                            ? product.discount_price
+                                                            : product.price}{' '}
+                                                        د.ج
+                                                    </span>
+                                                    {product.has_discount && (
+                                                        <span className="text-xs sm:text-sm line-through text-muted-foreground">
+                                                            {product.price} د.ج
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+
+                        {packProducts.length > 6 && (
+                            <div className="text-center mt-8 sm:mt-10">
+                                <Link
+                                    to={`/shop?category=${encodeURIComponent(PACKS_CATEGORY_NAME)}`}
+                                >
+                                    <Button
+                                        variant=""
+                                        size="lg"
+                                        className="text-sm sm:text-base shadow-none border-primary px-6 py-3 min-h-[44px] text-foreground"
+                                    >
+                                        عرض جميع الحزم
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
 
             {/* Why Us */}
             <section className="px-3 sm:px-4 pb-10 sm:pb-14 md:pb-20">
