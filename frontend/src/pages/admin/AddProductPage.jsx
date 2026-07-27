@@ -648,7 +648,7 @@ const ProductPage = () => {
                                     {/* السعر الأولي */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            السعر شراء * (د.ج)
+                                            سعر الشراء * (د.ج)
                                         </label>
                                         <input
                                             type="number"
@@ -1379,7 +1379,7 @@ const ProductPage = () => {
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="px-8 py-3 bg-accent hover:bg-blue-800 text-white rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-8 py-3 bg-primary hover:bg-blue-800 text-white rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {submitting ? 'جاري الإضافة...' : 'إضافة المنتج'}
                         </button>

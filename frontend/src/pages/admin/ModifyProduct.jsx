@@ -1572,7 +1572,7 @@ const ModifyProduct = () => {
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="px-8 py-3 bg-accent hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-8 py-3 bg-primary hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {submitting && (
                                 <Loader2 className="w-4 h-4 animate-spin" />

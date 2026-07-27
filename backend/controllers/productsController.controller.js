@@ -1054,11 +1054,6 @@ export async function addProduct(req, res) {
     validationErrors.push({ field: "profit", message: "هامش الربح مطلوب" });
   if (!category)
     validationErrors.push({ field: "category", message: "الفئة مطلوبة" });
-  if (!subcategory)
-    validationErrors.push({
-      field: "subcategory",
-      message: "الفئة الفرعية مطلوبة",
-    });
 
   // Validate measure_unit
   const parsed_has_measure_unit =
