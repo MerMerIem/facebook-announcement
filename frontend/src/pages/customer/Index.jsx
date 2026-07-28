@@ -160,28 +160,85 @@ const Index = () => {
         fetchCategories();
     }, [api]);
 
+    // "Packs" isn't a separate feature — it's just the products that live
+    // under the "Packs" category, plus (per client request) any product
+    // currently on a sale-price discount, plus any product with a
+    // buy-N+-get-%-off quantity discount. searchProduct only ANDs its
+    // filters together, so we fetch the three sets separately and merge
+    // them here instead of trying to OR them server-side. Each product is
+    // tagged with _promoType so the card can show the right badge.
     useEffect(() => {
-        const fetchPackProducts = async () => {
+        const fetchPromoProducts = async () => {
             try {
                 setIsPacksLoading(true);
-                const [data, response, responseCode, error] = await api.get(
-                    `/product/search?category=${encodeURIComponent(PACKS_CATEGORY_NAME)}&limit=6`
-                );
 
-                if (responseCode === 200 && data) {
-                    setPackProducts(data.data || []);
-                } else {
-                    setPackProducts([]);
-                }
+                const [packResult, discountResult, quantityResult] =
+                    await Promise.all([
+                        api.get(
+                            `/product/search?category=${encodeURIComponent(PACKS_CATEGORY_NAME)}&limit=6`
+                        ),
+                        api.get('/product/search?hasDiscount=true&limit=6'),
+                        api.get(
+                            '/product/search?hasQuantityDiscount=true&limit=6'
+                        ),
+                    ]);
+
+                const [packData, , packCode] = packResult;
+                const [discountData, , discountCode] = discountResult;
+                const [quantityData, , quantityCode] = quantityResult;
+
+                const packItems =
+                    packCode === 200 && packData ? packData.data || [] : [];
+                const discountItems =
+                    discountCode === 200 && discountData
+                        ? discountData.data || []
+                        : [];
+                const quantityItems =
+                    quantityCode === 200 && quantityData
+                        ? quantityData.data || []
+                        : [];
+
+                // Merge and dedupe by id, tagging each product with why it's
+                // shown (pack / discount / quantity). Each type is capped
+                // at 2 BEFORE merging — otherwise the final render's
+                // slice(0, 6) would let the first type(s) crowd out the
+                // rest whenever pack+discount alone already reach 6.
+                const PER_TYPE_CAP = 2;
+                const merged = [];
+                const seenIds = new Set();
+
+                const addAll = (items, promoType) => {
+                    let added = 0;
+                    for (const product of items) {
+                        if (added >= PER_TYPE_CAP) break;
+                        if (!seenIds.has(product.id)) {
+                            merged.push({ ...product, _promoType: promoType });
+                            seenIds.add(product.id);
+                            added += 1;
+                        }
+                    }
+                };
+
+                addAll(packItems, 'pack');
+                addAll(discountItems, 'discount');
+                addAll(quantityItems, 'quantity');
+
+                // TEMPORARY DEBUG LOG — remove once the issue is found
+                console.log('packItems:', packItems.length, packItems.map(p => p.id));
+                console.log('discountItems:', discountItems.length, discountItems.map(p => p.id));
+                console.log('quantityItems:', quantityItems.length, quantityItems.map(p => p.id));
+                console.log('merged:', merged.length, merged.map(p => ({ id: p.id, type: p._promoType })));
+
+                setPackProducts(merged);
             } catch (err) {
-                console.error('Error fetching pack products:', err);
+                console.error('Error fetching pack/discount products:', err);
                 setPackProducts([]);
             } finally {
                 setIsPacksLoading(false);
             }
         };
 
-        fetchPackProducts();
+        fetchPromoProducts();
     }, [api]);
 
     return (
@@ -346,7 +403,7 @@ const Index = () => {
                     <div className="container mx-auto">
                         <div className="text-center mb-8 sm:mb-12">
                             <h2 className="text-xl xs:text-2xl sm:text-3xl font-bold inline-block relative pb-3 text-foreground">
-                               (Offres & Packs) عروض وحزم
+                                عروض وحزم
                                 <span className="absolute bottom-0 right-1/2 translate-x-1/2 w-16 h-1 rounded-full bg-primary" />
                             </h2>
                             <p className="text-sm sm:text-base mt-3 max-w-xl mx-auto text-muted-foreground">
@@ -393,8 +450,24 @@ const Index = () => {
                                                         <Package className="h-10 w-10 text-muted-foreground" />
                                                     </div>
                                                 )}
-                                                <span className="absolute top-2 left-2 text-xs px-2.5 py-1 rounded-full font-medium bg-primary text-primary-foreground">
-                                                    حزمة
+                                                <span
+                                                    className={`absolute top-2 left-2 text-xs px-2.5 py-1 rounded-full font-medium ${
+                                                        product._promoType ===
+                                                        'pack'
+                                                            ? 'bg-primary text-primary-foreground'
+                                                            : product._promoType ===
+                                                                'discount'
+                                                              ? 'bg-destructive text-destructive-foreground'
+                                                              : 'bg-secondary text-secondary-foreground'
+                                                    }`}
+                                                >
+                                                    {product._promoType ===
+                                                    'pack'
+                                                        ? 'حزمة'
+                                                        : product._promoType ===
+                                                            'discount'
+                                                          ? 'خصم'
+                                                          : 'خصم عند الكمية'}
                                                 </span>
                                             </div>
                                             <CardContent className="p-5 sm:p-6 flex flex-col h-full">
@@ -408,16 +481,21 @@ const Index = () => {
                                                 </p>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-base sm:text-lg font-bold text-primary">
-                                                        {product.has_discount
+                                                        {product._promoType !==
+                                                            'quantity' &&
+                                                        product.has_discount
                                                             ? product.discount_price
                                                             : product.price}{' '}
                                                         د.ج
                                                     </span>
-                                                    {product.has_discount && (
-                                                        <span className="text-xs sm:text-sm line-through text-muted-foreground">
-                                                            {product.price} د.ج
-                                                        </span>
-                                                    )}
+                                                    {product._promoType !==
+                                                        'quantity' &&
+                                                        product.has_discount && (
+                                                            <span className="text-xs sm:text-sm line-through text-muted-foreground">
+                                                                {product.price}{' '}
+                                                                د.ج
+                                                            </span>
+                                                        )}
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -428,15 +506,13 @@ const Index = () => {
 
                         {packProducts.length > 6 && (
                             <div className="text-center mt-8 sm:mt-10">
-                                <Link
-                                    to={`/shop?category=${encodeURIComponent(PACKS_CATEGORY_NAME)}`}
-                                >
+                                <Link to="/shop">
                                     <Button
                                         variant=""
                                         size="lg"
                                         className="text-sm sm:text-base shadow-none border-primary px-6 py-3 min-h-[44px] text-foreground"
                                     >
-                                        عرض جميع الحزم
+                                        عرض المزيد من العروض
                                     </Button>
                                 </Link>
                             </div>

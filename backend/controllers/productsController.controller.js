@@ -445,6 +445,7 @@ export async function searchProduct(req, res) {
     category,
     subcategory,
     hasDiscount,
+    hasQuantityDiscount,
     limit = 20,
     page = 1,
   } = req.query;
@@ -551,6 +552,19 @@ export async function searchProduct(req, res) {
         AND p.discount_end IS NOT NULL
         AND p.discount_start <= NOW() 
         AND p.discount_end >= NOW()
+      )`);
+    }
+
+    // Handle hasQuantityDiscount filter — this is the "buy N+, get % off"
+    // discount (discount_percentage/discount_threshold), which is separate
+    // from the hasDiscount sale-price filter above and only applies at
+    // checkout once the quantity threshold is met.
+    if (hasQuantityDiscount === "true") {
+      whereClauses.push(`(
+        p.discount_percentage IS NOT NULL
+        AND p.discount_percentage > 0
+        AND p.discount_threshold IS NOT NULL
+        AND p.discount_threshold > 0
       )`);
     }
 
@@ -822,12 +836,6 @@ export async function modifyProduct(req, res) {
       final_discount_price = parsedDiscountPrice;
     }
 
-    if (parsedDiscount <= 0 || isNaN(parsedDiscount)) {
-      final_discount_price = null;
-      final_discount_start = null;
-      final_discount_end = null;
-    }
-
     if (initial_price !== undefined && profit !== undefined) {
       price = parseFloat(initial_price) + parseFloat(profit);
     }
@@ -1054,6 +1062,11 @@ export async function addProduct(req, res) {
     validationErrors.push({ field: "profit", message: "هامش الربح مطلوب" });
   if (!category)
     validationErrors.push({ field: "category", message: "الفئة مطلوبة" });
+  if (!subcategory)
+    validationErrors.push({
+      field: "subcategory",
+      message: "الفئة الفرعية مطلوبة",
+    });
 
   // Validate measure_unit
   const parsed_has_measure_unit =
