@@ -20,17 +20,17 @@ import HeroImage from '@/assets/hero.webp';
 const Index = () => {
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    // "عروض وحزم" — packs and flat-discount products together, per client.
+    const [packProducts, setPackProducts] = useState([]);
+    const [packsHasMore, setPacksHasMore] = useState(false);
+    const [isPacksLoading, setIsPacksLoading] = useState(true);
     const [offerProducts, setOfferProducts] = useState([]);
+    const [offersHasMore, setOffersHasMore] = useState(false);
     const [isOffersLoading, setIsOffersLoading] = useState(true);
-    // Separate section — buy-N+-get-%-off quantity discounts.
     const [quantityProducts, setQuantityProducts] = useState([]);
+    const [quantityHasMore, setQuantityHasMore] = useState(false);
     const [isQuantityLoading, setIsQuantityLoading] = useState(true);
     const { api } = useApi();
 
-    // The "Packs" category is a normal category in the categories table —
-    // it's excluded from the فئات المنتجات grid and used to drive its own
-    // section instead. Change this if the category name ever changes.
     const PACKS_CATEGORY_NAME = 'Packs';
 
     const features = [
@@ -164,16 +164,17 @@ const Index = () => {
         fetchCategories();
     }, [api]);
 
-    // "عروض وحزم" merges two independent sets — the "Packs" category and
-    // any product on a flat sale-price discount — and dedupes/tags them so
-    // the card can show the right badge. Quantity-threshold discounts are
-    // a distinct promo type and get their own section entirely, so they're
-    // fetched and deduped separately rather than folded into the same list.
-    // searchProduct only ANDs its filters, so each set is still fetched
-    // independently rather than OR'd server-side.
+    // Three independent promo sections — pack, flat discount, and
+    // quantity-threshold discount — each fetched, deduped, and totaled on
+    // its own. A product can legitimately appear in more than one section
+    // (e.g. a pack that's also on sale) since each fetch/section is
+    // independent by design, per client. searchProduct only ANDs its
+    // filters, so we can't ask the API to OR these three conditions in one
+    // call — hence three separate requests instead of one.
     useEffect(() => {
         const fetchPromoProducts = async () => {
             try {
+                setIsPacksLoading(true);
                 setIsOffersLoading(true);
                 setIsQuantityLoading(true);
 
@@ -203,43 +204,48 @@ const Index = () => {
                         ? quantityData.data || []
                         : [];
 
-                // Merge pack + discount, dedupe by id, tag with why it's
-                // shown. Each type capped at 3 BEFORE merging so the
-                // render's slice(0, 6) can't let one type crowd out the
-                // other when both already reach 6 alone.
-                const PER_TYPE_CAP = 6;
-                const offers = [];
-                const seenOfferIds = new Set();
+                // Real server-side totals, independent of the limit=6 we
+                // requested — the true signal for whether a "view more"
+                // button should show has to come from pagination.total,
+                // not from comparing a capped array against itself.
+                const packTotal =
+                    packCode === 200 && packData
+                        ? (packData.pagination?.total ?? packItems.length)
+                        : 0;
+                const discountTotal =
+                    discountCode === 200 && discountData
+                        ? (discountData.pagination?.total ??
+                          discountItems.length)
+                        : 0;
+                const quantityTotal =
+                    quantityCode === 200 && quantityData
+                        ? (quantityData.pagination?.total ??
+                          quantityItems.length)
+                        : 0;
 
-                const addAll = (items, promoType, target, seen) => {
-                    let added = 0;
-                    for (const product of items) {
-                        if (added >= PER_TYPE_CAP) break;
-                        if (!seen.has(product.id)) {
-                            target.push({ ...product, _promoType: promoType });
-                            seen.add(product.id);
-                            added += 1;
-                        }
-                    }
-                };
+                // Each section dedupes only against itself — the three
+                // sections are independent, so no cross-section id
+                // tracking is needed anymore.
+                const tagAll = (items, promoType) =>
+                    items.map(product => ({ ...product, _promoType: promoType }));
 
-                addAll(packItems, 'pack', offers, seenOfferIds);
-                addAll(discountItems, 'discount', offers, seenOfferIds);
+                const packs = tagAll(packItems, 'pack');
+                const offers = tagAll(discountItems, 'discount');
+                const quantity = tagAll(quantityItems, 'quantity');
 
-                // Quantity discounts: independent dedupe, own list — a
-                // product with BOTH a pack/discount tag and a quantity
-                // discount can legitimately appear in both sections.
-                const quantity = [];
-                const seenQuantityIds = new Set();
-                addAll(quantityItems, 'quantity', quantity, seenQuantityIds);
-
+                setPackProducts(packs);
+                setPacksHasMore(packTotal > packs.length);
                 setOfferProducts(offers);
+                setOffersHasMore(discountTotal > offers.length);
                 setQuantityProducts(quantity);
+                setQuantityHasMore(quantityTotal > quantity.length);
             } catch (err) {
                 console.error('Error fetching pack/discount products:', err);
+                setPackProducts([]);
                 setOfferProducts([]);
                 setQuantityProducts([]);
             } finally {
+                setIsPacksLoading(false);
                 setIsOffersLoading(false);
                 setIsQuantityLoading(false);
             }
@@ -255,6 +261,7 @@ const Index = () => {
         subtitle,
         isLoading,
         products,
+        hasMore,
         className = 'bg-card/40',
     }) => (
         <section
@@ -358,7 +365,7 @@ const Index = () => {
                     </div>
                 )}
 
-                {products.length > 6 && (
+                {hasMore && (
                     <div className="text-center mt-8 sm:mt-10">
                         <Link to="/shop">
                             <Button
@@ -528,17 +535,26 @@ const Index = () => {
                 </div>
             </section>
 
-            {/* عروض وحزم — packs + flat-discount products. Only renders
-                when items actually exist; stays invisible (no empty-state
-                message, no error toast) if the feature isn't seeded yet,
-                so the homepage never looks broken. */}
-            {(isOffersLoading || offerProducts.length > 0) &&
+            {/* حزم — pack-category products, standalone section. */}
+            {(isPacksLoading || packProducts.length > 0) &&
                 renderPromoSection({
-                    title: 'عروض وحزم',
+                    title: ' (Packs)حزم',
                     subtitle:
                         'مجموعات منتجات مختارة بأسعار مميزة، كل ما تحتاجه في حزمة واحدة',
+                    isLoading: isPacksLoading,
+                    products: packProducts,
+                    hasMore: packsHasMore,
+                })}
+
+            {/* عروض — flat sale-price discounts, standalone section. */}
+            {(isOffersLoading || offerProducts.length > 0) &&
+                renderPromoSection({
+                    title: 'عروض',
+                    subtitle: 'منتجات مختارة بأسعار مخفضة لفترة محدودة',
                     isLoading: isOffersLoading,
                     products: offerProducts,
+                    hasMore: offersHasMore,
+                    className: 'bg-background',
                 })}
 
             {/* خصم عند الكمية — quantity-threshold discounts, kept as its
@@ -546,11 +562,12 @@ const Index = () => {
                 flat sale price or a bundle. */}
             {(isQuantityLoading || quantityProducts.length > 0) &&
                 renderPromoSection({
-                    title: 'خصم عند الكمية',
+                    title: 'خصم عند شراء اكثر من كمية محددة',
                     subtitle: 'كلما زادت الكمية، انخفض السعر لكل قطعة',
                     isLoading: isQuantityLoading,
                     products: quantityProducts,
-                    className: 'bg-background',
+                    hasMore: quantityHasMore,
+                    className: 'bg-card/40',
                 })}
 
             {/* Why Us */}
