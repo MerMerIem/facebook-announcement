@@ -325,7 +325,7 @@ const Index = () => {
                                             }`}
                                         >
                                             {product._promoType === 'pack'
-                                                ? 'حزمة'
+                                                ? 'حزمة (Pack)'
                                                 : product._promoType ===
                                                     'discount'
                                                   ? 'خصم'
