@@ -34,7 +34,14 @@ const Filters = ({
             ? [...activeFilters.categories, categoryId]
             : activeFilters.categories.filter(id => id !== categoryId);
 
-        onFiltersChange({ ...activeFilters, categories: newCategories });
+        onFiltersChange({
+            ...activeFilters,
+            categories: newCategories,
+            // Picking a regular category and the Packs filter are mutually
+            // exclusive, since Packs is filtered the same way (by category)
+            // behind the scenes.
+            hasPacks: checked ? false : activeFilters.hasPacks,
+        });
     };
 
     const handleSubcategoryChange = (subcategoryId, checked) => {
@@ -65,6 +72,16 @@ const Filters = ({
         onFiltersChange({ ...activeFilters, hasQuantityDiscount: checked });
     };
 
+    const handlePacksChange = checked => {
+        onFiltersChange({
+            ...activeFilters,
+            hasPacks: checked,
+            // Clear any selected regular category, since Packs is its own
+            // category filtered separately.
+            categories: checked ? [] : activeFilters.categories,
+        });
+    };
+
     const clearAllFilters = () => {
         onFiltersChange({
             categories: [],
@@ -73,6 +90,7 @@ const Filters = ({
             priceRange: options.priceRange,
             hasDiscount: false,
             hasQuantityDiscount: false,
+            hasPacks: false,
         });
     };
 
@@ -82,7 +100,8 @@ const Filters = ({
             activeFilters.subcategories.length +
             activeFilters.tags.length +
             (activeFilters.hasDiscount ? 1 : 0) +
-            (activeFilters.hasQuantityDiscount ? 1 : 0)
+            (activeFilters.hasQuantityDiscount ? 1 : 0) +
+            (activeFilters.hasPacks ? 1 : 0)
         );
     };
 
@@ -337,6 +356,20 @@ const Filters = ({
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                             >
                                 خصم عند شراء كمية أكبر
+                            </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                className="bg-muted data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-white [&_svg]:stroke-3"
+                                id="has-packs"
+                                checked={activeFilters.hasPacks || false}
+                                onCheckedChange={handlePacksChange}
+                            />
+                            <label
+                                htmlFor="has-packs"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                                الحزم (Packs)
                             </label>
                         </div>
                     </CollapsibleContent>

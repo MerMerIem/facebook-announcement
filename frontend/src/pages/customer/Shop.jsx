@@ -9,6 +9,11 @@ import Pagination from '@/components/customer/shop/Pagination';
 import { useApi } from '@/contexts/RestContext';
 import { useToast } from '@/hooks/use-toast';
 
+// Kept in sync with the "Packs" category created on the backend. It's
+// excluded from the regular categories list (same as on the home page)
+// and surfaced instead as its own checkbox next to the Offers filters.
+const PACKS_CATEGORY_NAME = 'Packs';
+
 const Shop = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
@@ -44,13 +49,19 @@ const Shop = () => {
     const hasQuantityDiscountFilter =
         searchParams.get('hasQuantityDiscount') === 'true';
 
+    const hasPacksFilter = categoryFilter === PACKS_CATEGORY_NAME;
+
     const [filters, setFilters] = useState({
-        categories: categoryFilter ? [parseInt(categoryFilter)] : [],
+        categories:
+            categoryFilter && !hasPacksFilter
+                ? [parseInt(categoryFilter)]
+                : [],
         subcategories: [],
         tags: [],
         priceRange: [0, 50000],
         hasDiscount: hasDiscountFilter,
         hasQuantityDiscount: hasQuantityDiscountFilter,
+        hasPacks: hasPacksFilter,
     });
 
     // Fetch filter options from API
@@ -86,15 +97,16 @@ const Shop = () => {
                 priceRange: [0, 50000],
             };
 
-            // Process categories
+            // Process categories — exclude "Packs", which gets its own
+            // checkbox alongside the Offers filters instead.
             if (categoriesCode === 200 && categoriesData?.success) {
-                newFilterOptions.categories = categoriesData.categories.map(
-                    cat => ({
+                newFilterOptions.categories = categoriesData.categories
+                    .filter(cat => cat.name !== PACKS_CATEGORY_NAME)
+                    .map(cat => ({
                         id: cat.id,
                         name: cat.name,
                         count: cat.subcategory_count || 0,
-                    })
-                );
+                    }));
             } else {
                 console.error('Failed to fetch categories:', categoriesError);
             }
@@ -141,7 +153,13 @@ const Shop = () => {
 
     // Update filters when URL category changes
     useEffect(() => {
-        if (categoryFilter) {
+        if (categoryFilter === PACKS_CATEGORY_NAME) {
+            setFilters(prev => ({
+                ...prev,
+                categories: [],
+                hasPacks: true,
+            }));
+        } else if (categoryFilter) {
             // If categoryFilter is a name (string), find the corresponding ID for filters
             let categoryId;
             if (isNaN(categoryFilter)) {
@@ -157,12 +175,14 @@ const Shop = () => {
                 setFilters(prev => ({
                     ...prev,
                     categories: [categoryId],
+                    hasPacks: false,
                 }));
             }
         } else {
             setFilters(prev => ({
                 ...prev,
                 categories: [],
+                hasPacks: false,
             }));
         }
     }, [categoryFilter, filterOptions.categories]);
@@ -218,7 +238,9 @@ const Shop = () => {
             }
 
             // Add category filter - send category NAME instead of ID
-            if (categoryFilter) {
+            if (filters.hasPacks) {
+                queryParams.set('category', PACKS_CATEGORY_NAME);
+            } else if (categoryFilter) {
                 // If categoryFilter is already a name (string), use it directly
                 if (isNaN(categoryFilter)) {
                     queryParams.set('category', categoryFilter);
@@ -371,8 +393,13 @@ const Shop = () => {
         // Update URL parameters when filters change
         const params = new URLSearchParams(searchParams);
 
-        // Update category in URL if it changed
-        if (
+        // Update category in URL if it changed. The Packs checkbox reuses
+        // the same "category" URL param (by name) as the regular category
+        // checkboxes (by id), since it's really just filtering on the
+        // "Packs" category behind the scenes.
+        if (newFilters.hasPacks) {
+            params.set('category', PACKS_CATEGORY_NAME);
+        } else if (
             newFilters.categories.length > 0 &&
             newFilters.categories[0] !== parseInt(categoryFilter)
         ) {
@@ -408,6 +435,7 @@ const Shop = () => {
             priceRange: [0, 50000],
             hasDiscount: false,
             hasQuantityDiscount: false,
+            hasPacks: false,
         });
 
         // Clear URL parameters
