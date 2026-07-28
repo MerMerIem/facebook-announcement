@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Eye, Timer, Plus, Tag } from 'lucide-react';
+import {
+    ShoppingCart,
+    Eye,
+    Timer,
+    Plus,
+    Tag,
+    Package,
+    Layers,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +31,10 @@ const ProductCard = ({ product }) => {
     const discountPrice = parseFloat(product.discount_price || '0');
     const currentPrice =
         hasDiscount && discountPrice > 0 ? discountPrice : originalPrice;
+
+    // Indicator flags: is this a pack, and does it have threshold pricing
+    const isPack = product.category?.name === 'Packs';
+    const hasThreshold = Boolean(product.discount_threshold);
 
     // Fetch special pricing for quantity 2+ when component mounts
     useEffect(() => {
@@ -143,6 +155,22 @@ const ProductCard = ({ product }) => {
 
                     {/* Badges Container */}
                     <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
+                        {/* Pack Indicator */}
+                        {isPack && (
+                            <Badge className="bg-primary text-primary-foreground text-xs rounded-none flex items-center gap-1">
+                                <Layers className="h-3 w-3" />
+                                حزمة
+                            </Badge>
+                        )}
+
+                        {/* Threshold Discount Indicator */}
+                        {hasThreshold && (
+                            <Badge className="bg-green-600 text-white text-xs rounded-none flex items-center gap-1">
+                                <Tag className="h-3 w-3" />
+                                خصم من {product.discount_threshold} قطع
+                            </Badge>
+                        )}
+
                         {/* Discount Badge */}
                         {hasDiscount && (
                             <Badge className="gradient-discount text-white text-xs">
@@ -279,6 +307,18 @@ const ProductCard = ({ product }) => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Threshold Discount Hint */}
+                                {hasThreshold && (
+                                    <div className="flex items-center gap-1 text-xs text-green-700">
+                                        <Tag className="h-3 w-3" />
+                                        <span>
+                                            خصم عند شراء{' '}
+                                            {product.discount_threshold} قطع أو
+                                            أكثر
+                                        </span>
+                                    </div>
+                                )}
 
                                 {/* Special Pricing Offer */}
                                 {specialPricing && !loadingPricing && (

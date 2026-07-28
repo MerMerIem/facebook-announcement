@@ -6,20 +6,23 @@ dotenv.config();
 const db = mysql2.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
-    port: process.env.DB_PORT || '3306',
+    port: process.env.DB_PORT || '3307',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'quincaillerie_sekkar',
     charset: 'utf8mb4', // THIS IS CRUCIAL
-    connectionLimit: 10
+    connectionLimit: 10,
 });
 
 db.getConnection((err, connection) => {
     if (err) {
-      console.error('Error connecting to the MySQL database:', err.message);
-      return;
+        console.error('Error connecting to the MySQL database:', err.message);
+        return;
     }
-    console.log('Connected to the MySQL database successfully!',process.env.DB_NAME);
+    console.log(
+        'Connected to the MySQL database successfully!',
+        process.env.DB_NAME
+    );
     connection.release();
 });
-  
+
 export default db.promise();

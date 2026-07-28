@@ -16,6 +16,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/customer/layout/Header';
 import { useApi } from '@/contexts/RestContext';
 import { toast } from 'sonner';
+import SalesProductCard from '@/components/SalesProductCard';
+import PackProductCard from '@/components/PackProductCard';
+
 import HeroImage from '@/assets/hero.webp';
 const Index = () => {
     const [categories, setCategories] = useState([]);
@@ -227,7 +230,10 @@ const Index = () => {
                 // sections are independent, so no cross-section id
                 // tracking is needed anymore.
                 const tagAll = (items, promoType) =>
-                    items.map(product => ({ ...product, _promoType: promoType }));
+                    items.map(product => ({
+                        ...product,
+                        _promoType: promoType,
+                    }));
 
                 const packs = tagAll(packItems, 'pack');
                 const offers = tagAll(discountItems, 'discount');
@@ -533,8 +539,8 @@ const Index = () => {
                                 <span className="absolute bottom-0 right-1/2 translate-x-1/2 w-16 h-1 rounded-full bg-primary" />
                             </h2>
                             <p className="text-sm sm:text-base mt-3 max-w-xl mx-auto text-muted-foreground">
-                                مجموعات منتجات مختارة بأسعار مميزة، كل ما
-                                تحتاجه في حزمة واحدة
+                                مجموعات منتجات مختارة بأسعار مميزة، كل ما تحتاجه
+                                في حزمة واحدة
                             </p>
                         </div>
 
@@ -557,63 +563,10 @@ const Index = () => {
                         ) : (
                             <div className="space-y-4 max-w-5xl mx-auto">
                                 {packProducts.map(product => (
-                                    <Link
+                                    <PackProductCard
                                         key={product.id}
-                                        to={`/product/${product.id}`}
-                                        className="flex flex-col sm:flex-row items-stretch rounded-md border border-border bg-card overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
-                                    >
-                                        {/* Ribbon */}
-                                        <div className="flex sm:flex-col items-center justify-center gap-1 bg-primary text-primary-foreground px-4 py-3 sm:py-6 sm:w-24 flex-shrink-0 text-center">
-                                            <Package className="h-5 w-5" />
-                                            <span className="text-xs font-semibold leading-tight">
-                                                حزمة
-                                                <br className="hidden sm:block" />{' '}
-                                                (Pack)
-                                            </span>
-                                        </div>
-
-                                        {/* Image */}
-                                        <div className="w-full sm:w-40 h-40 sm:h-auto bg-muted flex items-center justify-center p-3 flex-shrink-0">
-                                            {product.main_image_url ? (
-                                                <img
-                                                    src={
-                                                        product.main_image_url
-                                                    }
-                                                    alt={product.name}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            ) : (
-                                                <Package className="h-10 w-10 text-muted-foreground" />
-                                            )}
-                                        </div>
-
-                                        {/* Title + description */}
-                                        <div className="flex-1 p-4 sm:p-5 min-w-0 flex flex-col justify-center">
-                                            <h3 className="text-base sm:text-lg font-semibold mb-1 text-foreground">
-                                                {product.name}
-                                            </h3>
-                                            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-                                                {stripHtmlToText(
-                                                    product.description
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        {/* Price + CTA */}
-                                        <div className="flex sm:flex-col items-center justify-center gap-3 p-4 sm:p-5 border-t sm:border-t-0 sm:border-r border-border flex-shrink-0">
-                                            <div className="text-center">
-                                                <p className="text-xs text-muted-foreground mb-1">
-                                                    السعر
-                                                </p>
-                                                <p className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap">
-                                                    {product.price} د.ج
-                                                </p>
-                                            </div>
-                                            <Button className="bg-primary text-primary-foreground hover:opacity-90 whitespace-nowrap">
-                                                عرض الحزمة
-                                            </Button>
-                                        </div>
-                                    </Link>
+                                        product={product}
+                                    />
                                 ))}
                             </div>
                         )}
@@ -684,59 +637,13 @@ const Index = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-6 max-w-6xl mx-auto">
                                 {quantityProducts.slice(0, 6).map(product => (
-                                    <Link
+                                    <SalesProductCard
                                         key={product.id}
-                                        to={`/product/${product.id}`}
-                                        className="relative block rounded-md border border-border bg-card overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
-                                    >
-                                        {/* Corner ribbon: required quantity */}
-                                        <div className="absolute top-0 right-0 z-10 bg-secondary text-secondary-foreground text-center px-3 py-2 rounded-bl-md leading-tight">
-                                            <p className="text-[10px]">
-                                                خصم عند شراء أكثر من
-                                            </p>
-                                            <p className="text-xl font-bold">
-                                                {product.discount_threshold}
-                                            </p>
-                                            <p className="text-[10px]">
-                                                قطعة
-                                            </p>
-                                        </div>
-
-                                        <div className="h-40 sm:h-44 bg-muted flex items-center justify-center p-3">
-                                            {product.main_image_url ? (
-                                                <img
-                                                    src={
-                                                        product.main_image_url
-                                                    }
-                                                    alt={product.name}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            ) : (
-                                                <Package className="h-10 w-10 text-muted-foreground" />
-                                            )}
-                                        </div>
-
-                                        <div className="p-5 sm:p-6">
-                                            <h3 className="text-base sm:text-lg font-semibold mb-2 leading-tight text-foreground">
-                                                {product.name}
-                                            </h3>
-                                            <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground line-clamp-2 mb-3">
-                                                {stripHtmlToText(
-                                                    product.description
-                                                )}
-                                            </p>
-                                            <div className="flex items-center justify-between border-t border-border pt-3">
-                                                <span className="text-xs sm:text-sm text-muted-foreground">
-                                                    السعر لكل قطعة
-                                                </span>
-                                                <span className="text-base sm:text-lg font-bold text-primary">
-                                                    {product.price} د.ج
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </Link>
+                                        product={product}
+                                        stripHtmlToText={stripHtmlToText}
+                                    />
                                 ))}
                             </div>
                         )}
