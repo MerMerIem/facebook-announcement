@@ -20,8 +20,12 @@ import HeroImage from '@/assets/hero.webp';
 const Index = () => {
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [packProducts, setPackProducts] = useState([]);
-    const [isPacksLoading, setIsPacksLoading] = useState(true);
+    // "عروض وحزم" — packs and flat-discount products together, per client.
+    const [offerProducts, setOfferProducts] = useState([]);
+    const [isOffersLoading, setIsOffersLoading] = useState(true);
+    // Separate section — buy-N+-get-%-off quantity discounts.
+    const [quantityProducts, setQuantityProducts] = useState([]);
+    const [isQuantityLoading, setIsQuantityLoading] = useState(true);
     const { api } = useApi();
 
     // The "Packs" category is a normal category in the categories table —
@@ -160,17 +164,18 @@ const Index = () => {
         fetchCategories();
     }, [api]);
 
-    // "Packs" isn't a separate feature — it's just the products that live
-    // under the "Packs" category, plus (per client request) any product
-    // currently on a sale-price discount, plus any product with a
-    // buy-N+-get-%-off quantity discount. searchProduct only ANDs its
-    // filters together, so we fetch the three sets separately and merge
-    // them here instead of trying to OR them server-side. Each product is
-    // tagged with _promoType so the card can show the right badge.
+    // "عروض وحزم" merges two independent sets — the "Packs" category and
+    // any product on a flat sale-price discount — and dedupes/tags them so
+    // the card can show the right badge. Quantity-threshold discounts are
+    // a distinct promo type and get their own section entirely, so they're
+    // fetched and deduped separately rather than folded into the same list.
+    // searchProduct only ANDs its filters, so each set is still fetched
+    // independently rather than OR'd server-side.
     useEffect(() => {
         const fetchPromoProducts = async () => {
             try {
-                setIsPacksLoading(true);
+                setIsOffersLoading(true);
+                setIsQuantityLoading(true);
 
                 const [packResult, discountResult, quantityResult] =
                     await Promise.all([
@@ -198,48 +203,177 @@ const Index = () => {
                         ? quantityData.data || []
                         : [];
 
-                // Merge and dedupe by id, tagging each product with why it's
-                // shown (pack / discount / quantity). Each type is capped
-                // at 2 BEFORE merging — otherwise the final render's
-                // slice(0, 6) would let the first type(s) crowd out the
-                // rest whenever pack+discount alone already reach 6.
-                const PER_TYPE_CAP = 2;
-                const merged = [];
-                const seenIds = new Set();
+                // Merge pack + discount, dedupe by id, tag with why it's
+                // shown. Each type capped at 3 BEFORE merging so the
+                // render's slice(0, 6) can't let one type crowd out the
+                // other when both already reach 6 alone.
+                const PER_TYPE_CAP = 6;
+                const offers = [];
+                const seenOfferIds = new Set();
 
-                const addAll = (items, promoType) => {
+                const addAll = (items, promoType, target, seen) => {
                     let added = 0;
                     for (const product of items) {
                         if (added >= PER_TYPE_CAP) break;
-                        if (!seenIds.has(product.id)) {
-                            merged.push({ ...product, _promoType: promoType });
-                            seenIds.add(product.id);
+                        if (!seen.has(product.id)) {
+                            target.push({ ...product, _promoType: promoType });
+                            seen.add(product.id);
                             added += 1;
                         }
                     }
                 };
 
-                addAll(packItems, 'pack');
-                addAll(discountItems, 'discount');
-                addAll(quantityItems, 'quantity');
+                addAll(packItems, 'pack', offers, seenOfferIds);
+                addAll(discountItems, 'discount', offers, seenOfferIds);
 
-                // TEMPORARY DEBUG LOG — remove once the issue is found
-                console.log('packItems:', packItems.length, packItems.map(p => p.id));
-                console.log('discountItems:', discountItems.length, discountItems.map(p => p.id));
-                console.log('quantityItems:', quantityItems.length, quantityItems.map(p => p.id));
-                console.log('merged:', merged.length, merged.map(p => ({ id: p.id, type: p._promoType })));
+                // Quantity discounts: independent dedupe, own list — a
+                // product with BOTH a pack/discount tag and a quantity
+                // discount can legitimately appear in both sections.
+                const quantity = [];
+                const seenQuantityIds = new Set();
+                addAll(quantityItems, 'quantity', quantity, seenQuantityIds);
 
-                setPackProducts(merged);
+                setOfferProducts(offers);
+                setQuantityProducts(quantity);
             } catch (err) {
                 console.error('Error fetching pack/discount products:', err);
-                setPackProducts([]);
+                setOfferProducts([]);
+                setQuantityProducts([]);
             } finally {
-                setIsPacksLoading(false);
+                setIsOffersLoading(false);
+                setIsQuantityLoading(false);
             }
         };
 
         fetchPromoProducts();
     }, [api]);
+
+    // Shared card-grid renderer for the promo sections below — same layout,
+    // skeleton, and "view more" affordance, different data/title/subtitle.
+    const renderPromoSection = ({
+        title,
+        subtitle,
+        isLoading,
+        products,
+        className = 'bg-card/40',
+    }) => (
+        <section
+            className={`py-10 sm:py-14 md:py-20 px-3 sm:px-4 ${className}`}
+        >
+            <div className="container mx-auto">
+                <div className="text-center mb-8 sm:mb-12">
+                    <h2 className="text-xl xs:text-2xl sm:text-3xl font-bold inline-block relative pb-3 text-foreground">
+                        {title}
+                        <span className="absolute bottom-0 right-1/2 translate-x-1/2 w-16 h-1 rounded-full bg-primary" />
+                    </h2>
+                    <p className="text-sm sm:text-base mt-3 max-w-xl mx-auto text-muted-foreground">
+                        {subtitle}
+                    </p>
+                </div>
+
+                {isLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+                        {[1, 2, 3].map(item => (
+                            <Card
+                                key={item}
+                                className="overflow-hidden animate-pulse border-0 bg-card"
+                            >
+                                <div className="h-40 sm:h-44 bg-muted" />
+                                <CardContent className="p-5 sm:p-6">
+                                    <div className="h-5 sm:h-6 rounded mb-3 w-2/3 bg-muted" />
+                                    <div className="h-3 sm:h-4 rounded bg-muted" />
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+                        {products.slice(0, 6).map(product => (
+                            <Link
+                                key={product.id}
+                                to={`/product/${product.id}`}
+                                className="block"
+                            >
+                                <Card className="cursor-pointer rounded-md overflow-hidden transition-all duration-300 hover:-translate-y-1 border border-border h-full bg-card">
+                                    <div className="relative h-40 sm:h-44 bg-muted overflow-hidden flex items-center justify-center p-3">
+                                        {product.main_image_url ? (
+                                            <img
+                                                src={product.main_image_url}
+                                                alt={product.name}
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Package className="h-10 w-10 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                        <span
+                                            className={`absolute top-2 left-2 text-xs px-2.5 py-1 rounded-full font-medium ${
+                                                product._promoType === 'pack'
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : product._promoType ===
+                                                        'discount'
+                                                      ? 'bg-destructive text-destructive-foreground'
+                                                      : 'bg-secondary text-secondary-foreground'
+                                            }`}
+                                        >
+                                            {product._promoType === 'pack'
+                                                ? 'حزمة'
+                                                : product._promoType ===
+                                                    'discount'
+                                                  ? 'خصم'
+                                                  : `خصم عند شراء أكثر من ${product.discount_threshold}`}
+                                        </span>
+                                    </div>
+                                    <CardContent className="p-5 sm:p-6 flex flex-col h-full">
+                                        <h3 className="text-base sm:text-lg font-semibold mb-2 leading-tight text-foreground">
+                                            {product.name}
+                                        </h3>
+                                        <p className="text-xs sm:text-sm leading-relaxed flex-grow mb-3 text-muted-foreground line-clamp-2">
+                                            {stripHtmlToText(
+                                                product.description
+                                            )}
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-base sm:text-lg font-bold text-primary">
+                                                {product._promoType !==
+                                                    'quantity' &&
+                                                product.has_discount
+                                                    ? product.discount_price
+                                                    : product.price}{' '}
+                                                د.ج
+                                            </span>
+                                            {product._promoType !==
+                                                'quantity' &&
+                                                product.has_discount && (
+                                                    <span className="text-xs sm:text-sm line-through text-muted-foreground">
+                                                        {product.price} د.ج
+                                                    </span>
+                                                )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+
+                {products.length > 6 && (
+                    <div className="text-center mt-8 sm:mt-10">
+                        <Link to="/shop">
+                            <Button
+                                variant=""
+                                size="lg"
+                                className="text-sm sm:text-base shadow-none border-primary px-6 py-3 min-h-[44px] text-foreground"
+                            >
+                                عرض المزيد من العروض
+                            </Button>
+                        </Link>
+                    </div>
+                )}
+            </div>
+        </section>
+    );
 
     return (
         <div className="min-h-screen bg-background">
@@ -394,132 +528,30 @@ const Index = () => {
                 </div>
             </section>
 
-            {/* Packs / Bundles — a separate section from categories above.
-                Only renders cards when packs actually exist; stays invisible
-                (no empty-state message, no error toast) if the feature isn't
-                seeded yet, so the homepage never looks broken. */}
-            {(isPacksLoading || packProducts.length > 0) && (
-                <section className="py-10 sm:py-14 md:py-20 px-3 sm:px-4 bg-card/40">
-                    <div className="container mx-auto">
-                        <div className="text-center mb-8 sm:mb-12">
-                            <h2 className="text-xl xs:text-2xl sm:text-3xl font-bold inline-block relative pb-3 text-foreground">
-                                عروض وحزم
-                                <span className="absolute bottom-0 right-1/2 translate-x-1/2 w-16 h-1 rounded-full bg-primary" />
-                            </h2>
-                            <p className="text-sm sm:text-base mt-3 max-w-xl mx-auto text-muted-foreground">
-                                مجموعات منتجات مختارة بأسعار مميزة، كل ما
-                                تحتاجه في حزمة واحدة
-                            </p>
-                        </div>
+            {/* عروض وحزم — packs + flat-discount products. Only renders
+                when items actually exist; stays invisible (no empty-state
+                message, no error toast) if the feature isn't seeded yet,
+                so the homepage never looks broken. */}
+            {(isOffersLoading || offerProducts.length > 0) &&
+                renderPromoSection({
+                    title: 'عروض وحزم',
+                    subtitle:
+                        'مجموعات منتجات مختارة بأسعار مميزة، كل ما تحتاجه في حزمة واحدة',
+                    isLoading: isOffersLoading,
+                    products: offerProducts,
+                })}
 
-                        {isPacksLoading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
-                                {[1, 2, 3].map(item => (
-                                    <Card
-                                        key={item}
-                                        className="overflow-hidden animate-pulse border-0 bg-card"
-                                    >
-                                        <div className="h-40 sm:h-44 bg-muted" />
-                                        <CardContent className="p-5 sm:p-6">
-                                            <div className="h-5 sm:h-6 rounded mb-3 w-2/3 bg-muted" />
-                                            <div className="h-3 sm:h-4 rounded bg-muted" />
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
-                                {packProducts.slice(0, 6).map(product => (
-                                    <Link
-                                        key={product.id}
-                                        to={`/product/${product.id}`}
-                                        className="block"
-                                    >
-                                        <Card className="cursor-pointer rounded-md overflow-hidden transition-all duration-300 hover:-translate-y-1 border border-border h-full bg-card">
-                                            <div className="relative h-40 sm:h-44 bg-muted overflow-hidden flex items-center justify-center p-3">
-                                                {product.main_image_url ? (
-                                                    <img
-                                                        src={
-                                                            product.main_image_url
-                                                        }
-                                                        alt={product.name}
-                                                        className="w-full h-full object-contain"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Package className="h-10 w-10 text-muted-foreground" />
-                                                    </div>
-                                                )}
-                                                <span
-                                                    className={`absolute top-2 left-2 text-xs px-2.5 py-1 rounded-full font-medium ${
-                                                        product._promoType ===
-                                                        'pack'
-                                                            ? 'bg-primary text-primary-foreground'
-                                                            : product._promoType ===
-                                                                'discount'
-                                                              ? 'bg-destructive text-destructive-foreground'
-                                                              : 'bg-secondary text-secondary-foreground'
-                                                    }`}
-                                                >
-                                                    {product._promoType ===
-                                                    'pack'
-                                                        ? 'حزمة'
-                                                        : product._promoType ===
-                                                            'discount'
-                                                          ? 'خصم'
-                                                          : 'خصم عند الكمية'}
-                                                </span>
-                                            </div>
-                                            <CardContent className="p-5 sm:p-6 flex flex-col h-full">
-                                                <h3 className="text-base sm:text-lg font-semibold mb-2 leading-tight text-foreground">
-                                                    {product.name}
-                                                </h3>
-                                                <p className="text-xs sm:text-sm leading-relaxed flex-grow mb-3 text-muted-foreground line-clamp-2">
-                                                    {stripHtmlToText(
-                                                        product.description
-                                                    )}
-                                                </p>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-base sm:text-lg font-bold text-primary">
-                                                        {product._promoType !==
-                                                            'quantity' &&
-                                                        product.has_discount
-                                                            ? product.discount_price
-                                                            : product.price}{' '}
-                                                        د.ج
-                                                    </span>
-                                                    {product._promoType !==
-                                                        'quantity' &&
-                                                        product.has_discount && (
-                                                            <span className="text-xs sm:text-sm line-through text-muted-foreground">
-                                                                {product.price}{' '}
-                                                                د.ج
-                                                            </span>
-                                                        )}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-
-                        {packProducts.length > 6 && (
-                            <div className="text-center mt-8 sm:mt-10">
-                                <Link to="/shop">
-                                    <Button
-                                        variant=""
-                                        size="lg"
-                                        className="text-sm sm:text-base shadow-none border-primary px-6 py-3 min-h-[44px] text-foreground"
-                                    >
-                                        عرض المزيد من العروض
-                                    </Button>
-                                </Link>
-                            </div>
-                        )}
-                    </div>
-                </section>
-            )}
+            {/* خصم عند الكمية — quantity-threshold discounts, kept as its
+                own section since it's a distinct promo mechanic from a
+                flat sale price or a bundle. */}
+            {(isQuantityLoading || quantityProducts.length > 0) &&
+                renderPromoSection({
+                    title: 'خصم عند الكمية',
+                    subtitle: 'كلما زادت الكمية، انخفض السعر لكل قطعة',
+                    isLoading: isQuantityLoading,
+                    products: quantityProducts,
+                    className: 'bg-background',
+                })}
 
             {/* Why Us */}
             <section className="px-3 sm:px-4 pb-10 sm:pb-14 md:pb-20">
