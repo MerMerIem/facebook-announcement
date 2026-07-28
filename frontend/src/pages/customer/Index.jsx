@@ -254,8 +254,10 @@ const Index = () => {
         fetchPromoProducts();
     }, [api]);
 
-    // Shared card-grid renderer for the promo sections below — same layout,
-    // skeleton, and "view more" affordance, different data/title/subtitle.
+    // Shared card-grid renderer for the plain "offers" (flat discount)
+    // section below — same layout, skeleton, and "view more" affordance.
+    // The Packs and Quantity-discount sections now use their own
+    // dedicated layouts (see below) to match the reference design.
     const renderPromoSection = ({
         title,
         subtitle,
@@ -315,22 +317,8 @@ const Index = () => {
                                                 <Package className="h-10 w-10 text-muted-foreground" />
                                             </div>
                                         )}
-                                        <span
-                                            className={`absolute top-2 left-2 text-xs px-2.5 py-1 rounded-full font-medium ${
-                                                product._promoType === 'pack'
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : product._promoType ===
-                                                        'discount'
-                                                      ? 'bg-destructive text-destructive-foreground'
-                                                      : 'bg-secondary text-secondary-foreground'
-                                            }`}
-                                        >
-                                            {product._promoType === 'pack'
-                                                ? 'حزمة (Pack)'
-                                                : product._promoType ===
-                                                    'discount'
-                                                  ? 'خصم'
-                                                  : `خصم عند شراء أكثر من ${product.discount_threshold}`}
+                                        <span className="absolute top-2 left-2 text-xs px-2.5 py-1 rounded-full font-medium bg-destructive text-destructive-foreground">
+                                            خصم
                                         </span>
                                     </div>
                                     <CardContent className="p-5 sm:p-6 flex flex-col h-full">
@@ -344,20 +332,16 @@ const Index = () => {
                                         </p>
                                         <div className="flex items-center gap-2">
                                             <span className="text-base sm:text-lg font-bold text-primary">
-                                                {product._promoType !==
-                                                    'quantity' &&
-                                                product.has_discount
+                                                {product.has_discount
                                                     ? product.discount_price
                                                     : product.price}{' '}
                                                 د.ج
                                             </span>
-                                            {product._promoType !==
-                                                'quantity' &&
-                                                product.has_discount && (
-                                                    <span className="text-xs sm:text-sm line-through text-muted-foreground">
-                                                        {product.price} د.ج
-                                                    </span>
-                                                )}
+                                            {product.has_discount && (
+                                                <span className="text-xs sm:text-sm line-through text-muted-foreground">
+                                                    {product.price} د.ج
+                                                </span>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -536,22 +520,126 @@ const Index = () => {
                 </div>
             </section>
 
-            {/* حزم — pack-category products, standalone section. "View more"
-                goes to the shop pre-filtered to just the Packs category, so
-                the visitor lands on packs alone, not the mixed catalog. */}
-            {(isPacksLoading || packProducts.length > 0) &&
-                renderPromoSection({
-                    title: ' (Packs)حزم',
-                    subtitle:
-                        'مجموعات منتجات مختارة بأسعار مميزة، كل ما تحتاجه في حزمة واحدة',
-                    isLoading: isPacksLoading,
-                    products: packProducts,
-                    hasMore: packsHasMore,
-                    viewMoreLink: `/shop?category=${encodeURIComponent(PACKS_CATEGORY_NAME)}`,
-                })}
+            {/* حزم (Packs) — dedicated horizontal "list row" layout matching
+                the reference design: ribbon + image + title/description on
+                one side, price + CTA button on the other. No extra feature
+                icon row here (kept intentionally minimal per design). */}
+            {(isPacksLoading || packProducts.length > 0) && (
+                <section className="py-10 sm:py-14 md:py-20 px-3 sm:px-4 bg-card/40">
+                    <div className="container mx-auto">
+                        <div className="text-center mb-8 sm:mb-12">
+                            <h2 className="text-xl xs:text-2xl sm:text-3xl font-bold inline-block relative pb-3 text-foreground">
+                                حزم (Packs)
+                                <span className="absolute bottom-0 right-1/2 translate-x-1/2 w-16 h-1 rounded-full bg-primary" />
+                            </h2>
+                            <p className="text-sm sm:text-base mt-3 max-w-xl mx-auto text-muted-foreground">
+                                مجموعات منتجات مختارة بأسعار مميزة، كل ما
+                                تحتاجه في حزمة واحدة
+                            </p>
+                        </div>
+
+                        {isPacksLoading ? (
+                            <div className="space-y-4 max-w-5xl mx-auto">
+                                {[1, 2, 3].map(item => (
+                                    <div
+                                        key={item}
+                                        className="flex flex-col sm:flex-row items-stretch gap-4 p-4 rounded-md border border-border bg-card animate-pulse"
+                                    >
+                                        <div className="w-full sm:w-24 h-24 rounded bg-muted flex-shrink-0" />
+                                        <div className="flex-1 space-y-3 py-2">
+                                            <div className="h-5 w-1/3 rounded bg-muted" />
+                                            <div className="h-3 w-2/3 rounded bg-muted" />
+                                        </div>
+                                        <div className="w-full sm:w-32 h-12 rounded bg-muted flex-shrink-0" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="space-y-4 max-w-5xl mx-auto">
+                                {packProducts.map(product => (
+                                    <Link
+                                        key={product.id}
+                                        to={`/product/${product.id}`}
+                                        className="flex flex-col sm:flex-row items-stretch rounded-md border border-border bg-card overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                                    >
+                                        {/* Ribbon */}
+                                        <div className="flex sm:flex-col items-center justify-center gap-1 bg-primary text-primary-foreground px-4 py-3 sm:py-6 sm:w-24 flex-shrink-0 text-center">
+                                            <Package className="h-5 w-5" />
+                                            <span className="text-xs font-semibold leading-tight">
+                                                حزمة
+                                                <br className="hidden sm:block" />{' '}
+                                                (Pack)
+                                            </span>
+                                        </div>
+
+                                        {/* Image */}
+                                        <div className="w-full sm:w-40 h-40 sm:h-auto bg-muted flex items-center justify-center p-3 flex-shrink-0">
+                                            {product.main_image_url ? (
+                                                <img
+                                                    src={
+                                                        product.main_image_url
+                                                    }
+                                                    alt={product.name}
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            ) : (
+                                                <Package className="h-10 w-10 text-muted-foreground" />
+                                            )}
+                                        </div>
+
+                                        {/* Title + description */}
+                                        <div className="flex-1 p-4 sm:p-5 min-w-0 flex flex-col justify-center">
+                                            <h3 className="text-base sm:text-lg font-semibold mb-1 text-foreground">
+                                                {product.name}
+                                            </h3>
+                                            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+                                                {stripHtmlToText(
+                                                    product.description
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        {/* Price + CTA */}
+                                        <div className="flex sm:flex-col items-center justify-center gap-3 p-4 sm:p-5 border-t sm:border-t-0 sm:border-r border-border flex-shrink-0">
+                                            <div className="text-center">
+                                                <p className="text-xs text-muted-foreground mb-1">
+                                                    السعر
+                                                </p>
+                                                <p className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap">
+                                                    {product.price} د.ج
+                                                </p>
+                                            </div>
+                                            <Button className="bg-primary text-primary-foreground hover:opacity-90 whitespace-nowrap">
+                                                عرض الحزمة
+                                            </Button>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+
+                        {packsHasMore && (
+                            <div className="text-center mt-8 sm:mt-10">
+                                <Link
+                                    to={`/shop?category=${encodeURIComponent(PACKS_CATEGORY_NAME)}`}
+                                >
+                                    <Button
+                                        variant=""
+                                        size="lg"
+                                        className="text-sm sm:text-base shadow-none border-primary px-6 py-3 min-h-[44px] text-foreground"
+                                    >
+                                        عرض المزيد من العروض
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
 
             {/* عروض — flat sale-price discounts, standalone section. "View
-                more" goes to the shop pre-filtered to hasDiscount only. */}
+                more" goes to the shop pre-filtered to hasDiscount only.
+                Unchanged card-grid layout. */}
             {(isOffersLoading || offerProducts.length > 0) &&
                 renderPromoSection({
                     title: 'عروض',
@@ -563,20 +651,112 @@ const Index = () => {
                     viewMoreLink: '/shop?hasDiscount=true',
                 })}
 
-            {/* خصم عند الكمية — quantity-threshold discounts, kept as its
-                own section since it's a distinct promo mechanic from a
-                flat sale price or a bundle. "View more" goes to the shop
-                pre-filtered to hasQuantityDiscount only. */}
-            {(isQuantityLoading || quantityProducts.length > 0) &&
-                renderPromoSection({
-                    title: 'خصم عند شراء اكثر من كمية محددة',
-                    subtitle: 'كلما زادت الكمية، انخفض السعر لكل قطعة',
-                    isLoading: isQuantityLoading,
-                    products: quantityProducts,
-                    hasMore: quantityHasMore,
-                    className: 'bg-card/40',
-                    viewMoreLink: '/shop?hasQuantityDiscount=true',
-                })}
+            {/* خصم عند الكمية — quantity-threshold discounts. Dedicated
+                badge-card grid layout matching the reference design: a
+                corner ribbon showing the required quantity, then image,
+                title, description, and a "price per piece" footer row. */}
+            {(isQuantityLoading || quantityProducts.length > 0) && (
+                <section className="py-10 sm:py-14 md:py-20 px-3 sm:px-4 bg-card/40">
+                    <div className="container mx-auto">
+                        <div className="text-center mb-8 sm:mb-12">
+                            <h2 className="text-xl xs:text-2xl sm:text-3xl font-bold inline-block relative pb-3 text-foreground">
+                                خصم عند شراء اكثر من كمية محددة
+                                <span className="absolute bottom-0 right-1/2 translate-x-1/2 w-16 h-1 rounded-full bg-primary" />
+                            </h2>
+                            <p className="text-sm sm:text-base mt-3 max-w-xl mx-auto text-muted-foreground">
+                                كلما زادت الكمية، انخفض السعر لكل قطعة
+                            </p>
+                        </div>
+
+                        {isQuantityLoading ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+                                {[1, 2, 3].map(item => (
+                                    <div
+                                        key={item}
+                                        className="rounded-md border border-border bg-card overflow-hidden animate-pulse"
+                                    >
+                                        <div className="h-40 sm:h-44 bg-muted" />
+                                        <div className="p-5 sm:p-6 space-y-3">
+                                            <div className="h-5 sm:h-6 rounded w-2/3 bg-muted" />
+                                            <div className="h-3 sm:h-4 rounded bg-muted" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+                                {quantityProducts.slice(0, 6).map(product => (
+                                    <Link
+                                        key={product.id}
+                                        to={`/product/${product.id}`}
+                                        className="relative block rounded-md border border-border bg-card overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                                    >
+                                        {/* Corner ribbon: required quantity */}
+                                        <div className="absolute top-0 right-0 z-10 bg-secondary text-secondary-foreground text-center px-3 py-2 rounded-bl-md leading-tight">
+                                            <p className="text-[10px]">
+                                                خصم عند شراء أكثر من
+                                            </p>
+                                            <p className="text-xl font-bold">
+                                                {product.discount_threshold}
+                                            </p>
+                                            <p className="text-[10px]">
+                                                قطعة
+                                            </p>
+                                        </div>
+
+                                        <div className="h-40 sm:h-44 bg-muted flex items-center justify-center p-3">
+                                            {product.main_image_url ? (
+                                                <img
+                                                    src={
+                                                        product.main_image_url
+                                                    }
+                                                    alt={product.name}
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            ) : (
+                                                <Package className="h-10 w-10 text-muted-foreground" />
+                                            )}
+                                        </div>
+
+                                        <div className="p-5 sm:p-6">
+                                            <h3 className="text-base sm:text-lg font-semibold mb-2 leading-tight text-foreground">
+                                                {product.name}
+                                            </h3>
+                                            <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground line-clamp-2 mb-3">
+                                                {stripHtmlToText(
+                                                    product.description
+                                                )}
+                                            </p>
+                                            <div className="flex items-center justify-between border-t border-border pt-3">
+                                                <span className="text-xs sm:text-sm text-muted-foreground">
+                                                    السعر لكل قطعة
+                                                </span>
+                                                <span className="text-base sm:text-lg font-bold text-primary">
+                                                    {product.price} د.ج
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+
+                        {quantityHasMore && (
+                            <div className="text-center mt-8 sm:mt-10">
+                                <Link to="/shop?hasQuantityDiscount=true">
+                                    <Button
+                                        variant=""
+                                        size="lg"
+                                        className="text-sm sm:text-base shadow-none border-primary px-6 py-3 min-h-[44px] text-foreground"
+                                    >
+                                        عرض المزيد من العروض
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
 
             {/* Why Us */}
             <section className="px-3 sm:px-4 pb-10 sm:pb-14 md:pb-20">
