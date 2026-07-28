@@ -61,6 +61,10 @@ const Filters = ({
         onFiltersChange({ ...activeFilters, hasDiscount: checked });
     };
 
+    const handleQuantityDiscountChange = checked => {
+        onFiltersChange({ ...activeFilters, hasQuantityDiscount: checked });
+    };
+
     const clearAllFilters = () => {
         onFiltersChange({
             categories: [],
@@ -68,6 +72,7 @@ const Filters = ({
             tags: [],
             priceRange: options.priceRange,
             hasDiscount: false,
+            hasQuantityDiscount: false,
         });
     };
 
@@ -76,7 +81,8 @@ const Filters = ({
             activeFilters.categories.length +
             activeFilters.subcategories.length +
             activeFilters.tags.length +
-            (activeFilters.hasDiscount ? 1 : 0)
+            (activeFilters.hasDiscount ? 1 : 0) +
+            (activeFilters.hasQuantityDiscount ? 1 : 0)
         );
     };
 
@@ -302,7 +308,7 @@ const Filters = ({
                             />
                         </Button>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-3">
+                    <CollapsibleContent className="mt-3 space-y-3">
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 className="bg-muted data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-white [&_svg]:stroke-3"
@@ -315,6 +321,22 @@ const Filters = ({
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                             >
                                 المنتجات المخفضة فقط
+                            </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                className="bg-muted data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-white [&_svg]:stroke-3"
+                                id="has-quantity-discount"
+                                checked={
+                                    activeFilters.hasQuantityDiscount || false
+                                }
+                                onCheckedChange={handleQuantityDiscountChange}
+                            />
+                            <label
+                                htmlFor="has-quantity-discount"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                                خصم عند شراء كمية أكبر
                             </label>
                         </div>
                     </CollapsibleContent>

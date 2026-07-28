@@ -262,6 +262,7 @@ const Index = () => {
         isLoading,
         products,
         hasMore,
+        viewMoreLink = '/shop',
         className = 'bg-card/40',
     }) => (
         <section
@@ -367,7 +368,7 @@ const Index = () => {
 
                 {hasMore && (
                     <div className="text-center mt-8 sm:mt-10">
-                        <Link to="/shop">
+                        <Link to={viewMoreLink}>
                             <Button
                                 variant=""
                                 size="lg"
@@ -535,7 +536,9 @@ const Index = () => {
                 </div>
             </section>
 
-            {/* حزم — pack-category products, standalone section. */}
+            {/* حزم — pack-category products, standalone section. "View more"
+                goes to the shop pre-filtered to just the Packs category, so
+                the visitor lands on packs alone, not the mixed catalog. */}
             {(isPacksLoading || packProducts.length > 0) &&
                 renderPromoSection({
                     title: ' (Packs)حزم',
@@ -544,9 +547,11 @@ const Index = () => {
                     isLoading: isPacksLoading,
                     products: packProducts,
                     hasMore: packsHasMore,
+                    viewMoreLink: `/shop?category=${encodeURIComponent(PACKS_CATEGORY_NAME)}`,
                 })}
 
-            {/* عروض — flat sale-price discounts, standalone section. */}
+            {/* عروض — flat sale-price discounts, standalone section. "View
+                more" goes to the shop pre-filtered to hasDiscount only. */}
             {(isOffersLoading || offerProducts.length > 0) &&
                 renderPromoSection({
                     title: 'عروض',
@@ -555,11 +560,13 @@ const Index = () => {
                     products: offerProducts,
                     hasMore: offersHasMore,
                     className: 'bg-background',
+                    viewMoreLink: '/shop?hasDiscount=true',
                 })}
 
             {/* خصم عند الكمية — quantity-threshold discounts, kept as its
                 own section since it's a distinct promo mechanic from a
-                flat sale price or a bundle. */}
+                flat sale price or a bundle. "View more" goes to the shop
+                pre-filtered to hasQuantityDiscount only. */}
             {(isQuantityLoading || quantityProducts.length > 0) &&
                 renderPromoSection({
                     title: 'خصم عند شراء اكثر من كمية محددة',
@@ -568,6 +575,7 @@ const Index = () => {
                     products: quantityProducts,
                     hasMore: quantityHasMore,
                     className: 'bg-card/40',
+                    viewMoreLink: '/shop?hasQuantityDiscount=true',
                 })}
 
             {/* Why Us */}

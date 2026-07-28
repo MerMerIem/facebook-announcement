@@ -40,13 +40,17 @@ const Shop = () => {
 
     const searchQuery = searchParams.get('search') || '';
     const categoryFilter = searchParams.get('category');
+    const hasDiscountFilter = searchParams.get('hasDiscount') === 'true';
+    const hasQuantityDiscountFilter =
+        searchParams.get('hasQuantityDiscount') === 'true';
 
     const [filters, setFilters] = useState({
         categories: categoryFilter ? [parseInt(categoryFilter)] : [],
         subcategories: [],
         tags: [],
         priceRange: [0, 50000],
-        hasDiscount: false,
+        hasDiscount: hasDiscountFilter,
+        hasQuantityDiscount: hasQuantityDiscountFilter,
     });
 
     // Fetch filter options from API
@@ -163,6 +167,18 @@ const Shop = () => {
         }
     }, [categoryFilter, filterOptions.categories]);
 
+    // Keep the discount / quantity-discount filters in sync with the URL —
+    // this is what makes the "view more" buttons on the home page (which
+    // link to /shop?hasDiscount=true or /shop?hasQuantityDiscount=true)
+    // land pre-filtered instead of showing the full catalog.
+    useEffect(() => {
+        setFilters(prev => ({
+            ...prev,
+            hasDiscount: hasDiscountFilter,
+            hasQuantityDiscount: hasQuantityDiscountFilter,
+        }));
+    }, [hasDiscountFilter, hasQuantityDiscountFilter]);
+
     // Helper function to convert tag IDs to names
     const getTagNamesByIds = tagIds => {
         return tagIds
@@ -237,6 +253,10 @@ const Shop = () => {
 
             if (filters.hasDiscount) {
                 queryParams.set('hasDiscount', 'true');
+            }
+
+            if (filters.hasQuantityDiscount) {
+                queryParams.set('hasQuantityDiscount', 'true');
             }
 
             // Add sorting
@@ -361,6 +381,21 @@ const Shop = () => {
             params.delete('category');
         }
 
+        // Keep hasDiscount / hasQuantityDiscount reflected in the URL too,
+        // so toggling them in the sidebar is shareable/bookmarkable just
+        // like the promo buttons on the home page.
+        if (newFilters.hasDiscount) {
+            params.set('hasDiscount', 'true');
+        } else {
+            params.delete('hasDiscount');
+        }
+
+        if (newFilters.hasQuantityDiscount) {
+            params.set('hasQuantityDiscount', 'true');
+        } else {
+            params.delete('hasQuantityDiscount');
+        }
+
         setSearchParams(params);
     };
 
@@ -372,6 +407,7 @@ const Shop = () => {
             tags: [],
             priceRange: [0, 50000],
             hasDiscount: false,
+            hasQuantityDiscount: false,
         });
 
         // Clear URL parameters
